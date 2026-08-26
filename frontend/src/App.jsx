@@ -21,7 +21,8 @@ import {
   Chip
 } from '@mui/material'
 import { pingSystem } from './apis/systemApi'
-import { getUploadUrl, completeUpload, getViewUrl, fetchFiles, updateFileMetadata } from './apis/documentApi'
+import { getUploadUrl, completeUpload, getViewUrl, fetchFiles, updateFileMetadata, deleteFile } from './apis/documentApi'
+
 
 // File validation mapping
 const ALLOWED_EXTENSIONS = {
@@ -105,6 +106,15 @@ const EyeIcon = () => (
   </svg>
 )
 
+const TrashIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </svg>
+)
+
+
 function App() {
   // Theme state persisted in localStorage
   const [darkMode, setDarkMode] = useState(() => {
@@ -140,6 +150,12 @@ function App() {
   const [editDescription, setEditDescription] = useState('')
   const [editTags, setEditTags] = useState([])
   const [tagInput, setTagInput] = useState('')
+
+  // Delete modal states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [docToDelete, setDocToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
 
   // Load verified files from database
   const loadDocuments = async () => {
@@ -235,6 +251,38 @@ function App() {
       setError(err.message || 'Failed to update metadata.')
     }
   }
+
+  // Handle prompting deletion modal
+  const handlePromptDelete = (doc) => {
+    setDocToDelete(doc)
+    setDeleteConfirmOpen(true)
+  }
+
+  // Handle confirming file deletion
+  const handleConfirmDelete = async () => {
+    if (!docToDelete) return
+
+    setDeleting(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await deleteFile(docToDelete.fileId)
+      setDeleteConfirmOpen(false)
+      const docName = docToDelete.title || docToDelete.filename
+      setDocToDelete(null)
+      loadDocuments()
+      setSuccess({
+        message: `Document "${docName}" permanently deleted.`,
+        key: null,
+      })
+    } catch (err) {
+      console.error('Failed to delete document:', err)
+      setError(err.response?.data?.detail || err.message || 'Failed to delete file.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
 
   // Handle document upload directly to S3 storage via presigned URL with two-step verification
   const handleUpload = async () => {
@@ -966,7 +1014,26 @@ function App() {
                           >
                             View
                           </Button>
+                          <IconButton 
+                            size="small"
+                            onClick={() => handlePromptDelete(doc)}
+                            title="Delete document"
+                            sx={{ 
+                              border: '1px solid', 
+                              borderColor: 'divider', 
+                              borderRadius: '6px',
+                              color: '#ff4d4f',
+                              p: '5px',
+                              '&:hover': {
+                                borderColor: '#ff4d4f',
+                                backgroundColor: darkMode ? 'rgba(255, 77, 79, 0.12)' : 'rgba(255, 77, 79, 0.06)'
+                              }
+                            }}
+                          >
+                            <TrashIcon />
+                          </IconButton>
                         </Box>
+
                       </Box>
                     </Paper>
                   </Grid>
@@ -1146,6 +1213,64 @@ function App() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog 
+          open={deleteConfirmOpen} 
+          onClose={() => !deleting && setDeleteConfirmOpen(false)}
+          fullWidth
+          maxWidth="xs"
+          PaperProps={{
+            sx: {
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: '8px',
+              backgroundImage: 'none',
+              boxShadow: 'none',
+              p: 2
+            }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1.15rem', letterSpacing: '-0.02em', px: 2, pt: 1, pb: 1, color: '#ff4d4f', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AlertIcon /> Confirm Permanent Deletion
+          </DialogTitle>
+          <DialogContent sx={{ px: 2, py: 1.5 }}>
+            <Typography variant="body2" color="text.primary" sx={{ mb: 2, fontWeight: 500 }}>
+              Are you sure you want to permanently delete <strong>{docToDelete?.title || docToDelete?.filename}</strong>?
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', p: 1.5, borderRadius: '6px', backgroundColor: darkMode ? 'rgba(255,77,79,0.08)' : 'rgba(255,77,79,0.04)', border: '1px solid rgba(255,77,79,0.2)' }}>
+              This will permanently delete the file from Backblaze B2 cloud storage and MySQL database. This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ px: 2, pb: 1, gap: 1 }}>
+            <Button 
+              disabled={deleting}
+              onClick={() => setDeleteConfirmOpen(false)}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="contained"
+              disabled={deleting}
+              onClick={handleConfirmDelete}
+              sx={{
+                backgroundColor: '#ff4d4f',
+                color: '#ffffff',
+                '&:hover': {
+                  backgroundColor: '#d9363e',
+                }
+              }}
+            >
+              {deleting ? 'Deleting...' : 'Delete Document'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
 
         {/* Minimal Footer */}
         <Box 

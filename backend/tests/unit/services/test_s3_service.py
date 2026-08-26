@@ -6,7 +6,9 @@ from app.services.AWS.s3_service import (
     check_object_exists,
     create_presigned_get_url,
     get_object_metadata,
+    delete_s3_object,
 )
+
 from app.core.config import settings
 
 
@@ -110,5 +112,29 @@ def test_get_object_metadata_not_found():
 
         with pytest.raises(FileNotFoundError, match="does not exist in storage"):
             get_object_metadata("uploads/nonexistent.pdf")
+
+
+def test_delete_s3_object_success():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+
+        delete_s3_object("uploads/valid.pdf")
+        mock_s3.delete_object.assert_called_once_with(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key="uploads/valid.pdf",
+        )
+
+
+def test_delete_s3_object_failure():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        error_response = {"Error": {"Code": "500", "Message": "Internal Error"}}
+        mock_s3.delete_object.side_effect = ClientError(error_response, "delete_object")
+
+        with pytest.raises(RuntimeError, match="Failed to delete S3 object"):
+            delete_s3_object("uploads/file.pdf")
+
 
 

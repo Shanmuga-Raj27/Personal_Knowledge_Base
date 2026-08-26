@@ -148,3 +148,13 @@ def get_object_metadata(key: str) -> dict:
         raise RuntimeError("Failed to fetch S3 object metadata.") from exc
 
 
+def delete_s3_object(key: str) -> None:
+    """Delete an object from S3/Backblaze B2 storage bucket."""
+    s3_client = _get_s3_client()
+    try:
+        s3_client.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+    except (ClientError, BotoCoreError) as exc:
+        raise RuntimeError(f"Failed to delete S3 object '{key}': {str(exc)}") from exc
+
+
+

@@ -55,4 +55,14 @@ export const updateFileMetadata = (fileId, payload) => {
   return axiosClient.patch(`/files/${fileId}`, payload)
 }
 
+/**
+ * Delete a document from cloud storage and metadata database.
+ * @param {number} fileId The primary key ID of the file.
+ * @returns {Promise<{ success: boolean, message: string, fileId: number }>}
+ */
+export const deleteFile = (fileId) => {
+  return axiosClient.delete(`/files/${fileId}`)
+}
+
+
 

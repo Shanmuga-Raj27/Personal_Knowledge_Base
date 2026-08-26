@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
@@ -17,7 +19,11 @@ from app.services.AWS.s3_service import (
     create_presigned_put_url,
     create_presigned_get_url,
     get_object_metadata,
+    delete_s3_object,
 )
+
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -165,5 +171,50 @@ async def update_metadata(
     db.commit()
     db.refresh(db_file)
     return db_file
+
+
+@router.delete("/{fileid}", status_code=status.HTTP_200_OK)
+async def delete_file(fileid: int, db: Session = Depends(get_db)):
+    """Delete a document from S3 storage and MySQL database."""
+    db_file = (
+        db.query(FileMetadata)
+        .filter(FileMetadata.fileid == fileid)
+        .first()
+    )
+    if not db_file:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File record not found.",
+        )
+
+    s3_key = db_file.s3_key
+
+    # Step 1: Delete S3 object first
+    try:
+        delete_s3_object(s3_key)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete object from S3 storage: {str(exc)}",
+        ) from exc
+
+    # Step 2: Delete database record after S3 delete succeeds
+    try:
+        db.delete(db_file)
+        db.commit()
+    except Exception as exc:
+        logger.critical(
+            "DESYNCHRONIZATION DETECTED: Storage object '%s' was deleted from S3, but database record (id=%s) failed to delete: %s",
+            s3_key,
+            fileid,
+            str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database deletion failed after storage object was removed.",
+        ) from exc
+
+    return {"success": True, "message": "File deleted successfully.", "fileId": fileid}
+
 
 

@@ -223,3 +223,94 @@ def test_update_metadata_route_success():
     assert mock_file.description == "New Desc"
     assert mock_file.tags == "newtag1,newtag2"
     mock_db_session.commit.assert_called_once()
+
+
+def test_delete_file_route_success():
+    with patch("app.apis.routes.upload_file.delete_s3_object") as mock_delete_s3:
+        mock_file = FileMetadata(
+            fileid=42,
+            s3_key="uploads/123_test.txt",
+            filename="test.txt",
+            content_type="text/plain",
+            size_bytes=100,
+            status="active",
+            title="Title",
+            description="Desc",
+            tags="tag",
+            userid=None,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        mock_db_session.query().filter().first.return_value = mock_file
+
+        response = client.delete("/files/42")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["fileId"] == 42
+        mock_delete_s3.assert_called_once_with("uploads/123_test.txt")
+        mock_db_session.delete.assert_called_once_with(mock_file)
+        mock_db_session.commit.assert_called_once()
+
+
+def test_delete_file_route_not_found():
+    mock_db_session.query().filter().first.return_value = None
+
+    response = client.delete("/files/999")
+
+    assert response.status_code == 404
+    assert "File record not found" in response.json()["detail"]
+
+
+def test_delete_file_route_failed_s3():
+    with patch("app.apis.routes.upload_file.delete_s3_object") as mock_delete_s3:
+        mock_delete_s3.side_effect = RuntimeError("S3 delete failed")
+        mock_file = FileMetadata(
+            fileid=42,
+            s3_key="uploads/123_test.txt",
+            filename="test.txt",
+            content_type="text/plain",
+            size_bytes=100,
+            status="active",
+            title="Title",
+            description="Desc",
+            tags="tag",
+            userid=None,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        mock_db_session.query().filter().first.return_value = mock_file
+
+        response = client.delete("/files/42")
+
+        assert response.status_code == 500
+        assert "Failed to delete object from S3 storage" in response.json()["detail"]
+        mock_db_session.delete.assert_not_called()
+
+
+def test_delete_file_route_failed_db():
+    with patch("app.apis.routes.upload_file.delete_s3_object") as mock_delete_s3:
+        mock_file = FileMetadata(
+            fileid=42,
+            s3_key="uploads/123_test.txt",
+            filename="test.txt",
+            content_type="text/plain",
+            size_bytes=100,
+            status="active",
+            title="Title",
+            description="Desc",
+            tags="tag",
+            userid=None,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        mock_db_session.query().filter().first.return_value = mock_file
+        mock_db_session.commit.side_effect = Exception("Database connection failure")
+
+        response = client.delete("/files/42")
+
+        assert response.status_code == 500
+        assert "Database deletion failed after storage object was removed" in response.json()["detail"]
+        mock_delete_s3.assert_called_once_with("uploads/123_test.txt")
+
