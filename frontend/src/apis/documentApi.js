@@ -12,3 +12,28 @@ export const getUploadUrl = (filename, contentType) => {
     contentType,
   })
 }
+
+/**
+ * Verify S3 upload completion with backend.
+ * @param {string} key S3 object key.
+ * @param {string} filename Original filename.
+ * @returns {Promise<{ verified: boolean, key: string, message: string }>}
+ */
+export const completeUpload = (key, filename = '') => {
+  return axiosClient.post('/files/upload-complete', {
+    key,
+    filename,
+  })
+}
+
+/**
+ * Request a presigned S3 GET URL to view or download a file.
+ * @param {string} key S3 object key.
+ * @returns {Promise<{ viewUrl: string, key: string, expires_in: number }>}
+ */
+export const getViewUrl = (key) => {
+  return axiosClient.post('/files/view-url', {
+    key,
+  })
+}
+

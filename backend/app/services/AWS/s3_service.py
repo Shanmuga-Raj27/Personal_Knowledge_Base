@@ -49,13 +49,24 @@ def create_presigned_put_url(filename: str, content_type: str) -> dict:
 
     key = generate_safe_key(filename)
 
-    s3_client = boto3.client(
+def _get_s3_client():
+    """Create and return a boto3 S3 client."""
+    return boto3.client(
         "s3",
         region_name=settings.AWS_REGION,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         endpoint_url=settings.AWS_ENDPOINT_URL,
     )
+
+
+def create_presigned_put_url(filename: str, content_type: str) -> dict:
+    """Generate a presigned PUT URL for direct S3 upload."""
+    if not validate_mime_type(content_type):
+        raise ValueError(f"Unsupported file type: {content_type}")
+
+    key = generate_safe_key(filename)
+    s3_client = _get_s3_client()
 
     try:
         response = s3_client.generate_presigned_url(
@@ -75,3 +86,45 @@ def create_presigned_put_url(filename: str, content_type: str) -> dict:
         "key": key,
         "expires_in": settings.S3_PRESIGNED_URL_EXPIRY,
     }
+
+
+def check_object_exists(key: str) -> bool:
+    """Check if an object exists in the S3 bucket using head_object."""
+    s3_client = _get_s3_client()
+    try:
+        s3_client.head_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+        return True
+    except ClientError as exc:
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        status_code = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+        if error_code in ("404", "NoSuchKey", "NotFound") or status_code == 404:
+            return False
+        raise RuntimeError(f"Failed to check S3 object existence: {str(exc)}") from exc
+    except BotoCoreError as exc:
+        raise RuntimeError("Failed to check S3 object existence.") from exc
+
+
+def create_presigned_get_url(key: str, expires_in: int = 300) -> dict:
+    """Generate a short-lived presigned GET URL to view/download an object from S3."""
+    if not check_object_exists(key):
+        raise FileNotFoundError(f"File object with key '{key}' does not exist in storage.")
+
+    s3_client = _get_s3_client()
+    try:
+        response = s3_client.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={
+                "Bucket": settings.S3_BUCKET_NAME,
+                "Key": key,
+            },
+            ExpiresIn=expires_in,
+        )
+    except (ClientError, BotoCoreError) as exc:
+        raise RuntimeError("Failed to generate presigned GET URL.") from exc
+
+    return {
+        "view_url": response,
+        "key": key,
+        "expires_in": expires_in,
+    }
+
