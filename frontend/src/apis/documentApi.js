@@ -37,3 +37,22 @@ export const getViewUrl = (key) => {
   })
 }
 
+/**
+ * Fetch all verified document metadata records from the backend.
+ * @returns {Promise<Array<object>>}
+ */
+export const fetchFiles = () => {
+  return axiosClient.get('/files')
+}
+
+/**
+ * Update custom metadata fields (title, description, tags) for a file.
+ * @param {number} fileId The primary key ID of the file.
+ * @param {{ title?: string, description?: string, tags?: string }} payload Metadata updates.
+ * @returns {Promise<object>} The updated file metadata.
+ */
+export const updateFileMetadata = (fileId, payload) => {
+  return axiosClient.patch(`/files/${fileId}`, payload)
+}
+
+

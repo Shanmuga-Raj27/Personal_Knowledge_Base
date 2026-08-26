@@ -12,10 +12,16 @@ import {
   Grid,
   Paper,
   LinearProgress,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Chip
 } from '@mui/material'
 import { pingSystem } from './apis/systemApi'
-import { getUploadUrl, completeUpload, getViewUrl } from './apis/documentApi'
+import { getUploadUrl, completeUpload, getViewUrl, fetchFiles, updateFileMetadata } from './apis/documentApi'
 
 // File validation mapping
 const ALLOWED_EXTENSIONS = {
@@ -123,12 +129,38 @@ function App() {
   const [lastUploadedKey, setLastUploadedKey] = useState(null)
   const [backendStatus, setBackendStatus] = useState('checking')
 
-  // Check backend connectivity on mount
+  // Document management states
+  const [documents, setDocuments] = useState([])
+  const [loadingDocs, setLoadingDocs] = useState(false)
+
+  // Edit metadata modal states
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingDoc, setEditingDoc] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editTags, setEditTags] = useState([])
+  const [tagInput, setTagInput] = useState('')
+
+  // Load verified files from database
+  const loadDocuments = async () => {
+    setLoadingDocs(true)
+    try {
+      const docs = await fetchFiles()
+      setDocuments(docs)
+    } catch (err) {
+      console.error('Failed to load documents:', err)
+    } finally {
+      setLoadingDocs(false)
+    }
+  }
+
+  // Check backend connectivity and load documents on mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
         await pingSystem()
         setBackendStatus('online')
+        loadDocuments()
       } catch (err) {
         console.error('Backend connection check failed:', err)
         setBackendStatus('offline')
@@ -155,6 +187,53 @@ function App() {
     }
 
     setFile(selectedFile)
+  }
+
+  // Handle starting metadata customization
+  const handleStartEdit = (doc) => {
+    setEditingDoc(doc)
+    setEditTitle(doc.title || '')
+    setEditDescription(doc.description || '')
+    const parsedTags = doc.tags ? doc.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+    setEditTags(parsedTags)
+    setTagInput('')
+    setEditOpen(true)
+  }
+
+  // Add tag chip in form
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim()
+    if (trimmed && !editTags.includes(trimmed)) {
+      setEditTags([...editTags, trimmed])
+    }
+    setTagInput('')
+  }
+
+  // Remove tag chip in form
+  const handleRemoveTag = (tagToRemove) => {
+    setEditTags(editTags.filter(t => t !== tagToRemove))
+  }
+
+  // Submit metadata changes to database
+  const handleSaveMetadata = async () => {
+    if (!editingDoc) return
+    try {
+      const tagsString = editTags.join(',')
+      await updateFileMetadata(editingDoc.fileId, {
+        title: editTitle,
+        description: editDescription,
+        tags: tagsString
+      })
+      setEditOpen(false)
+      loadDocuments()
+      setSuccess({
+        message: 'Document metadata updated successfully.',
+        key: editingDoc.s3Key
+      })
+    } catch (err) {
+      console.error('Failed to save metadata:', err)
+      setError(err.message || 'Failed to update metadata.')
+    }
   }
 
   // Handle document upload directly to S3 storage via presigned URL with two-step verification
@@ -210,6 +289,12 @@ function App() {
         })
         setLastUploadedKey(key)
         setFile(null)
+        loadDocuments() // Refresh list
+
+        // Prompt metadata customization immediately after file upload
+        if (verifyRes.metadata) {
+          handleStartEdit(verifyRes.metadata)
+        }
       } else {
         throw new Error('Upload verification failed. File not found in storage.')
       }
@@ -241,6 +326,59 @@ function App() {
       setViewLoading(false)
     }
   }
+
+  // Helper functions for metadata presentation
+  const getFileTypeIcon = (contentType, filename) => {
+    const name = (filename || '').toLowerCase()
+    if (contentType === 'application/pdf' || name.endsWith('.pdf')) {
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M9 15h6" />
+          <path d="M9 11h6" />
+        </svg>
+      )
+    }
+    if (contentType === 'text/markdown' || name.endsWith('.md')) {
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1890ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M9 13h6" />
+          <path d="M9 17h6" />
+        </svg>
+      )
+    }
+    if (name.endsWith('.docx')) {
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#722ed1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M10 9H8" />
+          <path d="M16 13H8" />
+          <path d="M16 17H8" />
+        </svg>
+      )
+    }
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#52c41a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+        <path d="M9 12h6" />
+        <path d="M9 16h6" />
+      </svg>
+    )
+  }
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  }
+
 
   // Build minimalist high contrast theme dynamically (with Slate Gray/Coal color background)
   const theme = useMemo(() => createTheme({
@@ -644,12 +782,370 @@ function App() {
                   >
                     {uploading ? (verifying ? 'Verifying Upload...' : 'Transferring...') : 'Upload Document'}
                   </Button>
-                </Box>
+                 </Box>
               </Paper>
             </Grid>
 
           </Grid>
+
+          {/* Document Library Section */}
+          <Box sx={{ mt: 10, mb: 4 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em' }}>
+              Document Vault
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+              Your securely stored files and metadata. Click View to open or edit to modify details.
+            </Typography>
+
+            {loadingDocs ? (
+              <Box sx={{ width: '100%', py: 4 }}>
+                <LinearProgress sx={{ height: 2, borderRadius: 1 }} />
+              </Box>
+            ) : documents.length === 0 ? (
+              <Paper 
+                variant="outlined" 
+                sx={{ 
+                  py: 8, 
+                  textAlign: 'center', 
+                  borderColor: 'divider', 
+                  backgroundColor: 'transparent',
+                  borderStyle: 'dashed'
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  No verified documents found in vault. Select a file above and upload to begin.
+                </Typography>
+              </Paper>
+            ) : (
+              <Grid container spacing={3}>
+                {documents.map((doc) => (
+                  <Grid item xs={12} sm={6} md={4} key={doc.fileId}>
+                    <Paper 
+                      variant="outlined" 
+                      sx={{ 
+                        p: 3, 
+                        height: '100%', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        borderColor: 'divider',
+                        borderRadius: '8px',
+                        backgroundColor: 'background.paper',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: 'text.primary',
+                        }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                          {getFileTypeIcon(doc.contentType, doc.filename)}
+                        </Box>
+                        <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
+                          <Typography 
+                            variant="subtitle1" 
+                            sx={{ 
+                              fontWeight: 700, 
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              mb: 0.5
+                            }}
+                          >
+                            {doc.title || doc.filename}
+                          </Typography>
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary" 
+                            sx={{ 
+                              display: 'block',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {doc.filename}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          fontSize: '0.82rem',
+                          lineHeight: 1.5,
+                          mb: 3,
+                          flexGrow: 1,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          fontStyle: doc.description ? 'normal' : 'italic'
+                        }}
+                      >
+                        {doc.description || 'No description provided.'}
+                      </Typography>
+
+                      {/* Display Tags */}
+                      <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 3 }}>
+                        {doc.tags ? (
+                          doc.tags.split(',').map((tag) => (
+                            <Chip 
+                              key={tag.trim()} 
+                              label={tag.trim()} 
+                              variant="outlined"
+                              size="small"
+                              sx={{ 
+                                borderRadius: '4px', 
+                                fontSize: '0.72rem', 
+                                fontWeight: 700,
+                                height: 22,
+                                borderColor: 'divider',
+                                color: 'text.secondary'
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.72rem' }}>
+                            no tags
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Card Actions Footer */}
+                      <Box 
+                        sx={{ 
+                          pt: 2, 
+                          borderTop: '1px solid', 
+                          borderColor: 'divider',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: 1
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          {formatFileSize(doc.sizeBytes)}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button 
+                            size="small" 
+                            variant="outlined"
+                            onClick={() => handleStartEdit(doc)}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              py: 0.5,
+                              px: 1.5,
+                              borderColor: 'divider',
+                              color: 'text.primary',
+                              '&:hover': {
+                                borderColor: 'text.primary',
+                                backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            size="small" 
+                            variant="contained"
+                            onClick={() => handleViewFile(doc.s3Key)}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              py: 0.5,
+                              px: 1.5,
+                              backgroundColor: 'text.primary',
+                              color: 'background.default',
+                              '&:hover': {
+                                backgroundColor: 'background.default',
+                                color: 'text.primary',
+                                borderColor: 'text.primary',
+                              }
+                            }}
+                          >
+                            View
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
         </Container>
+
+        {/* Metadata Customization Dialog */}
+        <Dialog 
+          open={editOpen} 
+          onClose={() => setEditOpen(false)}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: {
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: '8px',
+              backgroundImage: 'none',
+              boxShadow: 'none',
+              p: 2
+            }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1.25rem', letterSpacing: '-0.02em', px: 3, pt: 2, pb: 1 }}>
+            Customize File Details
+          </DialogTitle>
+          <DialogContent sx={{ px: 3, py: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', display: 'block', mb: 1 }}>
+                Original File
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: '6px', backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.01)' : 'rgba(0, 0, 0, 0.005)' }}>
+                {editingDoc && getFileTypeIcon(editingDoc.contentType, editingDoc.filename)}
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {editingDoc?.filename}
+                </Typography>
+              </Box>
+            </div>
+
+            <TextField
+              label="Document Title"
+              fullWidth
+              variant="outlined"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="e.g. Q3 Financial Statement"
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '6px',
+                  '& fieldset': { borderColor: 'divider' },
+                  '&:hover fieldset': { borderColor: 'text.primary' },
+                }
+              }}
+            />
+
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Brief summary of the document contents..."
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '6px',
+                  '& fieldset': { borderColor: 'divider' },
+                  '&:hover fieldset': { borderColor: 'text.primary' },
+                }
+              }}
+            />
+
+            {/* Chip Tag Input Component */}
+            <div>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', display: 'block', mb: 1.5 }}>
+                Tags
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
+                <TextField
+                  placeholder="Add a tag and press Enter"
+                  size="small"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag();
+                    }
+                  }}
+                  sx={{
+                    flexGrow: 1,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '6px',
+                      '& fieldset': { borderColor: 'divider' },
+                      '&:hover fieldset': { borderColor: 'text.primary' },
+                    }
+                  }}
+                />
+                <Button 
+                  variant="outlined" 
+                  onClick={handleAddTag}
+                  sx={{
+                    borderColor: 'divider',
+                    color: 'text.primary',
+                    '&:hover': {
+                      borderColor: 'text.primary',
+                      backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </Box>
+
+              {/* Tag Chips List */}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', minHeight: 32 }}>
+                {editTags.length === 0 ? (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', alignSelf: 'center' }}>
+                    No tags added yet.
+                  </Typography>
+                ) : (
+                  editTags.map((tag) => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      onDelete={() => handleRemoveTag(tag)}
+                      variant="outlined"
+                      sx={{
+                        borderRadius: '4px',
+                        borderColor: 'divider',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        backgroundColor: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                        '& .MuiChip-deleteIcon': {
+                          color: 'text.secondary',
+                          '&:hover': { color: '#ff4d4f' }
+                        }
+                      }}
+                    />
+                  ))
+                )}
+              </Box>
+            </div>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2, gap: 1.5 }}>
+            <Button 
+              onClick={() => setEditOpen(false)}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleSaveMetadata}
+              sx={{
+                backgroundColor: 'text.primary',
+                color: 'background.default',
+                '&:hover': {
+                  backgroundColor: 'background.default',
+                  color: 'text.primary',
+                  borderColor: 'text.primary',
+                }
+              }}
+            >
+              Save Changes
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Minimal Footer */}
         <Box 

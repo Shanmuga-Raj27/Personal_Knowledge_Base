@@ -4,8 +4,11 @@ backend/app/schemas/file.py
 Pydantic schemas for file upload requests and presigned URL responses.
 """
 # backend/app/schemas/file.py
+from typing import Optional
+from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl
 from pydantic.config import ConfigDict
+
 
 class FileUploadRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -19,6 +22,7 @@ class PresignedUrlResponse(BaseModel):
     upload_url: HttpUrl = Field(..., alias="uploadUrl")
     key: str
     expires_in: int
+    file_id: int = Field(..., alias="fileId")
 
 
 class FileUploadCompleteRequest(BaseModel):
@@ -28,12 +32,30 @@ class FileUploadCompleteRequest(BaseModel):
     filename: str = Field(default="", max_length=255)
 
 
+class FileMetadataSchema(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    fileid: int = Field(..., alias="fileId")
+    s3_key: str = Field(..., alias="s3Key")
+    filename: str
+    content_type: Optional[str] = Field(None, alias="contentType")
+    size_bytes: Optional[int] = Field(None, alias="sizeBytes")
+    status: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[str] = None
+    userid: Optional[int] = Field(None, alias="userId")
+    created_at: datetime = Field(..., alias="createdAt")
+    updated_at: datetime = Field(..., alias="updatedAt")
+
+
 class FileUploadCompleteResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     verified: bool
     key: str
     message: str
+    metadata: Optional[FileMetadataSchema] = None
 
 
 class FileViewUrlRequest(BaseModel):
@@ -48,4 +70,13 @@ class FileViewUrlResponse(BaseModel):
     view_url: HttpUrl = Field(..., alias="viewUrl")
     key: str
     expires_in: int
+
+
+class FileMetadataUpdateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    title: Optional[str] = Field(None, max_length=255)
+    description: Optional[str] = Field(None, max_length=1000)
+    tags: Optional[str] = Field(None, max_length=255)
+
 

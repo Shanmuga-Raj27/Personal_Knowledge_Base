@@ -37,11 +37,11 @@ To keep the backend server fast and avoid bottlenecking bandwidth:
 
 ## 3. Database Schema Design (MySQL)
 
-We will define the `documents` table using SQLAlchemy. We will keep tags simple as a comma-separated string for this phase and postpone user ownership fields until authentication is built.
+We will define the `file_metadata` table using SQLAlchemy. We will keep tags simple as a comma-separated string for this phase and postpone user ownership fields until authentication is built.
 
 | Column Name | Data Type | Key / Index | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `Integer` | Primary Key | Unique auto-incrementing ID |
+| `fileid` | `Integer` | Primary Key | Unique auto-incrementing ID |
 | `s3_key` | `String(255)` | Unique, Indexed | The S3 object key (e.g., `uploads/uuid_name.pdf`) |
 | `filename` | `String(255)` | None | The original name of the file |
 | `content_type` | `String(100)` | None | MIME type (e.g., `application/pdf`) |

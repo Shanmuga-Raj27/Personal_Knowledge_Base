@@ -5,6 +5,7 @@ from app.services.AWS.s3_service import (
     create_presigned_put_url,
     check_object_exists,
     create_presigned_get_url,
+    get_object_metadata,
 )
 from app.core.config import settings
 
@@ -84,4 +85,30 @@ def test_create_presigned_get_url_file_not_found():
 
         with pytest.raises(FileNotFoundError, match="does not exist in storage"):
             create_presigned_get_url("uploads/nonexistent.pdf")
+
+
+def test_get_object_metadata_success():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        mock_s3.head_object.return_value = {
+            "ContentLength": 500,
+            "ContentType": "text/markdown",
+        }
+
+        res = get_object_metadata("uploads/doc.md")
+        assert res["size_bytes"] == 500
+        assert res["content_type"] == "text/markdown"
+
+
+def test_get_object_metadata_not_found():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
+        mock_s3.head_object.side_effect = ClientError(error_response, "head_object")
+
+        with pytest.raises(FileNotFoundError, match="does not exist in storage"):
+            get_object_metadata("uploads/nonexistent.pdf")
+
 

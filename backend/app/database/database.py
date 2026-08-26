@@ -12,11 +12,13 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 import os
 
-# Load variables from .env file (DATABASE_URL)
-load_dotenv()
+# Load variables from others/.env file (DATABASE_URL)
+env_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "others", ".env")
+load_dotenv(env_path)
 
 # Read database URL from environment
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 
 # Create SQLAlchemy engine — manages DB connections
 engine = create_engine(DATABASE_URL)

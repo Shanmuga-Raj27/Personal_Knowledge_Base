@@ -128,3 +128,23 @@ def create_presigned_get_url(key: str, expires_in: int = 300) -> dict:
         "expires_in": expires_in,
     }
 
+
+def get_object_metadata(key: str) -> dict:
+    """Fetch object metadata from S3 bucket using head_object."""
+    s3_client = _get_s3_client()
+    try:
+        response = s3_client.head_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+        return {
+            "size_bytes": response.get("ContentLength", 0),
+            "content_type": response.get("ContentType"),
+        }
+    except ClientError as exc:
+        status_code = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        if error_code in ("404", "NoSuchKey", "NotFound") or status_code == 404:
+            raise FileNotFoundError(f"File object with key '{key}' does not exist in storage.") from exc
+        raise RuntimeError(f"Failed to fetch S3 object metadata: {str(exc)}") from exc
+    except BotoCoreError as exc:
+        raise RuntimeError("Failed to fetch S3 object metadata.") from exc
+
+
