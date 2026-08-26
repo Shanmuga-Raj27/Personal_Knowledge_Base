@@ -54,6 +54,7 @@ def create_presigned_put_url(filename: str, content_type: str) -> dict:
         region_name=settings.AWS_REGION,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        endpoint_url=settings.AWS_ENDPOINT_URL,
     )
 
     try:
