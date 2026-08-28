@@ -26,6 +26,15 @@ import SearchHeader from './components/SearchHeader'
 import FileList from './components/FileList'
 import EditMetadataDialog from './components/EditMetadataDialog'
 import DeleteConfirmDialog from './components/DeleteConfirmDialog'
+import AuthPage from './pages/AuthPage'
+
+import {
+  getToken,
+  clearToken,
+  decodeToken,
+  saveToken,
+  isAuthenticated
+} from './services/authService'
 
 // File validation mapping
 const ALLOWED_EXTENSIONS = {
@@ -36,6 +45,18 @@ const ALLOWED_EXTENSIONS = {
 }
 
 function App() {
+  // Session States
+  const [token, setToken] = useState(() => getToken())
+  const [currentUser, setCurrentUser] = useState(() => {
+    const activeToken = getToken()
+    const email = localStorage.getItem('pkb_user_email')
+    if (activeToken && email && isAuthenticated()) {
+      const decoded = decodeToken(activeToken)
+      return { id: decoded?.sub, email }
+    }
+    return null
+  })
+
   // System States
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -80,20 +101,42 @@ function App() {
     }
   }
 
-  // Check backend connectivity and load documents on mount
+  // Check backend connectivity and load documents on mount (or token changes)
   useEffect(() => {
     const checkConnection = async () => {
       try {
         await pingSystem()
         setBackendStatus('online')
-        loadDocuments()
+        if (isAuthenticated()) {
+          loadDocuments()
+        }
       } catch (err) {
         console.error('Backend connection check failed:', err)
         setBackendStatus('offline')
       }
     }
     checkConnection()
-  }, [])
+  }, [token])
+
+  // Login handler
+  const handleLoginSuccess = (accessToken, userEmail) => {
+    saveToken(accessToken)
+    localStorage.setItem('pkb_user_email', userEmail)
+    const decoded = decodeToken(accessToken)
+    setToken(accessToken)
+    setCurrentUser({ id: decoded?.sub, email: userEmail })
+  }
+
+  // Logout handler
+  const handleLogout = () => {
+    clearToken()
+    localStorage.removeItem('pkb_user_email')
+    setToken(null)
+    setCurrentUser(null)
+    setDocuments([])
+    setSuccess(null)
+    setError(null)
+  }
 
   // Handle selected file validation
   const handleFileChange = (e) => {
@@ -343,73 +386,83 @@ function App() {
     []
   )
 
+  const isUserAuthenticated = token && isAuthenticated()
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
         {/* Minimal Header */}
-        <Header backendStatus={backendStatus} />
+        <Header
+          backendStatus={backendStatus}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
 
-        {/* Main Content Area */}
-        <Container maxWidth="lg" sx={{ mt: 5, mb: 6, flexGrow: 1 }}>
-          {/* Top Search & Upload Control */}
-          <SearchHeader
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            file={file}
-            onFileChange={handleFileChange}
-            uploading={uploading}
-            verifying={verifying}
-            progress={progress}
-            onUpload={handleUpload}
-            onClearFile={() => setFile(null)}
-          />
+        {/* Conditional views depending on session */}
+        {!isUserAuthenticated ? (
+          <AuthPage onLoginSuccess={handleLoginSuccess} />
+        ) : (
+          <Container maxWidth="lg" sx={{ mt: 5, mb: 6, flexGrow: 1 }}>
+            {/* Top Search & Upload Control */}
+            <SearchHeader
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              file={file}
+              onFileChange={handleFileChange}
+              uploading={uploading}
+              verifying={verifying}
+              progress={progress}
+              onUpload={handleUpload}
+              onClearFile={() => setFile(null)}
+            />
 
-          {/* Alert Banners */}
-          {error && (
-            <Alert 
-              severity="error" 
-              onClose={() => setError(null)}
-              sx={{ mb: 3, borderRadius: '8px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#991B1B' }}
-            >
-              {error}
-            </Alert>
-          )}
+            {/* Alert Banners */}
+            {error && (
+              <Alert 
+                severity="error" 
+                onClose={() => setError(null)}
+                sx={{ mb: 3, borderRadius: '8px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#991B1B' }}
+              >
+                {error}
+              </Alert>
+            )}
 
-          {success && (
-            <Alert 
-              severity="success" 
-              onClose={() => setSuccess(null)}
-              action={
-                success.key && (
-                  <Button
-                    color="inherit"
-                    size="small"
-                    disabled={viewLoading}
-                    startIcon={<VisibilityIcon fontSize="small" />}
-                    onClick={() => handleViewFile(success.key)}
-                    sx={{ textTransform: 'none', fontWeight: 700 }}
-                  >
-                    {viewLoading ? 'Opening...' : 'View File'}
-                  </Button>
-                )
-              }
-              sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BBF7D0', backgroundColor: '#F0FDF4', color: '#166534' }}
-            >
-              {success.message}
-            </Alert>
-          )}
+            {success && (
+              <Alert 
+                severity="success" 
+                onClose={() => setSuccess(null)}
+                action={
+                  success.key && (
+                    <Button
+                      color="inherit"
+                      size="small"
+                      disabled={viewLoading}
+                      startIcon={<VisibilityIcon fontSize="small" />}
+                      onClick={() => handleViewFile(success.key)}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
+                    >
+                      {viewLoading ? 'Opening...' : 'View File'}
+                    </Button>
+                  )
+                }
+                sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BBF7D0', backgroundColor: '#F0FDF4', color: '#166534' }}
+              >
+                {success.message}
+              </Alert>
+            )}
 
-          {/* Main Traditional File List / Table */}
-          <FileList
-            documents={documents}
-            loadingDocs={loadingDocs}
-            searchTerm={searchTerm}
-            onOpen={handleViewFile}
-            onEdit={handleStartEdit}
-            onDelete={handlePromptDelete}
-          />
-        </Container>
+            {/* Main Traditional File List / Table */}
+            <FileList
+              documents={documents}
+              loadingDocs={loadingDocs}
+              searchTerm={searchTerm}
+              onOpen={handleViewFile}
+              onEdit={handleStartEdit}
+              onDelete={handlePromptDelete}
+            />
+          </Container>
+        )}
 
         {/* Metadata Customization Modal */}
         <EditMetadataDialog

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getToken, clearToken } from '../services/authService'
 
 // Create a centralized Axios instance
 const axiosClient = axios.create({
@@ -10,10 +11,13 @@ const axiosClient = axios.create({
   },
 })
 
-// Request Interceptor: can be used to add Authorization headers (e.g. JWT tokens) in later phases
+// Request Interceptor: Inject JWT token automatically
 axiosClient.interceptors.request.use(
   (config) => {
-    // Add logic here if needed (e.g., token insertion)
+    const token = getToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => {
@@ -29,6 +33,17 @@ axiosClient.interceptors.response.use(
     return response.data
   },
   (error) => {
+    // Check if the response was unauthorized (401)
+    if (error.response?.status === 401) {
+      console.warn('[API Session Expired] Evicting credentials.')
+      clearToken()
+      
+      // Force page reload to clear all state variables and redirect to login
+      if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
+    }
+
     // Log error details globally for easier debugging
     const customError = {
       message: error.response?.data?.detail || error.message || 'An unexpected error occurred.',
