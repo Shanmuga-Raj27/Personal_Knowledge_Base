@@ -1,4 +1,4 @@
-# Personal Knowledge Base (PKB)
+# Personal Knowledge Base 
 
 ## 📌 Project Overview
 The **Personal Knowledge Base** is a web-based cloud document workspace designed to store files directly in cloud storage and search them faster. Currently, this is an educational project built to learn and teach core software engineering and cloud concepts, including:
