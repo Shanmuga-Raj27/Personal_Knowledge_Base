@@ -20,7 +20,7 @@ The project is structured around three major versions:
 
 | Version | Status | Core Scope | Core Technical Focus |
 | :--- | :--- | :--- | :--- |
-| **V1** | **Completed** | Secure User Auth, Direct-to-S3 Uploads, Metadata CRUD, AI Summarization | JWT auth, S3/B2 presigned URLs, MySQL metadata, Pytest coverage |
+| **V1** | **Completed** | Secure User Auth, Direct-to-S3 Uploads, Metadata CRUD, Basic file search | JWT auth, S3/B2 presigned URLs, MySQL metadata, Pytest coverage |
 | **V2** | **In Development** | AI-powered file semantic search | Google GenAI SDK (`gemini-embedding-2`), Qdrant Vector DB |
 | **V3** | **In Development** | Advanced Retrieval-Augmented Generation (RAG) | Document chunking, multi-source retrieval, grounded conversational query interface |
 
