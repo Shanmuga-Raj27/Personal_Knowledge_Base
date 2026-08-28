@@ -52,8 +52,7 @@ The application is built using a modern, decoupled stack:
 ## 📂 Repository Directory Structure
 
 ```
-Personal_Knowledge_Base/
-├── .agents/                        # Agentic configs and skills
+Personal_Knowledge_Base/                   
 ├── backend/                        # Backend FastAPI Application
 │   ├── alembic/                    # Database migrations environment
 │   │   ├── versions/               # Migration scripts
@@ -141,9 +140,8 @@ Personal_Knowledge_Base/
 │   └── vite.config.js              # Vite bundler configuration
 ├── others/                         # Secrets and environment files
 │   ├── .env                        # Local environment secrets (ignored in Git)
-│   └── .python-version             # Python local environment version
-├── prompt-base/                    # Prompt snippets & guidelines
-│   └── tech-doc.txt
+│   └── .python-version             # Python local environment version                   
+│   
 ├── .gitignore                      # Git ignored files list
 └── README.md                       # Repository entry point document (this file)
 ```
