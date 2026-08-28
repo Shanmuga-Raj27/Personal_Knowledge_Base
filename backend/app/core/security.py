@@ -1,11 +1,11 @@
 """
-backend/app/security.py
+backend/app/core/security.py
 
 Security utilities for authentication.
-Handles JWT token creation/decoding and password hashing/verification.
+Handles JWT token creation/decoding and Argon2id password hashing/verification.
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -14,44 +14,57 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
-# Secret key used to sign JWT tokens — must be kept private
-SECRET_KEY = os.getenv("SECRET_KEY")
+# Secret key used to sign JWT tokens — fallback for development if not provided in environment
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_for_dev_only_change_in_production")
 # JWT signing algorithm
 ALGORITHM = "HS256"
-# Default token expiration time in minutes
+# Default token expiration time in minutes (15-30 minutes)
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing context using Argon2id
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain-text password against an Argon2id hash.
+
+    Args:
+        plain_password: The plain-text password to verify.
+        hashed_password: The Argon2id hash stored in the database.
+
+    Returns:
+        True if the password matches the hash, False otherwise.
+    """
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a plain-text password using bcrypt.
+    """Hash a plain-text password using Argon2id.
 
     Args:
         password: The plain-text password to hash.
 
     Returns:
-        A bcrypt-hashed version of the password.
+        An Argon2id hashed version of the password.
     """
     return pwd_context.hash(password)
 
 
-def create_access_token(*, data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a signed JWT access token.
+def create_access_token(*, user_id: int, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a signed JWT access token with the user ID as subject.
 
     Args:
-        data: Dictionary of claims to encode (e.g., {"sub": username}).
-        expires_delta: Optional custom expiration time. Defaults to 15 minutes.
+        user_id: The integer primary key of the user.
+        expires_delta: Optional custom expiration time. Defaults to 30 minutes.
 
     Returns:
-        A signed JWT string.
+        A signed JWT string containing 'sub' as str(user_id).
     """
-    to_encode = data.copy()
+    to_encode = {"sub": str(user_id)}
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.core.config import settings
+from app.apis.routes.auth import router as auth_router
 from app.apis.routes.upload_file import router as upload_router
 from app.apis.routes.system import router as system_router
 
@@ -17,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(upload_router)
 app.include_router(system_router)
 

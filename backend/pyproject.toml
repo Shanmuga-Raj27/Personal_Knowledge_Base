@@ -5,6 +5,22 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.19.1",
+    "argon2-cffi>=25.1.0",
+    "cryptography>=50.0.1",
+    "fastapi>=0.141.1",
     "google-genai>=2.20.0",
+    "passlib>=1.7.4",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic[email]>=2.13.4",
+    "pydantic-settings>=2.15.0",
+    "pymysql>=1.2.0",
+    "pytest>=9.1.1",
+    "python-dotenv>=1.2.3",
+    "python-jose>=3.5.0",
     "qdrant-client>=1.19.0",
+    "uvicorn>=0.52.4",
+    "boto3>=1.43.82",
+    "httpx>=0.28.1",
+    "python-multipart>=0.0.32",
 ]

@@ -1,9 +1,8 @@
 """
 backend/app/schemas/file.py
 
-Pydantic schemas for file upload requests and presigned URL responses.
+Pydantic schemas for file upload requests, metadata updates, and presigned URL responses.
 """
-# backend/app/schemas/file.py
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field, HttpUrl
@@ -15,6 +14,7 @@ class FileUploadRequest(BaseModel):
 
     filename: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field(..., alias="contentType")
+
 
 class PresignedUrlResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -44,7 +44,7 @@ class FileMetadataSchema(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[str] = None
-    userid: Optional[int] = Field(None, alias="userId")
+    userid: int = Field(..., alias="userId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
 
@@ -75,8 +75,6 @@ class FileViewUrlResponse(BaseModel):
 class FileMetadataUpdateRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    title: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    tags: Optional[str] = Field(None, max_length=255)
-
-
+    title: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=255)
+    tags: Optional[str] = Field(None, max_length=50)

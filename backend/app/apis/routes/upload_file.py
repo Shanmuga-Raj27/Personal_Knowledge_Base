@@ -3,8 +3,9 @@ import logging
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
+from app.auth.auth import get_current_user
 from app.database import get_db
-from app.database.db_models import FileMetadata
+from app.database.db_models import FileMetadata, User
 from app.schemas.file import (
     FileUploadRequest,
     PresignedUrlResponse,
@@ -29,8 +30,12 @@ router = APIRouter(prefix="/files", tags=["files"])
 
 
 @router.post("/upload-url", response_model=PresignedUrlResponse)
-async def get_upload_url(payload: FileUploadRequest, db: Session = Depends(get_db)):
-    """Generate a presigned S3 PUT URL and create a pending metadata record."""
+async def get_upload_url(
+    payload: FileUploadRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a presigned S3 PUT URL and create a pending metadata record assigned to current user."""
     try:
         result = create_presigned_put_url(
             filename=payload.filename,
@@ -47,7 +52,7 @@ async def get_upload_url(payload: FileUploadRequest, db: Session = Depends(get_d
             detail="Failed to generate upload URL.",
         ) from exc
 
-    # Insert pending row in database
+    # Insert pending row in database bound to current_user.id
     try:
         db_file = FileMetadata(
             s3_key=result["key"],
@@ -55,6 +60,7 @@ async def get_upload_url(payload: FileUploadRequest, db: Session = Depends(get_d
             content_type=payload.content_type,
             status="pending",
             size_bytes=0,
+            userid=current_user.id,
         )
         db.add(db_file)
         db.commit()
@@ -70,17 +76,24 @@ async def get_upload_url(payload: FileUploadRequest, db: Session = Depends(get_d
 
 
 @router.post("/upload-complete", response_model=FileUploadCompleteResponse)
-async def complete_upload(payload: FileUploadCompleteRequest, db: Session = Depends(get_db)):
-    """Verify that an uploaded file exists in S3 storage and activate its database record."""
+async def complete_upload(
+    payload: FileUploadCompleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verify that an uploaded file exists in S3 storage and activate its database record for current user."""
     db_file = (
         db.query(FileMetadata)
-        .filter(FileMetadata.s3_key == payload.key)
+        .filter(
+            FileMetadata.s3_key == payload.key,
+            FileMetadata.userid == current_user.id,
+        )
         .first()
     )
     if not db_file:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="File record not found in database.",
+            detail="File record not found in database or access denied.",
         )
 
     try:
@@ -113,8 +126,26 @@ async def complete_upload(payload: FileUploadCompleteRequest, db: Session = Depe
 
 
 @router.post("/view-url", response_model=FileViewUrlResponse)
-async def get_view_url(payload: FileViewUrlRequest):
-    """Generate a short-lived presigned S3 GET URL to view or download a file."""
+async def get_view_url(
+    payload: FileViewUrlRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a short-lived presigned S3 GET URL to view or download a file owned by current user."""
+    db_file = (
+        db.query(FileMetadata)
+        .filter(
+            FileMetadata.s3_key == payload.key,
+            FileMetadata.userid == current_user.id,
+        )
+        .first()
+    )
+    if not db_file:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File record not found or access denied.",
+        )
+
     try:
         result = create_presigned_get_url(key=payload.key)
     except FileNotFoundError as exc:
@@ -132,11 +163,17 @@ async def get_view_url(payload: FileViewUrlRequest):
 
 
 @router.get("", response_model=list[FileMetadataSchema])
-async def list_files(db: Session = Depends(get_db)):
-    """List all active files and their metadata."""
+async def list_files(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all active files belonging strictly to the authenticated user."""
     files = (
         db.query(FileMetadata)
-        .filter(FileMetadata.status == "active")
+        .filter(
+            FileMetadata.status == "active",
+            FileMetadata.userid == current_user.id,
+        )
         .order_by(FileMetadata.created_at.desc())
         .all()
     )
@@ -147,18 +184,22 @@ async def list_files(db: Session = Depends(get_db)):
 async def update_metadata(
     fileid: int,
     payload: FileMetadataUpdateRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update custom metadata fields (title, description, tags) for a file."""
+    """Update custom metadata fields (title, description, tags) for a file owned by current user."""
     db_file = (
         db.query(FileMetadata)
-        .filter(FileMetadata.fileid == fileid)
+        .filter(
+            FileMetadata.fileid == fileid,
+            FileMetadata.userid == current_user.id,
+        )
         .first()
     )
     if not db_file:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="File metadata not found.",
+            detail="File metadata not found or access denied.",
         )
 
     if payload.title is not None:
@@ -174,17 +215,24 @@ async def update_metadata(
 
 
 @router.delete("/{fileid}", status_code=status.HTTP_200_OK)
-async def delete_file(fileid: int, db: Session = Depends(get_db)):
-    """Delete a document from S3 storage and MySQL database."""
+async def delete_file(
+    fileid: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a document from S3 storage and MySQL database owned by current user."""
     db_file = (
         db.query(FileMetadata)
-        .filter(FileMetadata.fileid == fileid)
+        .filter(
+            FileMetadata.fileid == fileid,
+            FileMetadata.userid == current_user.id,
+        )
         .first()
     )
     if not db_file:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="File record not found.",
+            detail="File record not found or access denied.",
         )
 
     s3_key = db_file.s3_key
@@ -215,6 +263,3 @@ async def delete_file(fileid: int, db: Session = Depends(get_db)):
         ) from exc
 
     return {"success": True, "message": "File deleted successfully.", "fileId": fileid}
-
-
-

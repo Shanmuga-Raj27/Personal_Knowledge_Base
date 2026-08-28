@@ -1,5 +1,5 @@
 """
-backend/app/db_models.py
+backend/app/database/db_models.py
 
 SQLAlchemy ORM models.
 Each class maps to a database table.
@@ -15,21 +15,26 @@ from app.database import Base
 class User(Base):
     """User table for storing registered account information.
 
-    Passwords are stored as bcrypt hashes, never in plain text.
+    Passwords are stored as Argon2id hashes, never in plain text.
     """
     __tablename__ = "users"
 
     # Primary key — unique identifier for each user
     id = Column(Integer, primary_key=True, index=True)
 
-    # Username — must be unique, used for login
-    username = Column(String(100), unique=True, index=True)
+    # Email — must be unique, used for login
+    email = Column(String(255), unique=True, index=True, nullable=False)
 
-    # Email — must be unique, used for contact/recovery
-    email = Column(String(100), unique=True, index=True)
+    # Hashed password — Argon2id hash of the plain-text password
+    hashed_password = Column(String(255), nullable=False)
 
-    # Hashed password — bcrypt hash of the plain-text password
-    hashed_password = Column(String(100), nullable=False)
+    # Account status: active, disabled
+    status = Column(String(20), default="active", nullable=False)
+
+    # Automatically managed registration timestamp
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class FileMetadata(Base):
@@ -54,16 +59,20 @@ class FileMetadata(Base):
     # Lifecycle state: pending, active, failed
     status = Column(String(20), default="pending", nullable=False)
 
-    # Custom metadata details
-    title = Column(String(255), nullable=True)
-    description = Column(String(1000), nullable=True)
-    tags = Column(String(255), nullable=True)  # Comma-separated search tags
+    # Custom metadata details (tightened column limits)
+    title = Column(String(100), nullable=True)
+    description = Column(String(255), nullable=True)
+    tags = Column(String(50), nullable=True)  # Comma-separated search tags
 
-    # Optional foreign key linking to the User for future authentication
-    userid = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # Mandatory foreign key linking to the User owning the document
+    userid = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     # Automatically managed timestamp records
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -73,5 +82,3 @@ class FileMetadata(Base):
 
     # Setup database relationships
     user = relationship("User", backref="files")
-
-    
