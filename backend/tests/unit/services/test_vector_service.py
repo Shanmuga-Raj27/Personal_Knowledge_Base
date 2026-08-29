@@ -115,8 +115,10 @@ def test_search_file_vectors_success():
         mock_vector = [0.2] * 768
         mock_hit1 = MagicMock()
         mock_hit1.id = 42
+        mock_hit1.score = 0.89
         mock_hit2 = MagicMock()
         mock_hit2.id = 15
+        mock_hit2.score = 0.85
         mock_hits = MagicMock()
         mock_hits.points = [mock_hit1, mock_hit2]
 
@@ -125,6 +127,6 @@ def test_search_file_vectors_success():
 
         with patch("app.services.AI.vector_service.generate_embedding", AsyncMock(return_value=mock_vector)), \
              patch("app.services.AI.vector_service.get_qdrant_client", return_value=mock_q_client):
-            ids = await search_file_vectors(query_text="cloud architecture", user_id=1)
-            assert ids == [42, 15]
+            results = await search_file_vectors(query_text="cloud architecture", user_id=1)
+            assert results == [(42, 0.89), (15, 0.85)]
     asyncio.run(_run())

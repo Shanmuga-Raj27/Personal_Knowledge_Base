@@ -157,6 +157,24 @@ export default function FileRow({ doc, onOpen, onEdit, onDelete }) {
                   />
                 )
               })()}
+              {doc.score !== undefined && doc.score !== null && (
+                <Chip
+                  label={`🎯 ${(doc.score * 100).toFixed(0)}% Match`}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 16,
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    borderColor: '#93C5FD',
+                    color: '#1E40AF',
+                    backgroundColor: '#EFF6FF',
+                    borderRadius: '4px',
+                    px: 0.5,
+                    flexShrink: 0
+                  }}
+                />
+              )}
             </Box>
             <Typography
               variant="caption"

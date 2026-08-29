@@ -148,13 +148,23 @@ function App() {
       setLoadingDocs(true)
       try {
         const response = await searchDocuments(searchTerm, controller.signal)
-        const docs = response?.results || response || []
+        const rawResults = response?.results || response || []
+        const mappedDocs = rawResults.map((item) => {
+          if (item && item.file) {
+            const fileObj = { ...item.file }
+            if (item.score !== undefined && item.score !== null) {
+              fileObj.score = item.score
+            }
+            return fileObj
+          }
+          return item
+        })
         const isFallback =
           response?.search_mode === 'fallback' ||
           response?.searchMode === 'fallback' ||
           Boolean(response?.isFallbackSearch)
         setIsFallbackSearch(isFallback)
-        setDocuments(docs)
+        setDocuments(mappedDocs)
       } catch (err) {
         if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
           return // Quietly ignore aborted search request

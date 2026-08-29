@@ -73,9 +73,9 @@ def test_semantic_search_empty_query_returns_all_active(setup_test_database):
     assert response.status_code == 200
     data = response.json()
     assert data["searchMode"] == "none"
-    assert data["status"] == "ok"
+    assert data["total"] == 1
     assert len(data["results"]) == 1
-    assert data["results"][0]["fileId"] == file1.fileid
+    assert data["results"][0]["file"]["fileId"] == file1.fileid
 
 
 def test_semantic_search_multi_tenant_isolation(setup_test_database):
@@ -105,9 +105,9 @@ def test_semantic_search_multi_tenant_isolation(setup_test_database):
     token_a = security.create_access_token(user_id=user_a.id)
     token_b = security.create_access_token(user_id=user_b.id)
 
-    # Mock search_file_vectors returning both IDs [file_a.fileid, file_b.fileid]
-    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[file_a.fileid, file_b.fileid])):
-        # User A searches -> Should ONLY return file_a
+    # Mock search_file_vectors returning [(file_a.fileid, 0.89), (file_b.fileid, 0.85)]
+    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[(file_a.fileid, 0.89), (file_b.fileid, 0.85)])):
+        # User A searches -> Should ONLY return file_a with score
         res_a = client.get(
             "/files/search?q=spec",
             headers={"Authorization": f"Bearer {token_a}"},
@@ -115,11 +115,12 @@ def test_semantic_search_multi_tenant_isolation(setup_test_database):
         assert res_a.status_code == 200
         data_a = res_a.json()
         assert data_a["searchMode"] == "semantic"
-        assert data_a["status"] == "ok"
+        assert data_a["total"] == 1
         assert len(data_a["results"]) == 1
-        assert data_a["results"][0]["fileId"] == file_a.fileid
+        assert data_a["results"][0]["file"]["fileId"] == file_a.fileid
+        assert data_a["results"][0]["score"] == 0.89
 
-        # User B searches -> Should ONLY return file_b
+        # User B searches -> Should ONLY return file_b with score
         res_b = client.get(
             "/files/search?q=spec",
             headers={"Authorization": f"Bearer {token_b}"},
@@ -127,12 +128,13 @@ def test_semantic_search_multi_tenant_isolation(setup_test_database):
         assert res_b.status_code == 200
         data_b = res_b.json()
         assert data_b["searchMode"] == "semantic"
-        assert data_b["status"] == "ok"
+        assert data_b["total"] == 1
         assert len(data_b["results"]) == 1
-        assert data_b["results"][0]["fileId"] == file_b.fileid
+        assert data_b["results"][0]["file"]["fileId"] == file_b.fileid
+        assert data_b["results"][0]["score"] == 0.85
 
 
-def test_semantic_search_unrelated_query_pig_returns_no_match(setup_test_database):
+def test_semantic_search_unrelated_query_pig_returns_clean_zero_matches(setup_test_database):
     db = setup_test_database
     user = User(email="user@example.com", hashed_password="pw", status="active")
     db.add(user)
@@ -159,5 +161,35 @@ def test_semantic_search_unrelated_query_pig_returns_no_match(setup_test_databas
         assert res.status_code == 200
         data = res.json()
         assert data["searchMode"] == "semantic"
-        assert data["status"] == "no_match"
+        assert data["total"] == 0
         assert data["results"] == []
+
+
+def test_query_validation_returns_422(setup_test_database):
+    db = setup_test_database
+    user = User(email="user@example.com", hashed_password="pw", status="active")
+    db.add(user)
+    db.commit()
+    token = security.create_access_token(user_id=user.id)
+
+    # 101 character query -> 422
+    long_query = "a" * 101
+    res = client.get(f"/files/search?q={long_query}", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 422
+
+    # Whitespace only query -> 422
+    res_space = client.get("/files/search?q=%20%20%20", headers={"Authorization": f"Bearer {token}"})
+    assert res_space.status_code == 422
+
+
+def test_infrastructure_failure_returns_503(setup_test_database):
+    db = setup_test_database
+    user = User(email="user@example.com", hashed_password="pw", status="active")
+    db.add(user)
+    db.commit()
+    token = security.create_access_token(user_id=user.id)
+
+    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(side_effect=RuntimeError("Qdrant connection refused"))):
+        res = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 503
+        assert "Vector search service is currently unavailable" in res.json()["detail"]

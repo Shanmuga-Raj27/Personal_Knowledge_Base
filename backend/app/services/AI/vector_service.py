@@ -40,6 +40,18 @@ def get_gemini_client() -> Optional[genai.Client]:
     return _gemini_client
 
 
+async def close_qdrant_client() -> None:
+    """Close the global AsyncQdrantClient instance cleanly on application shutdown."""
+    global _qdrant_client
+    if _qdrant_client is not None:
+        try:
+            await _qdrant_client.close()
+        except Exception as exc:
+            logger.warning("Error closing Qdrant client connection: %s", str(exc))
+        finally:
+            _qdrant_client = None
+
+
 async def init_qdrant_collection() -> bool:
     """Ensure the target Qdrant collection and payload indexes exist."""
     q_client = get_qdrant_client()
@@ -180,15 +192,19 @@ async def delete_file_vector(file_id: int) -> bool:
 
 async def search_file_vectors(
     query_text: str, user_id: int, limit: int = 15
-) -> List[int]:
-    """Perform multi-tenant scoped semantic vector similarity search on Qdrant."""
+) -> List[tuple[int, float]]:
+    """Perform multi-tenant scoped semantic vector similarity search on Qdrant.
+
+    Returns:
+        List of tuples (file_id, similarity_score).
+    """
     if not query_text.strip():
         return []
 
     query_vector = await generate_embedding(query_text)
     if query_vector is None:
         logger.warning("Semantic vector search fallback: unable to generate query embedding.")
-        return []
+        raise RuntimeError("Embedding generation failed.")
 
     q_client = get_qdrant_client()
     collection_name = settings.QDRANT_COLLECTION_NAME
@@ -208,8 +224,10 @@ async def search_file_vectors(
             limit=limit,
             score_threshold=0.55,
         )
-        matched_ids = [hit.id for hit in hits.points if isinstance(hit.id, int)]
-        return matched_ids
+        matched_results = [
+            (hit.id, hit.score) for hit in hits.points if isinstance(hit.id, int)
+        ]
+        return matched_results
     except Exception as exc:
         logger.error("Qdrant query error for user_id=%s: %s", user_id, str(exc))
-        return []
+        raise RuntimeError(f"Vector search failed: {str(exc)}") from exc

@@ -51,6 +51,9 @@ class FileMetadataSchema(BaseModel):
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
 
+    retry_count: int = Field(0, alias="retryCount")
+    last_error: Optional[str] = Field(None, alias="lastError")
+
     @field_validator("is_indexed", mode="before")
     @classmethod
     def default_is_indexed(cls, v: Any) -> bool:
@@ -62,7 +65,7 @@ class FileMetadataSchema(BaseModel):
     @classmethod
     def default_indexing_status(cls, v: Any) -> str:
         if not v or v is None:
-            return "pending"
+            return "PENDING"
         return str(v)
 
     @field_validator("index_version", mode="before")
@@ -72,13 +75,27 @@ class FileMetadataSchema(BaseModel):
             return 1
         return int(v)
 
+    @field_validator("retry_count", mode="before")
+    @classmethod
+    def default_retry_count(cls, v: Any) -> int:
+        if v is None:
+            return 0
+        return int(v)
+
+
+class SearchResultItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    file: FileMetadataSchema
+    score: Optional[float] = None
+
 
 class SearchResponseSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    results: list[FileMetadataSchema]
+    results: list[SearchResultItem]
     search_mode: str = Field(..., alias="searchMode")
-    status: str = Field(...)
+    total: int
 
 
 class FileUploadCompleteResponse(BaseModel):

@@ -5,8 +5,8 @@ import uvicorn
 from app.core.config import settings
 from app.apis.routes.auth import router as auth_router
 from contextlib import asynccontextmanager
-from app.services.AI.vector_service import init_qdrant_collection
-from app.apis.routes.upload_file import backfill_unindexed_files, router as upload_router
+from app.services.AI.vector_service import init_qdrant_collection, close_qdrant_client
+from app.apis.routes.upload_file import recover_and_backfill_unindexed_files, router as upload_router
 from app.apis.routes.system import router as system_router
 
 
@@ -15,10 +15,11 @@ async def lifespan(app: FastAPI):
     """FastAPI application lifespan event handler for startup setup and legacy backfill."""
     try:
         await init_qdrant_collection()
-        await backfill_unindexed_files()
+        await recover_and_backfill_unindexed_files()
     except Exception:
         pass
     yield
+    await close_qdrant_client()
 
 
 app = FastAPI(title="Personal Knowledge Base", lifespan=lifespan)
