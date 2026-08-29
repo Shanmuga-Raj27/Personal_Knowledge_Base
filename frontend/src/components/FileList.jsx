@@ -22,16 +22,8 @@ export default function FileList({
   onEdit,
   onDelete
 }) {
-  // Filter documents based on search term
-  const filteredDocs = documents.filter((doc) => {
-    if (!searchTerm.trim()) return true
-    const term = searchTerm.toLowerCase()
-    const titleMatch = doc.title?.toLowerCase().includes(term)
-    const filenameMatch = doc.filename?.toLowerCase().includes(term)
-    const descMatch = doc.description?.toLowerCase().includes(term)
-    const tagMatch = doc.tags?.toLowerCase().includes(term)
-    return titleMatch || filenameMatch || descMatch || tagMatch
-  })
+  // Display documents directly from server search/fetch
+  const displayedDocs = documents || []
 
   return (
     <TableContainer
@@ -79,7 +71,7 @@ export default function FileList({
                 </TableCell>
               </TableRow>
             ))
-          ) : filteredDocs.length === 0 ? (
+          ) : displayedDocs.length === 0 ? (
             // Empty State View
             <TableRow>
               <TableCell colSpan={3} sx={{ borderBottom: 'none', py: 8 }}>
@@ -107,7 +99,7 @@ export default function FileList({
             </TableRow>
           ) : (
             // Document List Rows
-            filteredDocs.map((doc) => (
+            displayedDocs.map((doc) => (
               <FileRow
                 key={doc.fileId}
                 doc={doc}

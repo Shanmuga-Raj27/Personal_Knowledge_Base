@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Response
 from sqlalchemy.orm import Session
+from app.database.database import SessionLocal
 
 from app.auth.auth import get_current_user
 from app.database import get_db
@@ -22,11 +23,44 @@ from app.services.AWS.s3_service import (
     get_object_metadata,
     delete_s3_object,
 )
+from app.services.AI.vector_service import (
+    upsert_file_vector,
+    delete_file_vector,
+    search_file_vectors,
+)
 
 logger = logging.getLogger(__name__)
 
-
 router = APIRouter(prefix="/files", tags=["files"])
+
+
+async def sync_vector_in_background(
+    file_id: int,
+    user_id: int,
+    filename: str,
+    title: str | None,
+    description: str | None,
+    tags: str | None,
+):
+    """Background worker task to compute Gemini embeddings and update Qdrant point asynchronously."""
+    indexed_success = await upsert_file_vector(
+        file_id=file_id,
+        user_id=user_id,
+        filename=filename,
+        title=title,
+        description=description,
+        tags=tags,
+    )
+    db = SessionLocal()
+    try:
+        db_file = db.query(FileMetadata).filter(FileMetadata.fileid == file_id).first()
+        if db_file:
+            db_file.is_indexed = indexed_success
+            db.commit()
+    except Exception as exc:
+        logger.error("Background task error updating is_indexed for file %s: %s", file_id, str(exc))
+    finally:
+        db.close()
 
 
 @router.post("/upload-url", response_model=PresignedUrlResponse)
@@ -78,6 +112,7 @@ async def get_upload_url(
 @router.post("/upload-complete", response_model=FileUploadCompleteResponse)
 async def complete_upload(
     payload: FileUploadCompleteRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -103,6 +138,17 @@ async def complete_upload(
         db_file.size_bytes = meta["size_bytes"]
         db.commit()
         db.refresh(db_file)
+
+        # Offload AI vector embedding generation & Qdrant indexing to background worker
+        background_tasks.add_task(
+            sync_vector_in_background,
+            file_id=db_file.fileid,
+            user_id=current_user.id,
+            filename=db_file.filename,
+            title=db_file.title,
+            description=db_file.description,
+            tags=db_file.tags,
+        )
     except FileNotFoundError as exc:
         # Mark as failed in DB
         db_file.status = "failed"
@@ -184,6 +230,7 @@ async def list_files(
 async def update_metadata(
     fileid: int,
     payload: FileMetadataUpdateRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -211,7 +258,80 @@ async def update_metadata(
 
     db.commit()
     db.refresh(db_file)
+
+    # Re-index updated metadata vector in Qdrant via background task
+    background_tasks.add_task(
+        sync_vector_in_background,
+        file_id=db_file.fileid,
+        user_id=current_user.id,
+        filename=db_file.filename,
+        title=db_file.title,
+        description=db_file.description,
+        tags=db_file.tags,
+    )
+
     return db_file
+
+
+@router.get("/search", response_model=list[FileMetadataSchema])
+async def search_files(
+    q: str = "",
+    response: Response = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Perform multi-tenant scoped semantic AI file search with automatic MySQL keyword fallback."""
+    search_term = q.strip()
+    if not search_term:
+        return await list_files(current_user=current_user, db=db)
+
+    matched_ids = []
+    try:
+        matched_ids = await search_file_vectors(
+            query_text=search_term,
+            user_id=current_user.id,
+            limit=15,
+        )
+    except Exception as exc:
+        logger.warning("Semantic vector search error, falling back to SQL search: %s", str(exc))
+        matched_ids = []
+
+    if matched_ids:
+        files = (
+            db.query(FileMetadata)
+            .filter(
+                FileMetadata.fileid.in_(matched_ids),
+                FileMetadata.userid == current_user.id,
+                FileMetadata.status == "active",
+            )
+            .all()
+        )
+        if files:
+            file_map = {f.fileid: f for f in files}
+            sorted_files = [file_map[fid] for fid in matched_ids if fid in file_map]
+            return sorted_files
+
+    # Fallback Trigger: Set X-Search-Fallback header and perform MySQL SQL substring search
+    if response:
+        response.headers["X-Search-Fallback"] = "true"
+
+    pattern = f"%{search_term}%"
+    fallback_files = (
+        db.query(FileMetadata)
+        .filter(
+            FileMetadata.userid == current_user.id,
+            FileMetadata.status == "active",
+            (
+                FileMetadata.title.ilike(pattern)
+                | FileMetadata.description.ilike(pattern)
+                | FileMetadata.tags.ilike(pattern)
+                | FileMetadata.filename.ilike(pattern)
+            ),
+        )
+        .order_by(FileMetadata.created_at.desc())
+        .all()
+    )
+    return fallback_files
 
 
 @router.delete("/{fileid}", status_code=status.HTTP_200_OK)
@@ -246,7 +366,10 @@ async def delete_file(
             detail=f"Failed to delete object from S3 storage: {str(exc)}",
         ) from exc
 
-    # Step 2: Delete database record after S3 delete succeeds
+    # Step 2: Delete Qdrant vector point
+    await delete_file_vector(fileid)
+
+    # Step 3: Delete database record after S3 delete succeeds
     try:
         db.delete(db_file)
         db.commit()

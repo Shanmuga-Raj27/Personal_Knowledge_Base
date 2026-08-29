@@ -5,7 +5,7 @@ SQLAlchemy ORM models.
 Each class maps to a database table.
 These models are also used by Alembic to detect schema changes for migrations.
 """
-from sqlalchemy import Column, Integer, String, BigInteger, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, BigInteger, DateTime, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -63,6 +63,9 @@ class FileMetadata(Base):
     title = Column(String(100), nullable=True)
     description = Column(String(255), nullable=True)
     tags = Column(String(50), nullable=True)  # Comma-separated search tags
+
+    # Vector indexing tracking status
+    is_indexed = Column(Boolean, default=False, nullable=False)
 
     # Mandatory foreign key linking to the User owning the document
     userid = Column(

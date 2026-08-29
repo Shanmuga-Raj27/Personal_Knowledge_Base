@@ -23,6 +23,16 @@ app.include_router(upload_router)
 app.include_router(system_router)
 
 
+from urllib.parse import urlparse
+
 if __name__ == "__main__":
-    uvicorn.run(app=app, host="127.0.0.1", port=8000)
+    port = 8000
+    try:
+        parsed = urlparse(settings.VITE_API_URL)
+        if parsed.port:
+            port = parsed.port
+    except Exception:
+        pass
+
+    uvicorn.run(app=app, host="127.0.0.1", port=port)
 

@@ -29,7 +29,10 @@ axiosClient.interceptors.request.use(
 // Response Interceptor: handle global response statuses and extract data
 axiosClient.interceptors.response.use(
   (response) => {
-    // Return only the response data directly
+    // Return response data directly, attaching fallback header metadata if present
+    if (response.headers && response.headers['x-search-fallback'] === 'true' && typeof response.data === 'object' && response.data !== null) {
+      response.data.isFallbackSearch = true
+    }
     return response.data
   },
   (error) => {

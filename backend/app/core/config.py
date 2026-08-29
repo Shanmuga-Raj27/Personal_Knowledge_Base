@@ -20,6 +20,10 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+    GEMINI_API_KEY: str | None = None
+    QDRANT_HOST: str = "http://localhost:6333"
+    QDRANT_COLLECTION_NAME: str = "document_vault"
+    VITE_API_URL: str = "http://localhost:8000"
 
 
 settings = Settings()

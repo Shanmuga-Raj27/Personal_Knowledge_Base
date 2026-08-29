@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { Box, TextField, Button, InputAdornment, Typography, LinearProgress, IconButton, Paper } from '@mui/material'
+import { Box, TextField, Button, InputAdornment, Typography, LinearProgress, IconButton, Paper, CircularProgress } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import CloseIcon from '@mui/icons-material/Close'
@@ -8,6 +8,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 export default function SearchHeader({
   searchTerm,
   onSearchChange,
+  isSearching,
   file,
   onFileChange,
   uploading,
@@ -36,7 +37,7 @@ export default function SearchHeader({
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>
-        {/* Search Bar Placeholder for future AI Semantic Search */}
+        {/* Semantic AI Search Field */}
         <TextField
           fullWidth
           size="small"
@@ -47,6 +48,19 @@ export default function SearchHeader({
             startAdornment: (
               <InputAdornment position="start">
                 <SearchIcon sx={{ color: '#64748B', fontSize: 20 }} />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                {isSearching ? (
+                  <CircularProgress size={18} sx={{ color: '#64748B' }} />
+                ) : (
+                  searchTerm && (
+                    <IconButton size="small" onClick={() => onSearchChange('')} edge="end">
+                      <CloseIcon fontSize="small" sx={{ color: '#64748B' }} />
+                    </IconButton>
+                  )
+                )}
               </InputAdornment>
             ),
           }}

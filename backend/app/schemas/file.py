@@ -3,9 +3,9 @@ backend/app/schemas/file.py
 
 Pydantic schemas for file upload requests, metadata updates, and presigned URL responses.
 """
-from typing import Optional
+from typing import Any, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 from pydantic.config import ConfigDict
 
 
@@ -44,9 +44,17 @@ class FileMetadataSchema(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[str] = None
+    is_indexed: bool = Field(False, alias="isIndexed")
     userid: int = Field(..., alias="userId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
+
+    @field_validator("is_indexed", mode="before")
+    @classmethod
+    def default_is_indexed(cls, v: Any) -> bool:
+        if v is None:
+            return False
+        return bool(v)
 
 
 class FileUploadCompleteResponse(BaseModel):

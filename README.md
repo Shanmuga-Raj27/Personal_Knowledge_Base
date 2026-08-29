@@ -149,10 +149,3 @@ Personal_Knowledge_Base/
 ```
 
 ---
-
-## 📖 Additional Documentation & References
-For deep technical designs, schemas, and implementation guides, refer to the following documents:
-
-* **[Phase 1 Technical Documentation](file:///d:/Personal_Knowledge_Base/documentation/technical_documentation/phase-1.md)**: Deep dive into the S3 presigned URL lifecycle, validation filters, security properties, and direct-to-storage architecture.
-* **[V2 Semantic Search Implementation Plan](file:///d:/Personal_Knowledge_Base/documentation/project_plan/project_plan_v1.md)**: Design documentation outlining the integration of Google GenAI client embeddings with Qdrant collection vectors and fallback search queries.
-* **[Phase 6 User Ownership Plan](file:///d:/Personal_Knowledge_Base/documentation/project_plan/plan_phase-6.md)**: Details the migration path to strict multi-tenant users schemas, rate-limiting rules, and database cascading rules.

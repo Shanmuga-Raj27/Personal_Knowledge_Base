@@ -18,7 +18,8 @@ import {
   getViewUrl,
   fetchFiles,
   updateFileMetadata,
-  deleteFile
+  deleteFile,
+  searchDocuments
 } from './apis/documentApi'
 
 import Header from './components/Header'
@@ -72,8 +73,10 @@ function App() {
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
 
-  // Search filter state
+  // Search filter & AI state
   const [searchTerm, setSearchTerm] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [isFallbackSearch, setIsFallbackSearch] = useState(false)
 
   // Edit metadata modal states
   const [editOpen, setEditOpen] = useState(false)
@@ -101,13 +104,13 @@ function App() {
     }
   }
 
-  // Check backend connectivity and load documents on mount (or token changes)
+  // Check backend connectivity on mount (or token changes)
   useEffect(() => {
     const checkConnection = async () => {
       try {
         await pingSystem()
         setBackendStatus('online')
-        if (isAuthenticated()) {
+        if (isAuthenticated() && !searchTerm.trim()) {
           loadDocuments()
         }
       } catch (err) {
@@ -117,6 +120,35 @@ function App() {
     }
     checkConnection()
   }, [token])
+
+  // Debounced search effect (350ms delay)
+  useEffect(() => {
+    if (!token || !isAuthenticated()) return
+
+    const timer = setTimeout(async () => {
+      if (!searchTerm.trim()) {
+        setIsFallbackSearch(false)
+        setIsSearching(false)
+        loadDocuments()
+        return
+      }
+
+      setIsSearching(true)
+      setLoadingDocs(true)
+      try {
+        const results = await searchDocuments(searchTerm)
+        setIsFallbackSearch(Boolean(results && results.isFallbackSearch))
+        setDocuments(results || [])
+      } catch (err) {
+        console.error('Search request failed:', err)
+      } finally {
+        setIsSearching(false)
+        setLoadingDocs(false)
+      }
+    }, 350)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm, token])
 
   // Login handler
   const handleLoginSuccess = (accessToken, userEmail) => {
@@ -408,6 +440,7 @@ function App() {
             <SearchHeader
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              isSearching={isSearching}
               file={file}
               onFileChange={handleFileChange}
               uploading={uploading}
@@ -416,6 +449,17 @@ function App() {
               onUpload={handleUpload}
               onClearFile={() => setFile(null)}
             />
+
+            {/* Fallback Alert Banner */}
+            {isFallbackSearch && searchTerm.trim() && (
+              <Alert 
+                severity="info" 
+                onClose={() => setIsFallbackSearch(false)}
+                sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1' }}
+              >
+                Semantic AI search returned no vector matches or is offline. Displaying keyword search results instead.
+              </Alert>
+            )}
 
             {/* Alert Banners */}
             {error && (

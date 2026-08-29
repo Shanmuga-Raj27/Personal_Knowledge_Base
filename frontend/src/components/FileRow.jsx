@@ -62,19 +62,56 @@ export default function FileRow({ doc, onOpen, onEdit, onDelete }) {
             {getMuiFileTypeIcon(doc.contentType, doc.filename)}
           </Box>
           <Box sx={{ overflow: 'hidden', minWidth: 0 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: '#0F172A',
-                lineHeight: 1.25,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {doc.title || doc.filename}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  lineHeight: 1.25,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {doc.title || doc.filename}
+              </Typography>
+              {doc.isIndexed ? (
+                <Chip
+                  label="Indexed"
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 16,
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    borderColor: '#86EFAC',
+                    color: '#166534',
+                    backgroundColor: '#F0FDF4',
+                    borderRadius: '4px',
+                    px: 0.5,
+                    flexShrink: 0
+                  }}
+                />
+              ) : (
+                <Chip
+                  label="Indexing..."
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 16,
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    borderColor: '#FDE68A',
+                    color: '#854D0E',
+                    backgroundColor: '#FEFCE8',
+                    borderRadius: '4px',
+                    px: 0.5,
+                    flexShrink: 0
+                  }}
+                />
+              )}
+            </Box>
             <Typography
               variant="caption"
               sx={{ color: '#64748B', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}

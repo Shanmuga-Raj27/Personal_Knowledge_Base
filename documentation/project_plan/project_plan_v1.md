@@ -57,6 +57,7 @@ Remains the primary record container. Qdrant references this schema via `fileid`
 | Column | Type | Description |
 | :--- | :--- | :--- |
 | `fileid` | `INTEGER` | Primary Key (Auto-Increment) / Map anchor for Qdrant `Point ID` |
+| `userid` | `INTEGER` | Foreign Key (References `users.id` with `ON DELETE CASCADE`) / Indexed |
 | `s3_key` | `VARCHAR(255)` | Unique S3 storage locator key |
 | `filename` | `VARCHAR(255)` | Original user file name |
 | `title` | `VARCHAR(100)` | Document Title |
@@ -72,6 +73,7 @@ Stores the floating-point vector along with search payload filters.
   ```json
   {
     "file_id": 42,
+    "user_id": 12,
     "filename": "aws-architecture.pdf",
     "title": "AWS Architecture",
     "tags": "aws, cloud, backend",
@@ -123,10 +125,11 @@ A single, optimized collection will be declared in Qdrant for the personal knowl
 * **Vector Configuration**:
   * **Size**: `768` (must exactly match Gemini's configured output dimensions).
   * **Distance Metric**: `Distance.COSINE` (standard Cosine similarity metric for semantic matching).
-* **Payload Fields**: `file_id`, `title`, `filename`, `tags`, `description`.
+* **Payload Fields**: `file_id`, `user_id`, `title`, `filename`, `tags`, `description`.
 * **Payload Indexing**:
+  * Create a payload index on `user_id` as an `INTEGER` schema for ultra-fast security filtering during similarity scans.
   * Create a payload index on `tags` as a `KEYWORD` schema for fast hard-filtering during similarity scans.
-  * *Filtering Principle*: Heavy categorical matching (e.g. searching only files tagged "finance") should be passed as Qdrant filters during the `query_points` phase, rather than filtering raw results post-query in Python.
+  * *Filtering Principle*: Heavy categorical matching (e.g. searching only files tagged "finance") and user isolation filters must be passed as Qdrant filters during the `query_points` phase, rather than filtering raw results post-query in Python.
 
 ---
 
@@ -192,25 +195,34 @@ When the user queries the search bar:
 
 1. **Query Delivery**: React hits `/files/search?q={query}`.
 2. **FastAPI Validation**: Strip leading whitespace, validate search length (max 100 characters).
-3. **Embedding Generation**: Call Gemini client:
+3. **Embedding Generation**: Call Gemini client asynchronously (event loop is not blocked):
    ```python
-   response = client.models.embed_content(
+   response = await client.aio.models.embed_content(
        model="gemini-embedding-2",
-       contents=query_string
+       contents=query_string,
+       config=types.EmbedContentConfig(output_dimensionality=768)
    )
    query_vector = response.embeddings[0].values
    ```
-4. **Qdrant Query**: Call Qdrant using the unified `query_points()` API:
+4. **Qdrant Query**: Query Qdrant using the unified `query_points()` API on the `AsyncQdrantClient`, passing a strict pre-filter on `user_id` to enforce multi-tenant isolation:
    ```python
-   hits = qdrant_client.query_points(
+   hits = await qdrant_client.query_points(
        collection_name="document_vault",
        query=query_vector,
+       query_filter=models.Filter(
+           must=[
+               models.FieldCondition(
+                   key="user_id",
+                   match=models.MatchValue(value=current_user.id)
+               )
+           ]
+       ),
        limit=10
    )
    ```
-5. **authoritative Metadata Pull**: Gather matching point IDs (e.g. `[4, 12, 19]`), run a single batch SQL lookup:
+5. **Authoritative Metadata Pull**: Gather matching point IDs (e.g. `[4, 12, 19]`), run a single batch SQL lookup scoped to the user ID:
    ```sql
-   SELECT * FROM file_metadata WHERE fileid IN (4, 12, 19)
+   SELECT * FROM file_metadata WHERE fileid IN (4, 12, 19) AND userid = 12
    ```
 6. **Ranking & Delivery**: Order the database rows matching Qdrant similarity scores and return the ranked payload to React.
 
@@ -257,14 +269,14 @@ Changing embedding models or output dimensions will alter the vector space, maki
 ## 12. Qdrant Collection Design
 
 ```python
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 
-# Initialization parameters
-qdrant_client = QdrantClient(url="http://localhost:6333")
+# Async Initialization parameters
+qdrant_client = AsyncQdrantClient(url="http://localhost:6333")
 
 # Create Collection
-qdrant_client.create_collection(
+await qdrant_client.create_collection(
     collection_name="document_vault",
     vectors_config=models.VectorParams(
         size=768, 
@@ -272,8 +284,15 @@ qdrant_client.create_collection(
     )
 )
 
-# Payload Indexing
-qdrant_client.create_payload_index(
+# Payload Indexing for Multi-Tenant isolation
+await qdrant_client.create_payload_index(
+    collection_name="document_vault",
+    field_name="user_id",
+    field_schema=models.PayloadSchemaType.INTEGER
+)
+
+# Payload Indexing for Category searches
+await qdrant_client.create_payload_index(
     collection_name="document_vault",
     field_name="tags",
     field_schema=models.PayloadSchemaType.KEYWORD
@@ -302,6 +321,7 @@ import time
 from google.genai.errors import APIError
 
 def embed_with_retry(client, text, model="gemini-embedding-2", retries=3, delay=1):
+    # Synchronous helper (if used in synchronous scripts or workers)
     for i in range(retries):
         try:
             return client.models.embed_content(
@@ -312,6 +332,22 @@ def embed_with_retry(client, text, model="gemini-embedding-2", retries=3, delay=
         except APIError as exc:
             if exc.code == 429 and i < retries - 1:
                 time.sleep(delay * (2 ** i))
+                continue
+            raise exc
+
+async def embed_with_retry_async(client, text, model="gemini-embedding-2", retries=3, delay=1):
+    # Asynchronous helper for runtime FastAPI application endpoints
+    import asyncio
+    for i in range(retries):
+        try:
+            return await client.aio.models.embed_content(
+                model=model,
+                contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=768)
+            )
+        except APIError as exc:
+            if exc.code == 429 and i < retries - 1:
+                await asyncio.sleep(delay * (2 ** i))
                 continue
             raise exc
 ```
@@ -341,16 +377,16 @@ client = genai.Client(api_key=settings.GEMINI_API_KEY)
 ```python
 from google.genai import types
 
-# Document context embedding
-doc_response = client.models.embed_content(
+# Document context embedding (Async API)
+doc_response = await client.aio.models.embed_content(
     model="gemini-embedding-2",
     contents="Title: File Title\nDescription: Context summary",
     config=types.EmbedContentConfig(output_dimensionality=768)
 )
 doc_vector = doc_response.embeddings[0].values
 
-# Query text embedding
-query_response = client.models.embed_content(
+# Query text embedding (Async API)
+query_response = await client.aio.models.embed_content(
     model="gemini-embedding-2",
     contents="Find notes about S3 storage",
     config=types.EmbedContentConfig(output_dimensionality=768)
@@ -358,14 +394,14 @@ query_response = client.models.embed_content(
 query_vector = query_response.embeddings[0].values
 ```
 
-### 3. Qdrant Collection Creation
+### 3. Qdrant Collection Creation (Async)
 ```python
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 
-q_client = QdrantClient(url=settings.QDRANT_HOST)
+q_client = AsyncQdrantClient(url=settings.QDRANT_HOST)
 
-q_client.create_collection(
+await q_client.create_collection(
     collection_name="document_vault",
     vectors_config=models.VectorParams(
         size=768,
@@ -374,11 +410,11 @@ q_client.create_collection(
 )
 ```
 
-### 4. Qdrant Point Upsert
+### 4. Qdrant Point Upsert (Async)
 ```python
 from qdrant_client.models import PointStruct
 
-q_client.upsert(
+await q_client.upsert(
     collection_name="document_vault",
     points=[
         PointStruct(
@@ -386,6 +422,7 @@ q_client.upsert(
             vector=doc_vector,
             payload={
                 "file_id": file_id,
+                "user_id": user_id,
                 "title": title,
                 "filename": filename,
                 "tags": tags,
@@ -396,18 +433,22 @@ q_client.upsert(
 )
 ```
 
-### 5. Qdrant Semantic Query (with Filters)
+### 5. Qdrant Semantic Query (Async with Strict Tenant Filters)
 ```python
-from qdrant_client.models import Filter, FieldCondition
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
-hits = q_client.query_points(
+hits = await q_client.query_points(
     collection_name="document_vault",
     query=query_vector,
     query_filter=Filter(
         must=[
             FieldCondition(
+                key="user_id",
+                match=MatchValue(value=current_user_id)
+            ),
+            FieldCondition(
                 key="tags",
-                match={"value": "work"}
+                match=MatchValue(value="work")
             )
         ]
     ),
@@ -418,9 +459,9 @@ for hit in hits.points:
     print(f"ID: {hit.id}, Score: {hit.score}, Payload: {hit.payload}")
 ```
 
-### 6. Qdrant Deletion
+### 6. Qdrant Deletion (Async)
 ```python
-q_client.delete(
+await q_client.delete(
     collection_name="document_vault",
     points_selector=[file_id]
 )
