@@ -1,4 +1,4 @@
-# Personal Knowledge Base (PKB)
+# Personal Knowledge Base 
 
 ## 📌 Project Overview
 The **Personal Knowledge Base** is a web-based cloud document workspace designed to store files directly in cloud storage and search them faster. Currently, this is an educational project built to learn and teach core software engineering and cloud concepts, including:
@@ -20,7 +20,7 @@ The project is structured around three major versions:
 
 | Version | Status | Core Scope | Core Technical Focus |
 | :--- | :--- | :--- | :--- |
-| **V1** | **Completed** | Secure User Auth, Direct-to-S3 Uploads, Metadata CRUD, AI Summarization | JWT auth, S3/B2 presigned URLs, MySQL metadata, Pytest coverage |
+| **V1** | **Completed** | Secure User Auth, Direct-to-S3 Uploads, Metadata CRUD, Basic file search | JWT auth, S3/B2 presigned URLs, MySQL metadata, Pytest coverage |
 | **V2** | **In Development** | AI-powered file semantic search | Google GenAI SDK (`gemini-embedding-2`), Qdrant Vector DB |
 | **V3** | **In Development** | Advanced Retrieval-Augmented Generation (RAG) | Document chunking, multi-source retrieval, grounded conversational query interface |
 
@@ -52,8 +52,7 @@ The application is built using a modern, decoupled stack:
 ## 📂 Repository Directory Structure
 
 ```
-Personal_Knowledge_Base/
-├── .agents/                        # Agentic configs and skills
+Personal_Knowledge_Base/                   
 ├── backend/                        # Backend FastAPI Application
 │   ├── alembic/                    # Database migrations environment
 │   │   ├── versions/               # Migration scripts
@@ -141,9 +140,8 @@ Personal_Knowledge_Base/
 │   └── vite.config.js              # Vite bundler configuration
 ├── others/                         # Secrets and environment files
 │   ├── .env                        # Local environment secrets (ignored in Git)
-│   └── .python-version             # Python local environment version
-├── prompt-base/                    # Prompt snippets & guidelines
-│   └── tech-doc.txt
+│   └── .python-version             # Python local environment version                   
+│   
 ├── .gitignore                      # Git ignored files list
 └── README.md                       # Repository entry point document (this file)
 ```
