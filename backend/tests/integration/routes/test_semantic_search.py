@@ -72,8 +72,10 @@ def test_semantic_search_empty_query_returns_all_active(setup_test_database):
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["fileId"] == file1.fileid
+    assert data["searchMode"] == "none"
+    assert data["status"] == "ok"
+    assert len(data["results"]) == 1
+    assert data["results"][0]["fileId"] == file1.fileid
 
 
 def test_semantic_search_multi_tenant_isolation(setup_test_database):
@@ -112,8 +114,10 @@ def test_semantic_search_multi_tenant_isolation(setup_test_database):
         )
         assert res_a.status_code == 200
         data_a = res_a.json()
-        assert len(data_a) == 1
-        assert data_a[0]["fileId"] == file_a.fileid
+        assert data_a["searchMode"] == "semantic"
+        assert data_a["status"] == "ok"
+        assert len(data_a["results"]) == 1
+        assert data_a["results"][0]["fileId"] == file_a.fileid
 
         # User B searches -> Should ONLY return file_b
         res_b = client.get(
@@ -122,21 +126,38 @@ def test_semantic_search_multi_tenant_isolation(setup_test_database):
         )
         assert res_b.status_code == 200
         data_b = res_b.json()
-        assert len(data_b) == 1
-        assert data_b[0]["fileId"] == file_b.fileid
+        assert data_b["searchMode"] == "semantic"
+        assert data_b["status"] == "ok"
+        assert len(data_b["results"]) == 1
+        assert data_b["results"][0]["fileId"] == file_b.fileid
 
 
-def test_semantic_search_no_matches(setup_test_database):
+def test_semantic_search_unrelated_query_pig_returns_no_match(setup_test_database):
     db = setup_test_database
     user = User(email="user@example.com", hashed_password="pw", status="active")
     db.add(user)
     db.commit()
 
+    resume_file = FileMetadata(
+        s3_key="uploads/resume.pdf",
+        filename="resume.pdf",
+        status="active",
+        title="Software Engineer Resume",
+        description="Python FastAPI and React experience",
+        userid=user.id,
+    )
+    db.add(resume_file)
+    db.commit()
+
     token = security.create_access_token(user_id=user.id)
+    # Search for completely unrelated term 'pig' -> score < 0.55 returns []
     with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[])):
         res = client.get(
-            "/files/search?q=unmatched",
+            "/files/search?q=pig",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 200
-        assert res.json() == []
+        data = res.json()
+        assert data["searchMode"] == "semantic"
+        assert data["status"] == "no_match"
+        assert data["results"] == []

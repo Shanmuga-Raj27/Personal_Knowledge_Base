@@ -42,13 +42,6 @@ def validate_mime_type(content_type: str) -> bool:
     return content_type in ALLOWED_MIME_TYPES
 
 
-def create_presigned_put_url(filename: str, content_type: str) -> dict:
-    """Generate a presigned PUT URL for direct S3 upload."""
-    if not validate_mime_type(content_type):
-        raise ValueError(f"Unsupported file type: {content_type}")
-
-    key = generate_safe_key(filename)
-
 def _get_s3_client():
     """Create and return a boto3 S3 client."""
     return boto3.client(

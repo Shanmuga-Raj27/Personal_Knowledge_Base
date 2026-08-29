@@ -36,6 +36,10 @@ axiosClient.interceptors.response.use(
     return response.data
   },
   (error) => {
+    if (axios.isCancel(error)) {
+      return Promise.reject(error)
+    }
+
     // Check if the response was unauthorized (401)
     if (error.response?.status === 401) {
       console.warn('[API Session Expired] Evicting credentials.')

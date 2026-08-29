@@ -4,10 +4,24 @@ import uvicorn
 
 from app.core.config import settings
 from app.apis.routes.auth import router as auth_router
-from app.apis.routes.upload_file import router as upload_router
+from contextlib import asynccontextmanager
+from app.services.AI.vector_service import init_qdrant_collection
+from app.apis.routes.upload_file import backfill_unindexed_files, router as upload_router
 from app.apis.routes.system import router as system_router
 
-app = FastAPI(title="Personal Knowledge Base")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI application lifespan event handler for startup setup and legacy backfill."""
+    try:
+        await init_qdrant_collection()
+        await backfill_unindexed_files()
+    except Exception:
+        pass
+    yield
+
+
+app = FastAPI(title="Personal Knowledge Base", lifespan=lifespan)
 
 # Configure CORS
 app.add_middleware(

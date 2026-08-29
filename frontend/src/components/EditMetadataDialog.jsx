@@ -38,7 +38,7 @@ export default function EditMetadataDialog({
   const newTagLength = tagInput.trim().length
   const projectedCombinedLength = editTags.length > 0 ? currentCombinedLength + 1 + newTagLength : newTagLength
   const tagInputExceeds = tagInput.length > 50
-  const combinedExceeds = projectedCombinedLength > 100
+  const combinedExceeds = projectedCombinedLength > 50
   const isAddDisabled = !tagInput.trim() || tagInputExceeds || combinedExceeds || editTags.includes(tagInput.trim())
 
   return (
@@ -47,12 +47,14 @@ export default function EditMetadataDialog({
       onClose={onClose}
       fullWidth
       maxWidth="sm"
-      PaperProps={{
-        sx: {
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          backgroundColor: '#FFFFFF',
-          p: 1
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '12px',
+            border: '1px solid #E2E8F0',
+            backgroundColor: '#FFFFFF',
+            p: 1
+          }
         }
       }}
     >
@@ -155,12 +157,12 @@ export default function EditMetadataDialog({
                   </Typography>
                 ) : (combinedExceeds && !!tagInput.trim()) ? (
                   <Typography component="span" variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
-                    Adding this tag exceeds combined limit of 100 characters ({projectedCombinedLength}/100).
+                    Adding this tag exceeds combined limit of 50 characters ({projectedCombinedLength}/50).
                   </Typography>
                 ) : (
                   <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', m: 0 }}>
-                    <Typography component="span" variant="caption" sx={{ color: getCounterColor(currentCombinedLength, 100), fontWeight: 600 }}>
-                      Combined Tags: {currentCombinedLength}/100
+                    <Typography component="span" variant="caption" sx={{ color: getCounterColor(currentCombinedLength, 50), fontWeight: 600 }}>
+                      Combined Tags: {currentCombinedLength}/50
                     </Typography>
                     <Typography component="span" variant="caption" sx={{ color: getCounterColor(tagInput.length, 50), fontWeight: 600 }}>
                       {tagInput.length}/50

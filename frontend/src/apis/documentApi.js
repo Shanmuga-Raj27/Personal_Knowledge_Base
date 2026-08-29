@@ -67,11 +67,13 @@ export const deleteFile = (fileId) => {
 /**
  * Perform semantic AI search or keyword fallback search on document vault.
  * @param {string} query Search query string.
- * @returns {Promise<Array<object>>} The list of matching documents.
+ * @param {AbortSignal} [signal] Optional AbortSignal for request cancellation.
+ * @returns {Promise<{ results: Array<object>, searchMode: string, status: string }>}
  */
-export const searchDocuments = (query) => {
+export const searchDocuments = (query, signal) => {
   return axiosClient.get('/files/search', {
     params: { q: query },
+    signal
   })
 }
 

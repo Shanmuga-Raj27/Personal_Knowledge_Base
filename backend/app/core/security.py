@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-load_dotenv()
+from app.core.config import settings
 
-# Secret key used to sign JWT tokens — fallback for development if not provided in environment
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_for_dev_only_change_in_production")
+# Secret key used to sign JWT tokens (validated strictly via Pydantic Settings)
+SECRET_KEY = settings.SECRET_KEY
 # JWT signing algorithm
 ALGORITHM = "HS256"
 # Default token expiration time in minutes (15-30 minutes)

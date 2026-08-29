@@ -43,8 +43,10 @@ class FileMetadataSchema(BaseModel):
     status: str
     title: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[str] = None
+    tags: Optional[str] = Field(None, max_length=50)
     is_indexed: bool = Field(False, alias="isIndexed")
+    indexing_status: str = Field("pending", alias="indexingStatus")
+    index_version: int = Field(1, alias="indexVersion")
     userid: int = Field(..., alias="userId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
@@ -55,6 +57,28 @@ class FileMetadataSchema(BaseModel):
         if v is None:
             return False
         return bool(v)
+
+    @field_validator("indexing_status", mode="before")
+    @classmethod
+    def default_indexing_status(cls, v: Any) -> str:
+        if not v or v is None:
+            return "pending"
+        return str(v)
+
+    @field_validator("index_version", mode="before")
+    @classmethod
+    def default_index_version(cls, v: Any) -> int:
+        if v is None:
+            return 1
+        return int(v)
+
+
+class SearchResponseSchema(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    results: list[FileMetadataSchema]
+    search_mode: str = Field(..., alias="searchMode")
+    status: str = Field(...)
 
 
 class FileUploadCompleteResponse(BaseModel):

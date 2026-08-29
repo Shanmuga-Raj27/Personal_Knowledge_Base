@@ -64,8 +64,10 @@ class FileMetadata(Base):
     description = Column(String(255), nullable=True)
     tags = Column(String(50), nullable=True)  # Comma-separated search tags
 
-    # Vector indexing tracking status
+    # Vector indexing lifecycle status and optimistic concurrency versioning
     is_indexed = Column(Boolean, default=False, nullable=False)
+    indexing_status = Column(String(20), default="pending", nullable=False)
+    index_version = Column(Integer, default=1, nullable=False)
 
     # Mandatory foreign key linking to the User owning the document
     userid = Column(

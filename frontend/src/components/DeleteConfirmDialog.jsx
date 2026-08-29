@@ -23,12 +23,14 @@ export default function DeleteConfirmDialog({
       onClose={() => !deleting && onClose()}
       fullWidth
       maxWidth="xs"
-      PaperProps={{
-        sx: {
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          backgroundColor: '#FFFFFF',
-          p: 1
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '12px',
+            border: '1px solid #E2E8F0',
+            backgroundColor: '#FFFFFF',
+            p: 1
+          }
         }
       }}
     >

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "http://localhost:6333"
     QDRANT_COLLECTION_NAME: str = "document_vault"
     VITE_API_URL: str = "http://localhost:8000"
+    SECRET_KEY: str
 
 
 settings = Settings()

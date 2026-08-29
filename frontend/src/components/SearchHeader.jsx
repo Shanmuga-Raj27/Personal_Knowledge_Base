@@ -44,25 +44,27 @@ export default function SearchHeader({
           placeholder="Search documents by keyword or semantic context..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: '#64748B', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                {isSearching ? (
-                  <CircularProgress size={18} sx={{ color: '#64748B' }} />
-                ) : (
-                  searchTerm && (
-                    <IconButton size="small" onClick={() => onSearchChange('')} edge="end">
-                      <CloseIcon fontSize="small" sx={{ color: '#64748B' }} />
-                    </IconButton>
-                  )
-                )}
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: '#64748B', fontSize: 20 }} />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  {isSearching ? (
+                    <CircularProgress size={18} sx={{ color: '#64748B' }} />
+                  ) : (
+                    searchTerm && (
+                      <IconButton size="small" onClick={() => onSearchChange('')} edge="end">
+                        <CloseIcon fontSize="small" sx={{ color: '#64748B' }} />
+                      </IconButton>
+                    )
+                  )}
+                </InputAdornment>
+              ),
+            }
           }}
           sx={{
             flexGrow: 1,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   ThemeProvider,
   createTheme,
@@ -121,11 +121,19 @@ function App() {
     checkConnection()
   }, [token])
 
-  // Debounced search effect (350ms delay)
+  // Search request cancellation reference
+  const abortControllerRef = useRef(null)
+
+  // Debounced search effect (350ms delay) with AbortController cancellation
   useEffect(() => {
     if (!token || !isAuthenticated()) return
 
     const timer = setTimeout(async () => {
+      // Abort previous in-flight search request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
       if (!searchTerm.trim()) {
         setIsFallbackSearch(false)
         setIsSearching(false)
@@ -133,17 +141,30 @@ function App() {
         return
       }
 
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
       setIsSearching(true)
       setLoadingDocs(true)
       try {
-        const results = await searchDocuments(searchTerm)
-        setIsFallbackSearch(Boolean(results && results.isFallbackSearch))
-        setDocuments(results || [])
+        const response = await searchDocuments(searchTerm, controller.signal)
+        const docs = response?.results || response || []
+        const isFallback =
+          response?.search_mode === 'fallback' ||
+          response?.searchMode === 'fallback' ||
+          Boolean(response?.isFallbackSearch)
+        setIsFallbackSearch(isFallback)
+        setDocuments(docs)
       } catch (err) {
+        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+          return // Quietly ignore aborted search request
+        }
         console.error('Search request failed:', err)
       } finally {
-        setIsSearching(false)
-        setLoadingDocs(false)
+        if (abortControllerRef.current === controller) {
+          setIsSearching(false)
+          setLoadingDocs(false)
+        }
       }
     }, 350)
 

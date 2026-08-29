@@ -76,41 +76,87 @@ export default function FileRow({ doc, onOpen, onEdit, onDelete }) {
               >
                 {doc.title || doc.filename}
               </Typography>
-              {doc.isIndexed ? (
-                <Chip
-                  label="Indexed"
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    height: 16,
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    borderColor: '#86EFAC',
-                    color: '#166534',
-                    backgroundColor: '#F0FDF4',
-                    borderRadius: '4px',
-                    px: 0.5,
-                    flexShrink: 0
-                  }}
-                />
-              ) : (
-                <Chip
-                  label="Indexing..."
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    height: 16,
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    borderColor: '#FDE68A',
-                    color: '#854D0E',
-                    backgroundColor: '#FEFCE8',
-                    borderRadius: '4px',
-                    px: 0.5,
-                    flexShrink: 0
-                  }}
-                />
-              )}
+              {(() => {
+                const status = (doc.indexingStatus || doc.indexing_status || (doc.isIndexed ? 'indexed' : 'pending')).toLowerCase()
+                if (status === 'indexed') {
+                  return (
+                    <Chip
+                      label="Indexed"
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        height: 16,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        borderColor: '#86EFAC',
+                        color: '#166534',
+                        backgroundColor: '#F0FDF4',
+                        borderRadius: '4px',
+                        px: 0.5,
+                        flexShrink: 0
+                      }}
+                    />
+                  )
+                }
+                if (status === 'processing') {
+                  return (
+                    <Chip
+                      label="Indexing..."
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        height: 16,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        borderColor: '#FDE68A',
+                        color: '#854D0E',
+                        backgroundColor: '#FEFCE8',
+                        borderRadius: '4px',
+                        px: 0.5,
+                        flexShrink: 0
+                      }}
+                    />
+                  )
+                }
+                if (status === 'failed') {
+                  return (
+                    <Chip
+                      label="Failed"
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        height: 16,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        borderColor: '#FECACA',
+                        color: '#991B1B',
+                        backgroundColor: '#FEF2F2',
+                        borderRadius: '4px',
+                        px: 0.5,
+                        flexShrink: 0
+                      }}
+                    />
+                  )
+                }
+                return (
+                  <Chip
+                    label="Pending"
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      height: 16,
+                      fontSize: '0.6rem',
+                      fontWeight: 700,
+                      borderColor: '#E2E8F0',
+                      color: '#64748B',
+                      backgroundColor: '#F8FAFC',
+                      borderRadius: '4px',
+                      px: 0.5,
+                      flexShrink: 0
+                    }}
+                  />
+                )
+              })()}
             </Box>
             <Typography
               variant="caption"

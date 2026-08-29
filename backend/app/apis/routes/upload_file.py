@@ -16,6 +16,7 @@ from app.schemas.file import (
     FileViewUrlResponse,
     FileMetadataSchema,
     FileMetadataUpdateRequest,
+    SearchResponseSchema,
 )
 from app.services.AWS.s3_service import (
     create_presigned_put_url,
@@ -41,6 +42,7 @@ async def sync_vector_in_background(
     title: str | None,
     description: str | None,
     tags: str | None,
+    target_version: int,
 ):
     """Background worker task to compute Gemini embeddings and update Qdrant point asynchronously."""
     indexed_success = await upsert_file_vector(
@@ -55,10 +57,50 @@ async def sync_vector_in_background(
     try:
         db_file = db.query(FileMetadata).filter(FileMetadata.fileid == file_id).first()
         if db_file:
-            db_file.is_indexed = indexed_success
-            db.commit()
+            # Optimistic versioning check: commit status only if version matches target_version
+            if db_file.index_version == target_version:
+                db_file.is_indexed = indexed_success
+                db_file.indexing_status = "indexed" if indexed_success else "failed"
+                db.commit()
+            else:
+                logger.info(
+                    "Skipping stale background indexing task for file %s (current version %s != target %s).",
+                    file_id, db_file.index_version, target_version
+                )
     except Exception as exc:
-        logger.error("Background task error updating is_indexed for file %s: %s", file_id, str(exc))
+        logger.error("Background task error updating indexing_status for file %s: %s", file_id, str(exc))
+    finally:
+        db.close()
+
+
+async def backfill_unindexed_files():
+    """Startup task to scan and queue unindexed legacy active files for background vector indexing."""
+    db = SessionLocal()
+    try:
+        unindexed_files = (
+            db.query(FileMetadata)
+            .filter(
+                FileMetadata.status == "active",
+                (FileMetadata.indexing_status == "pending") | (FileMetadata.is_indexed == False),
+            )
+            .all()
+        )
+        if unindexed_files:
+            logger.info("Found %d legacy unindexed active files. Triggering backfill...", len(unindexed_files))
+            for db_file in unindexed_files:
+                db_file.indexing_status = "processing"
+                db.commit()
+                await sync_vector_in_background(
+                    file_id=db_file.fileid,
+                    user_id=db_file.userid,
+                    filename=db_file.filename,
+                    title=db_file.title,
+                    description=db_file.description,
+                    tags=db_file.tags,
+                    target_version=db_file.index_version,
+                )
+    except Exception as exc:
+        logger.warning("Backfill legacy task warning: %s", str(exc))
     finally:
         db.close()
 
@@ -136,6 +178,7 @@ async def complete_upload(
         # Update database row to active
         db_file.status = "active"
         db_file.size_bytes = meta["size_bytes"]
+        db_file.indexing_status = "processing"
         db.commit()
         db.refresh(db_file)
 
@@ -148,6 +191,7 @@ async def complete_upload(
             title=db_file.title,
             description=db_file.description,
             tags=db_file.tags,
+            target_version=db_file.index_version,
         )
     except FileNotFoundError as exc:
         # Mark as failed in DB
@@ -256,6 +300,9 @@ async def update_metadata(
     if payload.tags is not None:
         db_file.tags = payload.tags
 
+    # Increment index_version and set indexing_status to processing
+    db_file.index_version = (db_file.index_version or 1) + 1
+    db_file.indexing_status = "processing"
     db.commit()
     db.refresh(db_file)
 
@@ -268,24 +315,31 @@ async def update_metadata(
         title=db_file.title,
         description=db_file.description,
         tags=db_file.tags,
+        target_version=db_file.index_version,
     )
 
     return db_file
 
 
-@router.get("/search", response_model=list[FileMetadataSchema])
+@router.get("/search", response_model=SearchResponseSchema)
 async def search_files(
     q: str = "",
     response: Response = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Perform multi-tenant scoped semantic AI file search with automatic MySQL keyword fallback."""
+    """Perform multi-tenant scoped semantic AI file search with explicit status contract."""
     search_term = q.strip()
     if not search_term:
-        return await list_files(current_user=current_user, db=db)
+        active_files = await list_files(current_user=current_user, db=db)
+        return SearchResponseSchema(
+            results=active_files,
+            search_mode="none",
+            status="ok",
+        )
 
     matched_ids = []
+    vector_exception_occurred = False
     try:
         matched_ids = await search_file_vectors(
             query_text=search_term,
@@ -293,10 +347,11 @@ async def search_files(
             limit=15,
         )
     except Exception as exc:
-        logger.warning("Semantic vector search error, falling back to SQL search: %s", str(exc))
-        matched_ids = []
+        logger.warning("Semantic vector search exception, triggering SQL fallback: %s", str(exc))
+        vector_exception_occurred = True
 
-    if matched_ids:
+    # Case A: Vector search executed cleanly and returned matching IDs
+    if not vector_exception_occurred and matched_ids:
         files = (
             db.query(FileMetadata)
             .filter(
@@ -309,9 +364,21 @@ async def search_files(
         if files:
             file_map = {f.fileid: f for f in files}
             sorted_files = [file_map[fid] for fid in matched_ids if fid in file_map]
-            return sorted_files
+            return SearchResponseSchema(
+                results=sorted_files,
+                search_mode="semantic",
+                status="ok",
+            )
 
-    # Fallback Trigger: Set X-Search-Fallback header and perform MySQL SQL substring search
+    # Case B: Vector search executed cleanly but found 0 matches above threshold (similarity score < 0.55)
+    if not vector_exception_occurred:
+        return SearchResponseSchema(
+            results=[],
+            search_mode="semantic",
+            status="no_match",
+        )
+
+    # Case C: Infrastructure Failure (Qdrant/Gemini unreachable) -> SQL Keyword Fallback
     if response:
         response.headers["X-Search-Fallback"] = "true"
 
@@ -331,7 +398,11 @@ async def search_files(
         .order_by(FileMetadata.created_at.desc())
         .all()
     )
-    return fallback_files
+    return SearchResponseSchema(
+        results=fallback_files,
+        search_mode="fallback",
+        status="degraded",
+    )
 
 
 @router.delete("/{fileid}", status_code=status.HTTP_200_OK)
