@@ -39,6 +39,16 @@ def check_rate_limit(client_ip: str, email: str) -> None:
     """
     key = (client_ip, email.lower())
     now = time.time()
+
+    # Periodic RAM memory leak cleanup if dictionary grows large
+    if len(LOGIN_ATTEMPTS) > 2000:
+        stale_keys = [
+            k for k, v in LOGIN_ATTEMPTS.items()
+            if not v or (now - v[-1] >= RATE_LIMIT_WINDOW_SECONDS)
+        ]
+        for k in stale_keys:
+            del LOGIN_ATTEMPTS[k]
+
     # Filter attempts within the 15-minute window
     LOGIN_ATTEMPTS[key] = [
         t for t in LOGIN_ATTEMPTS[key] if now - t < RATE_LIMIT_WINDOW_SECONDS

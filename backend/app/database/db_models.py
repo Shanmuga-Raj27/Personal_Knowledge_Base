@@ -5,7 +5,7 @@ SQLAlchemy ORM models.
 Each class maps to a database table.
 These models are also used by Alembic to detect schema changes for migrations.
 """
-from sqlalchemy import Column, Integer, String, BigInteger, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, BigInteger, DateTime, ForeignKey, Boolean, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -57,7 +57,7 @@ class FileMetadata(Base):
     size_bytes = Column(BigInteger, nullable=True)
 
     # Lifecycle state: pending, active, failed
-    status = Column(String(20), default="pending", nullable=False)
+    status = Column(String(20), default="pending", nullable=False, index=True)
 
     # Custom metadata details (tightened column limits)
     title = Column(String(100), nullable=True)
@@ -65,15 +65,15 @@ class FileMetadata(Base):
     tags = Column(String(50), nullable=True)  # Comma-separated search tags
 
     # Vector indexing lifecycle status, optimistic concurrency, and retry tracking
-    is_indexed = Column(Boolean, default=False, nullable=False)
-    indexing_status = Column(String(20), default="PENDING", nullable=False)
+    is_indexed = Column(Boolean, default=False, nullable=False, index=True)
+    indexing_status = Column(String(20), default="PENDING", nullable=False, index=True)
     index_version = Column(Integer, default=1, nullable=False)
     retry_count = Column(Integer, default=0, nullable=False)
     last_error = Column(String(500), nullable=True)
 
     # Mandatory foreign key linking to the User owning the document
     userid = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     # Automatically managed timestamp records
@@ -85,6 +85,11 @@ class FileMetadata(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    __table_args__ = (
+        Index("idx_user_status", "userid", "status"),
+        Index("idx_indexing_recovery", "status", "is_indexed", "indexing_status"),
     )
 
     # Setup database relationships

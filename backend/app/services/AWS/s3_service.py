@@ -42,15 +42,21 @@ def validate_mime_type(content_type: str) -> bool:
     return content_type in ALLOWED_MIME_TYPES
 
 
+_s3_client_instance = None
+
+
 def _get_s3_client():
-    """Create and return a boto3 S3 client."""
-    return boto3.client(
-        "s3",
-        region_name=settings.AWS_REGION,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        endpoint_url=settings.AWS_ENDPOINT_URL,
-    )
+    """Retrieve or initialize the singleton boto3 S3 client with connection pooling."""
+    global _s3_client_instance
+    if _s3_client_instance is None:
+        _s3_client_instance = boto3.client(
+            "s3",
+            region_name=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            endpoint_url=settings.AWS_ENDPOINT_URL,
+        )
+    return _s3_client_instance
 
 
 def create_presigned_put_url(filename: str, content_type: str) -> dict:

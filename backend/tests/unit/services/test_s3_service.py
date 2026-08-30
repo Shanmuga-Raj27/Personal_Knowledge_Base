@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError
+import app.services.AWS.s3_service as s3_module
 from app.services.AWS.s3_service import (
     create_presigned_put_url,
     check_object_exists,
@@ -10,6 +11,14 @@ from app.services.AWS.s3_service import (
 )
 
 from app.core.config import settings
+
+
+@pytest.fixture(autouse=True)
+def reset_s3_singleton():
+    """Reset the S3 client singleton before and after each test."""
+    s3_module._s3_client_instance = None
+    yield
+    s3_module._s3_client_instance = None
 
 
 def test_create_presigned_put_url_with_custom_endpoint():

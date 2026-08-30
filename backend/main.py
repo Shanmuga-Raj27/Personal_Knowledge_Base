@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -9,6 +10,8 @@ from app.services.AI.vector_service import init_qdrant_collection, close_qdrant_
 from app.apis.routes.upload_file import recover_and_backfill_unindexed_files, router as upload_router
 from app.apis.routes.system import router as system_router
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,8 +19,8 @@ async def lifespan(app: FastAPI):
     try:
         await init_qdrant_collection()
         await recover_and_backfill_unindexed_files()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.critical("Lifespan startup initialization failed: %s", str(exc), exc_info=True)
     yield
     await close_qdrant_client()
 

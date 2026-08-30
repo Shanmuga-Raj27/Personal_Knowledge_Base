@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Response
@@ -106,11 +107,15 @@ async def recover_and_backfill_unindexed_files():
             .all()
         )
         if unindexed_files:
-            logger.info("Found %d unindexed or failed active records. Triggering recovery...", len(unindexed_files))
-            for db_file in unindexed_files:
-                db_file.indexing_status = "INDEXING"
-                db.commit()
-                await sync_vector_in_background(
+            logger.info("Found %d unindexed or failed active records. Triggering bulk recovery...", len(unindexed_files))
+            file_ids = [db_file.fileid for db_file in unindexed_files]
+            db.query(FileMetadata).filter(FileMetadata.fileid.in_(file_ids)).update(
+                {FileMetadata.indexing_status: "INDEXING"}, synchronize_session=False
+            )
+            db.commit()
+
+            tasks = [
+                sync_vector_in_background(
                     file_id=db_file.fileid,
                     user_id=db_file.userid,
                     filename=db_file.filename,
@@ -119,6 +124,9 @@ async def recover_and_backfill_unindexed_files():
                     tags=db_file.tags,
                     target_version=db_file.index_version,
                 )
+                for db_file in unindexed_files
+            ]
+            await asyncio.gather(*tasks, return_exceptions=True)
     except Exception as exc:
         logger.warning("Recovery worker warning: %s", str(exc))
     finally:
@@ -352,7 +360,7 @@ async def search_files(
     # Milestone 3 Query Validation: Reject >100 characters or whitespace-only inputs with 422
     if len(q) > 100 or (q != "" and not q.strip()):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Search query exceeds maximum length of 100 characters or contains only whitespace.",
         )
 

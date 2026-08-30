@@ -9,19 +9,18 @@ from fastapi import FastAPI
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, declarative_base
-from dotenv import load_dotenv
-import os
+from app.core.config import settings
 
-# Load variables from others/.env file (DATABASE_URL)
-env_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "others", ".env")
-load_dotenv(env_path)
+# Read database URL from validated settings
+DATABASE_URL = settings.DATABASE_URL
 
-# Read database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-
-# Create SQLAlchemy engine — manages DB connections
-engine = create_engine(DATABASE_URL)
+# Create SQLAlchemy engine with connection health pre-ping and pooling
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+)
 
 # Session factory — creates new DB sessions per request
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

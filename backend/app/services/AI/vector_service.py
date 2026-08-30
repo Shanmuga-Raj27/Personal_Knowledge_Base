@@ -28,7 +28,10 @@ def get_qdrant_client() -> AsyncQdrantClient:
     """Retrieve or initialize the singleton AsyncQdrantClient instance."""
     global _qdrant_client
     if _qdrant_client is None:
-        _qdrant_client = AsyncQdrantClient(url=settings.QDRANT_HOST)
+        _qdrant_client = AsyncQdrantClient(
+            url=settings.QDRANT_HOST,
+            check_compatibility=False,
+        )
     return _qdrant_client
 
 
@@ -104,8 +107,10 @@ def build_file_text_representation(
     return "\n".join(parts)
 
 
-async def generate_embedding(text: str) -> Optional[List[float]]:
-    """Generate 768-dimension vector embedding from text using Gemini API."""
+async def generate_embedding(
+    text: str, task_type: Optional[str] = "RETRIEVAL_DOCUMENT"
+) -> Optional[List[float]]:
+    """Generate 768-dimension vector embedding from text using Gemini API with specified task_type."""
     g_client = get_gemini_client()
     if not g_client:
         logger.warning("Gemini client is not initialized (GEMINI_API_KEY missing).")
@@ -115,7 +120,10 @@ async def generate_embedding(text: str) -> Optional[List[float]]:
         response = await g_client.aio.models.embed_content(
             model="gemini-embedding-2",
             contents=text,
-            config=types.EmbedContentConfig(output_dimensionality=768),
+            config=types.EmbedContentConfig(
+                output_dimensionality=768,
+                task_type=task_type,
+            ),
         )
         if response and response.embeddings and len(response.embeddings) > 0:
             return response.embeddings[0].values
@@ -140,7 +148,9 @@ async def upsert_file_vector(
     text_content = build_file_text_representation(
         filename=filename, title=title, description=description, tags=tags
     )
-    vector = await generate_embedding(text_content)
+    vector = await generate_embedding(
+        text_content, task_type="RETRIEVAL_DOCUMENT"
+    )
     if vector is None:
         logger.warning("Skipping Qdrant vector upsert for file %s (embedding generation returned None).", file_id)
         return False
@@ -191,7 +201,7 @@ async def delete_file_vector(file_id: int) -> bool:
 
 
 async def search_file_vectors(
-    query_text: str, user_id: int, limit: int = 15
+    query_text: str, user_id: int, limit: int = 15, score_threshold: float = 0.35
 ) -> List[tuple[int, float]]:
     """Perform multi-tenant scoped semantic vector similarity search on Qdrant.
 
@@ -201,7 +211,9 @@ async def search_file_vectors(
     if not query_text.strip():
         return []
 
-    query_vector = await generate_embedding(query_text)
+    query_vector = await generate_embedding(
+        query_text, task_type="RETRIEVAL_QUERY"
+    )
     if query_vector is None:
         logger.warning("Semantic vector search fallback: unable to generate query embedding.")
         raise RuntimeError("Embedding generation failed.")
@@ -222,7 +234,7 @@ async def search_file_vectors(
                 ]
             ),
             limit=limit,
-            score_threshold=0.55,
+            score_threshold=score_threshold,
         )
         matched_results = [
             (hit.id, hit.score) for hit in hits.points if isinstance(hit.id, int)
