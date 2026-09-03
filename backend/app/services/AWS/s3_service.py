@@ -7,10 +7,12 @@ Keeps AWS logic isolated from API routes.
 import os
 import uuid
 import re
+import threading
 from urllib.parse import unquote
 
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
+from fastapi.concurrency import run_in_threadpool
 
 from app.core.config import settings
 
@@ -43,19 +45,22 @@ def validate_mime_type(content_type: str) -> bool:
 
 
 _s3_client_instance = None
+_s3_lock = threading.Lock()
 
 
 def _get_s3_client():
-    """Retrieve or initialize the singleton boto3 S3 client with connection pooling."""
+    """Retrieve or initialize the singleton boto3 S3 client with connection pooling and thread lock safety."""
     global _s3_client_instance
     if _s3_client_instance is None:
-        _s3_client_instance = boto3.client(
-            "s3",
-            region_name=settings.AWS_REGION,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            endpoint_url=settings.AWS_ENDPOINT_URL,
-        )
+        with _s3_lock:
+            if _s3_client_instance is None:
+                _s3_client_instance = boto3.client(
+                    "s3",
+                    region_name=settings.AWS_REGION,
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                    endpoint_url=settings.AWS_ENDPOINT_URL,
+                )
     return _s3_client_instance
 
 
@@ -154,6 +159,24 @@ def delete_s3_object(key: str) -> None:
         s3_client.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
     except (ClientError, BotoCoreError) as exc:
         raise RuntimeError(f"Failed to delete S3 object '{key}': {str(exc)}") from exc
+
+
+# Non-blocking async wrappers to offload synchronous Boto3 I/O from FastAPI event loop
+async def async_create_presigned_put_url(filename: str, content_type: str) -> dict:
+    return await run_in_threadpool(create_presigned_put_url, filename, content_type)
+
+
+async def async_create_presigned_get_url(key: str, expires_in: int = 300) -> dict:
+    return await run_in_threadpool(create_presigned_get_url, key, expires_in)
+
+
+async def async_get_object_metadata(key: str) -> dict:
+    return await run_in_threadpool(get_object_metadata, key)
+
+
+async def async_delete_s3_object(key: str) -> None:
+    await run_in_threadpool(delete_s3_object, key)
+
 
 
 

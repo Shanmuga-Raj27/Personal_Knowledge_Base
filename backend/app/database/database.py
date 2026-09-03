@@ -14,12 +14,14 @@ from app.core.config import settings
 # Read database URL from validated settings
 DATABASE_URL = settings.DATABASE_URL
 
-# Create SQLAlchemy engine with connection health pre-ping and pooling
+# Create SQLAlchemy engine with connection health pre-ping and parameterized pooling
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+    pool_recycle=settings.DATABASE_POOL_RECYCLE,
 )
 
 # Session factory — creates new DB sessions per request

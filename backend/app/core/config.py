@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     VITE_API_URL: str = "http://localhost:8000"
     SECRET_KEY: str
 
+    # Performance & Reliability Pool & Concurrency Controls
+    DATABASE_POOL_SIZE: int = 20
+    DATABASE_MAX_OVERFLOW: int = 40
+    DATABASE_POOL_TIMEOUT: int = 30
+    DATABASE_POOL_RECYCLE: int = 1800
+    GEMINI_API_TIMEOUT_SECONDS: float = 15.0
+    MAX_CONCURRENT_EMBEDDING_TASKS: int = 5
+
+
 
 settings = Settings()
 

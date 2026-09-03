@@ -9,20 +9,25 @@ import {
   Paper,
   Box,
   Typography,
-  Skeleton
+  Skeleton,
+  TablePagination
 } from '@mui/material'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import FileRow from './FileRow'
 
-export default function FileList({
+function FileList({
   documents,
   loadingDocs,
   searchTerm,
   onOpen,
   onEdit,
-  onDelete
+  onDelete,
+  page = 0,
+  rowsPerPage = 50,
+  totalCount = 0,
+  onPageChange,
+  onRowsPerPageChange
 }) {
-  // Display documents directly from server search/fetch
   const displayedDocs = documents || []
 
   return (
@@ -111,6 +116,20 @@ export default function FileList({
           )}
         </TableBody>
       </Table>
+      {onPageChange && totalCount > 0 && (
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          component="div"
+          count={totalCount}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={onPageChange}
+          onRowsPerPageChange={onRowsPerPageChange}
+          sx={{ borderTop: '1px solid #E2E8F0' }}
+        />
+      )}
     </TableContainer>
   )
 }
+
+export default React.memo(FileList)

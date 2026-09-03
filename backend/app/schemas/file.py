@@ -127,3 +127,13 @@ class FileMetadataUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = Field(None, max_length=255)
     tags: Optional[str] = Field(None, max_length=50)
+
+
+class PaginatedFilesResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    items: list[FileMetadataSchema]
+    total: int
+    limit: int
+    offset: int
+

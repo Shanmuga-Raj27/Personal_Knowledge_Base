@@ -5,7 +5,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload'
 import CloseIcon from '@mui/icons-material/Close'
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 
-export default function SearchHeader({
+function SearchHeader({
   searchTerm,
   onSearchChange,
   isSearching,
@@ -206,3 +206,5 @@ export default function SearchHeader({
     </Paper>
   )
 }
+
+export default React.memo(SearchHeader)

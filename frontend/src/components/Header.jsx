@@ -14,7 +14,7 @@ import {
 import Logout from '@mui/icons-material/Logout'
 import AccountCircle from '@mui/icons-material/AccountCircle'
 
-export default function Header({ backendStatus, currentUser, onLogout }) {
+function Header({ backendStatus, currentUser, onLogout }) {
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
 
@@ -190,3 +190,5 @@ export default function Header({ backendStatus, currentUser, onLogout }) {
     </AppBar>
   )
 }
+
+export default React.memo(Header)

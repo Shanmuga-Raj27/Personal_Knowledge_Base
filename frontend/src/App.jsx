@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   ThemeProvider,
   createTheme,
@@ -69,9 +69,12 @@ function App() {
   const [lastUploadedKey, setLastUploadedKey] = useState(null)
   const [backendStatus, setBackendStatus] = useState('checking')
 
-  // Document management states
+  // Document management & pagination states
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(50)
+  const [totalDocsCount, setTotalDocsCount] = useState(0)
 
   // Search filter & AI state
   const [searchTerm, setSearchTerm] = useState('')
@@ -91,18 +94,38 @@ function App() {
   const [docToDelete, setDocToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Load verified files from database
-  const loadDocuments = async () => {
+  // Document loading AbortController reference
+  const loadDocsAbortRef = useRef(null)
+
+  // Load verified files from database with pagination and AbortController cancellation
+  const loadDocuments = useCallback(async (targetPage = page, targetLimit = rowsPerPage) => {
+    if (loadDocsAbortRef.current) {
+      loadDocsAbortRef.current.abort()
+    }
+    const controller = new AbortController()
+    loadDocsAbortRef.current = controller
+
     setLoadingDocs(true)
     try {
-      const docs = await fetchFiles()
-      setDocuments(docs)
+      const res = await fetchFiles(targetLimit, targetPage * targetLimit, controller.signal)
+      if (Array.isArray(res)) {
+        setDocuments(res)
+        setTotalDocsCount(res.length)
+      } else if (res && Array.isArray(res.items)) {
+        setDocuments(res.items)
+        setTotalDocsCount(res.total ?? res.items.length)
+      }
     } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return
+      }
       console.error('Failed to load documents:', err)
     } finally {
-      setLoadingDocs(false)
+      if (loadDocsAbortRef.current === controller) {
+        setLoadingDocs(false)
+      }
     }
-  }
+  }, [page, rowsPerPage])
 
   // Check backend connectivity on mount (or token changes)
   useEffect(() => {
@@ -119,7 +142,12 @@ function App() {
       }
     }
     checkConnection()
-  }, [token])
+    return () => {
+      if (loadDocsAbortRef.current) {
+        loadDocsAbortRef.current.abort()
+      }
+    }
+  }, [token, loadDocuments, searchTerm])
 
   // Search request cancellation reference
   const abortControllerRef = useRef(null)
@@ -165,6 +193,7 @@ function App() {
           Boolean(response?.isFallbackSearch)
         setIsFallbackSearch(isFallback)
         setDocuments(mappedDocs)
+        setTotalDocsCount(mappedDocs.length)
       } catch (err) {
         if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
           return // Quietly ignore aborted search request
@@ -179,19 +208,19 @@ function App() {
     }, 350)
 
     return () => clearTimeout(timer)
-  }, [searchTerm, token])
+  }, [searchTerm, token, loadDocuments])
 
   // Login handler
-  const handleLoginSuccess = (accessToken, userEmail) => {
+  const handleLoginSuccess = useCallback((accessToken, userEmail) => {
     saveToken(accessToken)
     localStorage.setItem('pkb_user_email', userEmail)
     const decoded = decodeToken(accessToken)
     setToken(accessToken)
     setCurrentUser({ id: decoded?.sub, email: userEmail })
-  }
+  }, [])
 
   // Logout handler
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     clearToken()
     localStorage.removeItem('pkb_user_email')
     setToken(null)
@@ -199,10 +228,10 @@ function App() {
     setDocuments([])
     setSuccess(null)
     setError(null)
-  }
+  }, [])
 
   // Handle selected file validation
-  const handleFileChange = (e) => {
+  const handleFileChange = useCallback((e) => {
     const selectedFile = e.target.files[0]
     setError(null)
     setSuccess(null)
@@ -219,10 +248,10 @@ function App() {
     }
 
     setFile(selectedFile)
-  }
+  }, [])
 
   // Handle starting metadata customization
-  const handleStartEdit = (doc) => {
+  const handleStartEdit = useCallback((doc) => {
     setEditingDoc(doc)
     setEditTitle(doc.title || '')
     setEditDescription(doc.description || '')
@@ -230,10 +259,10 @@ function App() {
     setEditTags(parsedTags)
     setTagInput('')
     setEditOpen(true)
-  }
+  }, [])
 
   // Add tag chip in form
-  const handleAddTag = () => {
+  const handleAddTag = useCallback(() => {
     const trimmed = tagInput.trim()
     if (!trimmed) return
     if (trimmed.length > 50) return
@@ -246,15 +275,15 @@ function App() {
       setEditTags([...editTags, trimmed])
     }
     setTagInput('')
-  }
+  }, [tagInput, editTags])
 
   // Remove tag chip in form
-  const handleRemoveTag = (tagToRemove) => {
-    setEditTags(editTags.filter((t) => t !== tagToRemove))
-  }
+  const handleRemoveTag = useCallback((tagToRemove) => {
+    setEditTags((prevTags) => prevTags.filter((t) => t !== tagToRemove))
+  }, [])
 
   // Submit metadata changes to database
-  const handleSaveMetadata = async () => {
+  const handleSaveMetadata = useCallback(async () => {
     if (!editingDoc) return
     
     const finalTitle = editTitle.trim().slice(0, 100)
@@ -282,16 +311,16 @@ function App() {
       console.error('Failed to save metadata:', err)
       setError(err.message || 'Failed to update metadata.')
     }
-  }
+  }, [editingDoc, editTitle, editDescription, editTags, loadDocuments])
 
   // Handle prompting deletion modal
-  const handlePromptDelete = (doc) => {
+  const handlePromptDelete = useCallback((doc) => {
     setDocToDelete(doc)
     setDeleteConfirmOpen(true)
-  }
+  }, [])
 
   // Handle confirming file deletion
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!docToDelete) return
 
     setDeleting(true)
@@ -313,10 +342,10 @@ function App() {
     } finally {
       setDeleting(false)
     }
-  }
+  }, [docToDelete, loadDocuments])
 
   // Handle document upload directly to S3 storage via presigned URL
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!file) return
 
     setUploading(true)
@@ -383,10 +412,10 @@ function App() {
       setUploading(false)
       setVerifying(false)
     }
-  }
+  }, [file, loadDocuments, handleStartEdit])
 
   // Handle requesting presigned GET URL to view or read the file
-  const handleViewFile = async (keyToView) => {
+  const handleViewFile = useCallback(async (keyToView) => {
     const targetKey = keyToView || lastUploadedKey
     if (!targetKey) return
 
@@ -407,7 +436,20 @@ function App() {
     } finally {
       setViewLoading(false)
     }
-  }
+  }, [lastUploadedKey])
+
+  // Pagination Change Handlers
+  const handlePageChange = useCallback((event, newPage) => {
+    setPage(newPage)
+    loadDocuments(newPage, rowsPerPage)
+  }, [loadDocuments, rowsPerPage])
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    const newLimit = parseInt(event.target.value, 10)
+    setRowsPerPage(newLimit)
+    setPage(0)
+    loadDocuments(0, newLimit)
+  }, [loadDocuments])
 
   // Tokenized Light Theme Design System
   const theme = useMemo(
@@ -535,6 +577,11 @@ function App() {
               onOpen={handleViewFile}
               onEdit={handleStartEdit}
               onDelete={handlePromptDelete}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              totalCount={totalDocsCount}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
             />
           </Container>
         )}

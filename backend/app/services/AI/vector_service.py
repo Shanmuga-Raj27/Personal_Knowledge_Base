@@ -4,7 +4,9 @@ backend/app/services/AI/vector_service.py
 Service layer for embedding generation using Google GenAI SDK and
 vector storage/retrieval using Qdrant.
 """
+import asyncio
 import logging
+import threading
 from typing import List, Optional
 
 from qdrant_client import AsyncQdrantClient
@@ -19,27 +21,33 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Global singleton client instances
+# Global singleton client instances and thread locks
 _qdrant_client: Optional[AsyncQdrantClient] = None
 _gemini_client: Optional[genai.Client] = None
+_qdrant_lock = threading.Lock()
+_gemini_lock = threading.Lock()
 
 
 def get_qdrant_client() -> AsyncQdrantClient:
-    """Retrieve or initialize the singleton AsyncQdrantClient instance."""
+    """Retrieve or initialize the singleton AsyncQdrantClient instance with thread lock safety."""
     global _qdrant_client
     if _qdrant_client is None:
-        _qdrant_client = AsyncQdrantClient(
-            url=settings.QDRANT_HOST,
-            check_compatibility=False,
-        )
+        with _qdrant_lock:
+            if _qdrant_client is None:
+                _qdrant_client = AsyncQdrantClient(
+                    url=settings.QDRANT_HOST,
+                    check_compatibility=False,
+                )
     return _qdrant_client
 
 
 def get_gemini_client() -> Optional[genai.Client]:
-    """Retrieve or initialize the singleton Google GenAI client instance."""
+    """Retrieve or initialize the singleton Google GenAI client instance with thread lock safety."""
     global _gemini_client
     if _gemini_client is None and settings.GEMINI_API_KEY:
-        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        with _gemini_lock:
+            if _gemini_client is None and settings.GEMINI_API_KEY:
+                _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
     return _gemini_client
 
 
@@ -110,23 +118,29 @@ def build_file_text_representation(
 async def generate_embedding(
     text: str, task_type: Optional[str] = "RETRIEVAL_DOCUMENT"
 ) -> Optional[List[float]]:
-    """Generate 768-dimension vector embedding from text using Gemini API with specified task_type."""
+    """Generate 768-dimension vector embedding from text using Gemini API with timeout guard."""
     g_client = get_gemini_client()
     if not g_client:
         logger.warning("Gemini client is not initialized (GEMINI_API_KEY missing).")
         return None
 
     try:
-        response = await g_client.aio.models.embed_content(
-            model="gemini-embedding-2",
-            contents=text,
-            config=types.EmbedContentConfig(
-                output_dimensionality=768,
-                task_type=task_type,
+        response = await asyncio.wait_for(
+            g_client.aio.models.embed_content(
+                model="gemini-embedding-2",
+                contents=text,
+                config=types.EmbedContentConfig(
+                    output_dimensionality=768,
+                    task_type=task_type,
+                ),
             ),
+            timeout=settings.GEMINI_API_TIMEOUT_SECONDS,
         )
         if response and response.embeddings and len(response.embeddings) > 0:
             return response.embeddings[0].values
+        return None
+    except asyncio.TimeoutError:
+        logger.error("Gemini API call timed out after %s seconds.", settings.GEMINI_API_TIMEOUT_SECONDS)
         return None
     except APIError as exc:
         logger.error("Gemini API error during embedding generation: %s", str(exc))

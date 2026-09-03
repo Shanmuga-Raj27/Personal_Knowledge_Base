@@ -1,13 +1,20 @@
 import asyncio
 import logging
+import random
+from datetime import datetime, timezone, timedelta
+from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Response
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Response, Query
+from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.database.database import SessionLocal
 
+from app.core.config import settings
 from app.auth.auth import get_current_user
 from app.database import get_db
 from app.database.db_models import FileMetadata, User
+from app.schemas.enums import FileStatus, IndexingStatus
 from app.schemas.file import (
     FileUploadRequest,
     PresignedUrlResponse,
@@ -19,6 +26,7 @@ from app.schemas.file import (
     FileMetadataUpdateRequest,
     SearchResponseSchema,
     SearchResultItem,
+    PaginatedFilesResponse,
 )
 from app.services.AWS.s3_service import (
     create_presigned_put_url,
@@ -36,6 +44,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
 
+# Global semaphore to enforce concurrent rate limiting on background embedding operations
+_embedding_semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_EMBEDDING_TASKS)
+
 
 async def sync_vector_in_background(
     file_id: int,
@@ -46,71 +57,87 @@ async def sync_vector_in_background(
     tags: str | None,
     target_version: int,
 ):
-    """Background worker task to compute Gemini embeddings and update Qdrant point asynchronously (Decoupled I/O)."""
-    indexed_success = False
-    error_msg = None
-    try:
-        indexed_success = await upsert_file_vector(
-            file_id=file_id,
-            user_id=user_id,
-            filename=filename,
-            title=title,
-            description=description,
-            tags=tags,
-        )
-        if not indexed_success:
-            error_msg = "Embedding generation or Qdrant vector upsert failed."
-    except Exception as exc:
+    """Background worker task to compute Gemini embeddings and update Qdrant point asynchronously with semaphore rate limiting."""
+    async with _embedding_semaphore:
         indexed_success = False
-        error_msg = str(exc)
+        error_msg = None
+        try:
+            indexed_success = await upsert_file_vector(
+                file_id=file_id,
+                user_id=user_id,
+                filename=filename,
+                title=title,
+                description=description,
+                tags=tags,
+            )
+            if not indexed_success:
+                error_msg = "Embedding generation or Qdrant vector upsert failed."
+        except Exception as exc:
+            indexed_success = False
+            error_msg = str(exc)
 
-    db = SessionLocal()
-    try:
-        db_file = db.query(FileMetadata).filter(FileMetadata.fileid == file_id).first()
-        if db_file:
-            # Optimistic versioning check: commit status only if version matches target_version
-            if db_file.index_version == target_version:
-                db_file.is_indexed = indexed_success
-                if indexed_success:
-                    db_file.indexing_status = "INDEXED"
-                    db_file.last_error = None
+        db = SessionLocal()
+        try:
+            db_file = db.query(FileMetadata).filter(FileMetadata.fileid == file_id).first()
+            if db_file:
+                # Optimistic versioning check: commit status only if version matches target_version
+                if db_file.index_version == target_version:
+                    db_file.is_indexed = indexed_success
+                    if indexed_success:
+                        db_file.indexing_status = IndexingStatus.INDEXED.value
+                        db_file.last_error = None
+                        db_file.next_retry_at = None
+                    else:
+                        db_file.indexing_status = IndexingStatus.FAILED.value
+                        current_retries = (db_file.retry_count or 0) + 1
+                        db_file.retry_count = current_retries
+                        db_file.last_error = (error_msg or "Indexing failed")[:500]
+                        # Exponential backoff calculation with jitter (max 300 seconds)
+                        backoff_delay = min(300, (2 ** current_retries) + random.uniform(0, 1))
+                        db_file.next_retry_at = datetime.now(timezone.utc) + timedelta(seconds=backoff_delay)
+                    db.commit()
                 else:
-                    db_file.indexing_status = "FAILED"
-                    db_file.retry_count = (db_file.retry_count or 0) + 1
-                    db_file.last_error = (error_msg or "Indexing failed")[:500]
-                db.commit()
-            else:
-                logger.info(
-                    "Skipping stale background indexing task for file %s (current version %s != target %s).",
-                    file_id, db_file.index_version, target_version
-                )
-    except Exception as exc:
-        logger.error("Background task error updating indexing_status for file %s: %s", file_id, str(exc))
-    finally:
-        db.close()
+                    logger.info(
+                        "Skipping stale background indexing task for file %s (current version %s != target %s).",
+                        file_id, db_file.index_version, target_version
+                    )
+        except Exception as exc:
+            logger.error("Background task error updating indexing_status for file %s: %s", file_id, str(exc))
+        finally:
+            db.close()
 
 
 async def recover_and_backfill_unindexed_files():
-    """Startup task to scan and queue unindexed/failed active files for background vector indexing."""
+    """Startup task to scan and queue unindexed/failed active files for background vector indexing in chunked batches."""
     db = SessionLocal()
     try:
+        now_utc = datetime.now(timezone.utc)
         unindexed_files = (
             db.query(FileMetadata)
             .filter(
-                FileMetadata.status == "active",
-                (
-                    (FileMetadata.indexing_status.in_(["PENDING", "pending", "FAILED", "failed", "INDEXING", "processing"])) &
-                    (FileMetadata.retry_count < 3)
-                ) | (FileMetadata.is_indexed == False),
+                FileMetadata.status == FileStatus.ACTIVE.value,
+                FileMetadata.retry_count < 3,
+                or_(
+                    FileMetadata.indexing_status.in_([
+                        IndexingStatus.PENDING.value,
+                        IndexingStatus.FAILED.value,
+                        IndexingStatus.INDEXING.value,
+                    ]),
+                    FileMetadata.is_indexed == False,
+                ),
+                or_(
+                    FileMetadata.next_retry_at == None,
+                    FileMetadata.next_retry_at <= now_utc,
+                )
             )
-            .limit(50)
+            .limit(25)
             .all()
         )
         if unindexed_files:
-            logger.info("Found %d unindexed or failed active records. Triggering bulk recovery...", len(unindexed_files))
+            logger.info("Found %d unindexed or failed active records for recovery backfill...", len(unindexed_files))
             file_ids = [db_file.fileid for db_file in unindexed_files]
             db.query(FileMetadata).filter(FileMetadata.fileid.in_(file_ids)).update(
-                {FileMetadata.indexing_status: "INDEXING"}, synchronize_session=False
+                {FileMetadata.indexing_status: IndexingStatus.INDEXING.value}, synchronize_session=False
             )
             db.commit()
 
@@ -141,7 +168,8 @@ async def get_upload_url(
 ):
     """Generate a presigned S3 PUT URL and create a pending metadata record assigned to current user."""
     try:
-        result = create_presigned_put_url(
+        result = await run_in_threadpool(
+            create_presigned_put_url,
             filename=payload.filename,
             content_type=payload.content_type,
         )
@@ -162,7 +190,7 @@ async def get_upload_url(
             s3_key=result["key"],
             filename=payload.filename,
             content_type=payload.content_type,
-            status="pending",
+            status=FileStatus.PENDING.value,
             size_bytes=0,
             userid=current_user.id,
         )
@@ -202,11 +230,11 @@ async def complete_upload(
         )
 
     try:
-        meta = get_object_metadata(payload.key)
+        meta = await run_in_threadpool(get_object_metadata, payload.key)
         # Update database row to active
-        db_file.status = "active"
+        db_file.status = FileStatus.ACTIVE.value
         db_file.size_bytes = meta["size_bytes"]
-        db_file.indexing_status = "INDEXING"
+        db_file.indexing_status = IndexingStatus.INDEXING.value
         db.commit()
         db.refresh(db_file)
 
@@ -223,7 +251,7 @@ async def complete_upload(
         )
     except FileNotFoundError as exc:
         # Mark as failed in DB
-        db_file.status = "failed"
+        db_file.status = FileStatus.FAILED.value
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -265,7 +293,7 @@ async def get_view_url(
         )
 
     try:
-        result = create_presigned_get_url(key=payload.key)
+        result = await run_in_threadpool(create_presigned_get_url, key=payload.key)
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -280,21 +308,36 @@ async def get_view_url(
     return FileViewUrlResponse(**result)
 
 
-@router.get("", response_model=list[FileMetadataSchema])
+@router.get("", response_model=PaginatedFilesResponse | list[FileMetadataSchema])
 async def list_files(
+    limit: Optional[int] = Query(default=None, ge=1, le=200),
+    offset: Optional[int] = Query(default=None, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List all active files belonging strictly to the authenticated user."""
-    files = (
-        db.query(FileMetadata)
-        .filter(
-            FileMetadata.status == "active",
-            FileMetadata.userid == current_user.id,
-        )
-        .order_by(FileMetadata.created_at.desc())
-        .all()
+    """List active files belonging strictly to the authenticated user with optional limit/offset pagination."""
+    query = db.query(FileMetadata).filter(
+        FileMetadata.status == FileStatus.ACTIVE.value,
+        FileMetadata.userid == current_user.id,
     )
+
+    if isinstance(limit, int):
+        total = query.count()
+        eff_offset = offset if isinstance(offset, int) else 0
+        files = (
+            query.order_by(FileMetadata.created_at.desc())
+            .offset(eff_offset)
+            .limit(limit)
+            .all()
+        )
+        return PaginatedFilesResponse(
+            items=files,
+            total=total,
+            limit=limit,
+            offset=eff_offset,
+        )
+
+    files = query.order_by(FileMetadata.created_at.desc()).all()
     return files
 
 
@@ -330,7 +373,7 @@ async def update_metadata(
 
     # Increment index_version and set indexing_status to INDEXING
     db_file.index_version = (db_file.index_version or 1) + 1
-    db_file.indexing_status = "INDEXING"
+    db_file.indexing_status = IndexingStatus.INDEXING.value
     db.commit()
     db.refresh(db_file)
 
@@ -357,7 +400,6 @@ async def search_files(
     db: Session = Depends(get_db),
 ):
     """Perform multi-tenant scoped semantic AI file search with strict 422 and 503 error boundaries."""
-    # Milestone 3 Query Validation: Reject >100 characters or whitespace-only inputs with 422
     if len(q) > 100 or (q != "" and not q.strip()):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -396,7 +438,7 @@ async def search_files(
             .filter(
                 FileMetadata.fileid.in_(matched_ids),
                 FileMetadata.userid == current_user.id,
-                FileMetadata.status == "active",
+                FileMetadata.status == FileStatus.ACTIVE.value,
             )
             .all()
         )
@@ -412,7 +454,6 @@ async def search_files(
                 total=len(search_results),
             )
 
-    # Clean 0 matches (similarity scores < 0.55) -> Return 200 OK with empty results
     return SearchResponseSchema(
         results=[],
         search_mode="semantic",
@@ -443,9 +484,9 @@ async def delete_file(
 
     s3_key = db_file.s3_key
 
-    # Step 1: Delete S3 object first
+    # Step 1: Delete S3 object first (non-blocking threadpool call)
     try:
-        delete_s3_object(s3_key)
+        await run_in_threadpool(delete_s3_object, s3_key)
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

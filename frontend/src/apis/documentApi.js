@@ -38,11 +38,21 @@ export const getViewUrl = (key) => {
 }
 
 /**
- * Fetch all verified document metadata records from the backend.
- * @returns {Promise<Array<object>>}
+ * Fetch document metadata records from the backend with optional limit/offset pagination.
+ * @param {number} [limit] Number of items per page.
+ * @param {number} [offset] Page offset.
+ * @param {AbortSignal} [signal] Optional AbortSignal for request cancellation.
+ * @returns {Promise<Array<object>|{ items: Array<object>, total: number, limit: number, offset: number }>}
  */
-export const fetchFiles = () => {
-  return axiosClient.get('/files')
+export const fetchFiles = (limit, offset, signal) => {
+  const params = {}
+  if (limit !== undefined && limit !== null) params.limit = limit
+  if (offset !== undefined && offset !== null) params.offset = offset
+
+  return axiosClient.get('/files', {
+    params,
+    signal,
+  })
 }
 
 /**

@@ -36,7 +36,7 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
-export default function FileRow({ doc, onOpen, onEdit, onDelete }) {
+function FileRow({ doc, onOpen, onEdit, onDelete }) {
   const parsedTags = doc.tags ? doc.tags.split(',').map(t => t.trim()).filter(Boolean) : []
 
   return (
@@ -291,3 +291,5 @@ export default function FileRow({ doc, onOpen, onEdit, onDelete }) {
     </TableRow>
   )
 }
+
+export default React.memo(FileRow)

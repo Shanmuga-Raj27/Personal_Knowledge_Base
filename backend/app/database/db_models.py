@@ -10,6 +10,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.schemas.enums import FileStatus, IndexingStatus
 
 
 class User(Base):
@@ -57,18 +58,19 @@ class FileMetadata(Base):
     size_bytes = Column(BigInteger, nullable=True)
 
     # Lifecycle state: pending, active, failed
-    status = Column(String(20), default="pending", nullable=False, index=True)
+    status = Column(String(20), default=FileStatus.PENDING.value, nullable=False, index=True)
 
     # Custom metadata details (tightened column limits)
     title = Column(String(100), nullable=True)
     description = Column(String(255), nullable=True)
     tags = Column(String(50), nullable=True)  # Comma-separated search tags
 
-    # Vector indexing lifecycle status, optimistic concurrency, and retry tracking
+    # Vector indexing lifecycle status, optimistic concurrency, retry tracking, and exponential backoff
     is_indexed = Column(Boolean, default=False, nullable=False, index=True)
-    indexing_status = Column(String(20), default="PENDING", nullable=False, index=True)
+    indexing_status = Column(String(20), default=IndexingStatus.PENDING.value, nullable=False, index=True)
     index_version = Column(Integer, default=1, nullable=False)
     retry_count = Column(Integer, default=0, nullable=False)
+    next_retry_at = Column(DateTime(timezone=True), nullable=True)
     last_error = Column(String(500), nullable=True)
 
     # Mandatory foreign key linking to the User owning the document
@@ -89,6 +91,7 @@ class FileMetadata(Base):
 
     __table_args__ = (
         Index("idx_user_status", "userid", "status"),
+        Index("idx_user_status_fileid", "userid", "status", "fileid"),
         Index("idx_indexing_recovery", "status", "is_indexed", "indexing_status"),
     )
 
