@@ -260,9 +260,9 @@ def test_user_a_can_access_own_files(setup_test_database):
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["fileId"] == file_a.fileid
-    assert data[0]["title"] == "User A Document"
+    assert len(data["items"]) == 1
+    assert data["items"][0]["fileId"] == file_a.fileid
+    assert data["items"][0]["title"] == "User A Document"
 
 
 def test_user_b_cannot_access_or_modify_user_a_file(setup_test_database):
@@ -292,7 +292,7 @@ def test_user_b_cannot_access_or_modify_user_a_file(setup_test_database):
         "/files", headers={"Authorization": f"Bearer {token_b}"}
     )
     assert list_res.status_code == 200
-    assert len(list_res.json()) == 0
+    assert len(list_res.json()["items"]) == 0
 
     # 2. User B attempts to PATCH User A's file
     patch_res = client.patch(

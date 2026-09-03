@@ -141,3 +141,39 @@ def test_search_files_pagination(setup_test_database):
         assert data["limit"] == 5
         assert data["offset"] == 0
         assert len(data["results"]) == 5
+
+
+def test_list_files_unpaginated_returns_paginated_response(setup_test_database):
+    db = setup_test_database
+    user = User(email="user@example.com", hashed_password="pw", status="active")
+    db.add(user)
+    db.commit()
+
+    for i in range(3):
+        file_item = FileMetadata(
+            s3_key=f"uploads/unpaginated_{i}.pdf",
+            filename=f"unpaginated_{i}.pdf",
+            status="active",
+            title=f"Unpaginated File {i}",
+            userid=user.id,
+        )
+        db.add(file_item)
+    db.commit()
+
+    token = security.create_access_token(user_id=user.id)
+    response = client.get(
+        "/files",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert "limit" in data
+    assert "offset" in data
+    assert data["total"] == 3
+    assert data["limit"] == 3
+    assert data["offset"] == 0
+    assert len(data["items"]) == 3
+

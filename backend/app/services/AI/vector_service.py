@@ -261,6 +261,12 @@ async def search_file_vectors(
         matched_results = [
             (hit.id, hit.score) for hit in hits.points if isinstance(hit.id, int)
         ]
+        logger.info(
+            "Qdrant oversampling fetched %d candidate points; %d points passed score threshold >= %.2f.",
+            fetch_limit,
+            len(matched_results),
+            score_threshold,
+        )
         return matched_results
     except Exception as exc:
         logger.error("Qdrant query error for user_id=%s: %s", user_id, str(exc))

@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import random
+import time
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, Dict
 
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Response, Query
 from fastapi.concurrency import run_in_threadpool
@@ -43,6 +45,34 @@ from app.services.AI.vector_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
+
+# In-memory rate limiter for search route (30 requests/min per user ID)
+SEARCH_REQUESTS: Dict[int, list[float]] = defaultdict(list)
+MAX_SEARCH_REQUESTS = 30
+SEARCH_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+
+def check_search_rate_limit(user_id: int) -> None:
+    """Enforce search endpoint rate limiting (30 requests per minute per user ID)."""
+    now = time.time()
+    if len(SEARCH_REQUESTS) > 2000:
+        stale_keys = [
+            k for k, v in SEARCH_REQUESTS.items()
+            if not v or (now - v[-1] >= SEARCH_RATE_LIMIT_WINDOW_SECONDS)
+        ]
+        for k in stale_keys:
+            del SEARCH_REQUESTS[k]
+
+    SEARCH_REQUESTS[user_id] = [
+        t for t in SEARCH_REQUESTS[user_id] if now - t < SEARCH_RATE_LIMIT_WINDOW_SECONDS
+    ]
+    if len(SEARCH_REQUESTS[user_id]) >= MAX_SEARCH_REQUESTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded. Maximum 30 search requests per minute allowed.",
+        )
+    SEARCH_REQUESTS[user_id].append(now)
+
 
 # Global semaphore to enforce concurrent rate limiting on background embedding operations
 _embedding_semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_EMBEDDING_TASKS)
@@ -308,7 +338,7 @@ async def get_view_url(
     return FileViewUrlResponse(**result)
 
 
-@router.get("", response_model=PaginatedFilesResponse | list[FileMetadataSchema])
+@router.get("", response_model=PaginatedFilesResponse)
 async def list_files(
     limit: Optional[int] = Query(default=None, ge=1, le=200),
     offset: Optional[int] = Query(default=None, ge=0),
@@ -338,7 +368,13 @@ async def list_files(
         )
 
     files = query.order_by(FileMetadata.created_at.desc()).all()
-    return files
+    total_count = len(files)
+    return PaginatedFilesResponse(
+        items=files,
+        total=total_count,
+        limit=total_count,
+        offset=0,
+    )
 
 
 @router.patch("/{fileid}", response_model=FileMetadataSchema)
@@ -402,6 +438,8 @@ async def search_files(
     db: Session = Depends(get_db),
 ):
     """Perform multi-tenant scoped semantic AI file search with strict 422 error boundary and graceful SQL keyword fallback."""
+    check_search_rate_limit(current_user.id)
+
     if len(q) > 100 or (q != "" and not q.strip()):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -420,6 +458,7 @@ async def search_files(
         return SearchResponseSchema(
             results=items,
             search_mode="none",
+            is_fallback_search=False,
             total=total,
             limit=limit,
             offset=offset if isinstance(limit, int) else None,
@@ -428,6 +467,7 @@ async def search_files(
     eff_offset = offset if isinstance(offset, int) else 0
     eff_limit = limit if isinstance(limit, int) else 15
 
+    start_time = time.time()
     matched_tuples = []
     try:
         matched_tuples = await search_file_vectors(
@@ -437,7 +477,12 @@ async def search_files(
             offset=eff_offset,
         )
     except Exception as exc:
-        logger.warning("Vector search infrastructure failure, falling back to SQL search: %s", str(exc))
+        vector_latency = time.time() - start_time
+        logger.warning("Vector search failed after %.2fs, falling back to SQL search. Error: %s", vector_latency, str(exc))
+
+        sql_start_time = time.time()
+        # Security Note: SQLAlchemy automatically parameterizes ILIKE bind variables via SQL expression compiler,
+        # ensuring complete protection against SQL injection vulnerabilities when handling user-provided search terms.
         query = db.query(FileMetadata).filter(
             FileMetadata.userid == current_user.id,
             FileMetadata.status == FileStatus.ACTIVE.value,
@@ -459,10 +504,14 @@ async def search_files(
         else:
             fallback_files = query.order_by(FileMetadata.created_at.desc()).all()
 
+        sql_latency = time.time() - sql_start_time
+        logger.info("SQL fallback search completed in %.2fs returning %d matches.", sql_latency, total)
+
         results = [SearchResultItem(file=f, score=None) for f in fallback_files]
         return SearchResponseSchema(
             results=results,
             search_mode="fallback",
+            is_fallback_search=True,
             total=total,
             limit=limit,
             offset=eff_offset if isinstance(limit, int) else None,

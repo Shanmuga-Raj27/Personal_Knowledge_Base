@@ -205,6 +205,29 @@ def test_infrastructure_failure_returns_fallback_200(setup_test_database):
         assert res.status_code == 200
         data = res.json()
         assert data["searchMode"] == "fallback"
+        assert data["isFallbackSearch"] is True
         assert data["total"] == 1
         assert len(data["results"]) == 1
         assert data["results"][0]["file"]["fileId"] == file1.fileid
+
+
+def test_search_rate_limiter_exceeded_returns_429(setup_test_database):
+    from app.apis.routes.upload_file import SEARCH_REQUESTS
+    SEARCH_REQUESTS.clear()
+    db = setup_test_database
+    user = User(email="rate_limit_user@example.com", hashed_password="pw", status="active")
+    db.add(user)
+    db.commit()
+    token = security.create_access_token(user_id=user.id)
+
+    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[])):
+        # Make 30 allowed requests
+        for _ in range(30):
+            res = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
+            assert res.status_code == 200
+
+        # The 31st request should be rate limited with HTTP 429
+        res_overflow = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
+        assert res_overflow.status_code == 429
+        assert "Rate limit exceeded" in res_overflow.json()["detail"]
+

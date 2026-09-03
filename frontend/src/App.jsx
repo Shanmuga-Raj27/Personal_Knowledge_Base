@@ -151,70 +151,88 @@ function App() {
     }
   }, [token, loadDocuments, searchTerm])
 
-  // Handle search term input change and reset page to 0
-  const handleSearchChange = useCallback((val) => {
-    setSearchTerm(val)
-    setPage(0)
+  // Refactored Search Execution Helper
+  const executeSearch = useCallback(async (query, targetPage, targetRowsPerPage) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    setIsSearching(true)
+    setLoadingDocs(true)
+    try {
+      const response = await searchDocuments(query, targetRowsPerPage, targetPage * targetRowsPerPage, controller.signal)
+      const rawResults = response?.results || response || []
+      const mappedDocs = rawResults.map((item) => {
+        if (item && item.file) {
+          const fileObj = { ...item.file }
+          if (item.score !== undefined && item.score !== null) {
+            fileObj.score = item.score
+          }
+          return fileObj
+        }
+        return item
+      })
+      const isFallback =
+        response?.search_mode === 'fallback' ||
+        response?.searchMode === 'fallback' ||
+        Boolean(response?.isFallbackSearch)
+      setIsFallbackSearch(isFallback)
+      setDocuments(mappedDocs)
+      setTotalDocsCount(response?.total ?? mappedDocs.length)
+    } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return // Quietly ignore aborted search request
+      }
+      console.error('Search request failed:', err)
+      setError('Search operation failed: ' + (err.message || 'Network error'))
+    } finally {
+      if (abortControllerRef.current === controller) {
+        setIsSearching(false)
+        setLoadingDocs(false)
+      }
+    }
   }, [])
 
-  // Debounced search effect (350ms delay) with AbortController cancellation
+  // Handle search term input change
+  const handleSearchChange = useCallback((val) => {
+    setSearchTerm(val)
+  }, [])
+
+  // Effect 1 (Search Input Handler): Watch searchTerm with 350ms debounce
   useEffect(() => {
     if (!token || !isAuthenticated()) return
 
-    const timer = setTimeout(async () => {
-      // Abort previous in-flight search request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-
+    const timer = setTimeout(() => {
       if (!searchTerm.trim()) {
         setIsFallbackSearch(false)
         setIsSearching(false)
-        loadDocuments()
+        loadDocuments(page, rowsPerPage)
         return
       }
-
-      const controller = new AbortController()
-      abortControllerRef.current = controller
-
-      setIsSearching(true)
-      setLoadingDocs(true)
-      try {
-        const response = await searchDocuments(searchTerm, rowsPerPage, page * rowsPerPage, controller.signal)
-        const rawResults = response?.results || response || []
-        const mappedDocs = rawResults.map((item) => {
-          if (item && item.file) {
-            const fileObj = { ...item.file }
-            if (item.score !== undefined && item.score !== null) {
-              fileObj.score = item.score
-            }
-            return fileObj
-          }
-          return item
-        })
-        const isFallback =
-          response?.search_mode === 'fallback' ||
-          response?.searchMode === 'fallback' ||
-          Boolean(response?.isFallbackSearch)
-        setIsFallbackSearch(isFallback)
-        setDocuments(mappedDocs)
-        setTotalDocsCount(response?.total ?? mappedDocs.length)
-      } catch (err) {
-        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-          return // Quietly ignore aborted search request
-        }
-        console.error('Search request failed:', err)
-        setError('Search operation failed: ' + (err.message || 'Network error'))
-      } finally {
-        if (abortControllerRef.current === controller) {
-          setIsSearching(false)
-          setLoadingDocs(false)
-        }
-      }
+      setPage(0)
+      executeSearch(searchTerm, 0, rowsPerPage)
     }, 350)
 
     return () => clearTimeout(timer)
-  }, [searchTerm, token, loadDocuments, page, rowsPerPage])
+  }, [searchTerm, token, loadDocuments, executeSearch, page, rowsPerPage])
+
+  // Track initial mount for pagination effect
+  const isNavMountRef = useRef(true)
+
+  // Effect 2 (Page / Row Limit Navigation Handler): Watch [page, rowsPerPage] for immediate search execution
+  useEffect(() => {
+    if (isNavMountRef.current) {
+      isNavMountRef.current = false
+      return
+    }
+    if (!token || !isAuthenticated()) return
+
+    if (searchTerm.trim()) {
+      executeSearch(searchTerm, page, rowsPerPage)
+    }
+  }, [page, rowsPerPage, token, executeSearch, searchTerm])
 
   // Login handler
   const handleLoginSuccess = useCallback((accessToken, userEmail) => {

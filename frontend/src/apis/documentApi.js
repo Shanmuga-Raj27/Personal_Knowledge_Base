@@ -87,10 +87,12 @@ export const searchDocuments = (query, limit, offset, signal) => {
   if (limit !== undefined && limit !== null) params.limit = limit
   if (offset !== undefined && offset !== null) params.offset = offset
 
+  const timeout = (offset && offset > 0) ? 10000 : 5000
+
   return axiosClient.get('/files/search', {
     params,
     signal,
-    timeout: 5000,
+    timeout,
   })
 }
 

@@ -195,10 +195,10 @@ def test_list_files_route_success():
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["fileId"] == 42
-    assert data[0]["title"] == "A Great Title"
-    assert data[0]["tags"] == "tag1,tag2"
+    assert len(data["items"]) == 1
+    assert data["items"][0]["fileId"] == 42
+    assert data["items"][0]["title"] == "A Great Title"
+    assert data["items"][0]["tags"] == "tag1,tag2"
 
 
 def test_update_metadata_route_success():
