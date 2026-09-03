@@ -77,13 +77,20 @@ export const deleteFile = (fileId) => {
 /**
  * Perform semantic AI search or keyword fallback search on document vault.
  * @param {string} query Search query string.
+ * @param {number} [limit] Optional limit per page.
+ * @param {number} [offset] Optional offset per page.
  * @param {AbortSignal} [signal] Optional AbortSignal for request cancellation.
- * @returns {Promise<{ results: Array<object>, searchMode: string, status: string }>}
+ * @returns {Promise<{ results: Array<object>, searchMode: string, total: number, limit?: number, offset?: number }>}
  */
-export const searchDocuments = (query, signal) => {
+export const searchDocuments = (query, limit, offset, signal) => {
+  const params = { q: query }
+  if (limit !== undefined && limit !== null) params.limit = limit
+  if (offset !== undefined && offset !== null) params.offset = offset
+
   return axiosClient.get('/files/search', {
-    params: { q: query },
-    signal
+    params,
+    signal,
+    timeout: 5000,
   })
 }
 

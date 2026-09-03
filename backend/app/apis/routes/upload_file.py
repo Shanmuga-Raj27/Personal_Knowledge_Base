@@ -395,11 +395,13 @@ async def update_metadata(
 @router.get("/search", response_model=SearchResponseSchema)
 async def search_files(
     q: str = "",
+    limit: Optional[int] = Query(default=None, ge=1, le=200),
+    offset: Optional[int] = Query(default=None, ge=0),
     response: Response = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Perform multi-tenant scoped semantic AI file search with strict 422 and 503 error boundaries."""
+    """Perform multi-tenant scoped semantic AI file search with strict 422 error boundary and graceful SQL keyword fallback."""
     if len(q) > 100 or (q != "" and not q.strip()):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -408,27 +410,63 @@ async def search_files(
 
     search_term = q.strip()
     if not search_term:
-        active_files = await list_files(current_user=current_user, db=db)
-        items = [SearchResultItem(file=f, score=None) for f in active_files]
+        active_files = await list_files(limit=limit, offset=offset, current_user=current_user, db=db)
+        if isinstance(active_files, PaginatedFilesResponse):
+            items = [SearchResultItem(file=f, score=None) for f in active_files.items]
+            total = active_files.total
+        else:
+            items = [SearchResultItem(file=f, score=None) for f in active_files]
+            total = len(items)
         return SearchResponseSchema(
             results=items,
             search_mode="none",
-            total=len(items),
+            total=total,
+            limit=limit,
+            offset=offset if isinstance(limit, int) else None,
         )
+
+    eff_offset = offset if isinstance(offset, int) else 0
+    eff_limit = limit if isinstance(limit, int) else 15
 
     matched_tuples = []
     try:
         matched_tuples = await search_file_vectors(
             query_text=search_term,
             user_id=current_user.id,
-            limit=15,
+            limit=eff_limit,
+            offset=eff_offset,
         )
     except Exception as exc:
-        logger.error("Vector search infrastructure failure: %s", str(exc))
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Vector search service is currently unavailable.",
-        ) from exc
+        logger.warning("Vector search infrastructure failure, falling back to SQL search: %s", str(exc))
+        query = db.query(FileMetadata).filter(
+            FileMetadata.userid == current_user.id,
+            FileMetadata.status == FileStatus.ACTIVE.value,
+            or_(
+                FileMetadata.filename.ilike(f"%{search_term}%"),
+                FileMetadata.title.ilike(f"%{search_term}%"),
+                FileMetadata.tags.ilike(f"%{search_term}%"),
+                FileMetadata.description.ilike(f"%{search_term}%"),
+            )
+        )
+        total = query.count()
+        if isinstance(limit, int):
+            fallback_files = (
+                query.order_by(FileMetadata.created_at.desc())
+                .offset(eff_offset)
+                .limit(limit)
+                .all()
+            )
+        else:
+            fallback_files = query.order_by(FileMetadata.created_at.desc()).all()
+
+        results = [SearchResultItem(file=f, score=None) for f in fallback_files]
+        return SearchResponseSchema(
+            results=results,
+            search_mode="fallback",
+            total=total,
+            limit=limit,
+            offset=eff_offset if isinstance(limit, int) else None,
+        )
 
     if matched_tuples:
         matched_ids = [t[0] for t in matched_tuples]
@@ -444,20 +482,32 @@ async def search_files(
         )
         if files:
             file_map = {f.fileid: f for f in files}
+            user_matched_tuples = [t for t in matched_tuples if t[0] in file_map]
+            total_matched = len(user_matched_tuples)
+
+            if isinstance(limit, int):
+                paginated_tuples = user_matched_tuples[eff_offset : eff_offset + eff_limit]
+            else:
+                paginated_tuples = user_matched_tuples
+
             search_results = [
-                SearchResultItem(file=file_map[fid], score=score_map[fid])
-                for fid in matched_ids if fid in file_map
+                SearchResultItem(file=file_map[t[0]], score=t[1])
+                for t in paginated_tuples
             ]
             return SearchResponseSchema(
                 results=search_results,
                 search_mode="semantic",
-                total=len(search_results),
+                total=total_matched,
+                limit=limit,
+                offset=eff_offset if isinstance(limit, int) else None,
             )
 
     return SearchResponseSchema(
         results=[],
         search_mode="semantic",
         total=0,
+        limit=limit,
+        offset=eff_offset if isinstance(limit, int) else None,
     )
 
 

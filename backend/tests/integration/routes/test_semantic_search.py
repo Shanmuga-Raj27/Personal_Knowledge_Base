@@ -182,14 +182,29 @@ def test_query_validation_returns_422(setup_test_database):
     assert res_space.status_code == 422
 
 
-def test_infrastructure_failure_returns_503(setup_test_database):
+def test_infrastructure_failure_returns_fallback_200(setup_test_database):
     db = setup_test_database
     user = User(email="user@example.com", hashed_password="pw", status="active")
     db.add(user)
     db.commit()
+
+    file1 = FileMetadata(
+        s3_key="uploads/test.pdf",
+        filename="test.pdf",
+        status="active",
+        title="Test Document",
+        userid=user.id,
+    )
+    db.add(file1)
+    db.commit()
+
     token = security.create_access_token(user_id=user.id)
 
     with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(side_effect=RuntimeError("Qdrant connection refused"))):
         res = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
-        assert res.status_code == 503
-        assert "Vector search service is currently unavailable" in res.json()["detail"]
+        assert res.status_code == 200
+        data = res.json()
+        assert data["searchMode"] == "fallback"
+        assert data["total"] == 1
+        assert len(data["results"]) == 1
+        assert data["results"][0]["file"]["fileId"] == file1.fileid

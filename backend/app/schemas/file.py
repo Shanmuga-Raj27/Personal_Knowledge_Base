@@ -96,6 +96,9 @@ class SearchResponseSchema(BaseModel):
     results: list[SearchResultItem]
     search_mode: str = Field(..., alias="searchMode")
     total: int
+    limit: Optional[int] = None
+    offset: Optional[int] = None
+
 
 
 class FileUploadCompleteResponse(BaseModel):

@@ -94,8 +94,9 @@ function App() {
   const [docToDelete, setDocToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Document loading AbortController reference
+  // Document loading & search AbortController references
   const loadDocsAbortRef = useRef(null)
+  const abortControllerRef = useRef(null)
 
   // Load verified files from database with pagination and AbortController cancellation
   const loadDocuments = useCallback(async (targetPage = page, targetLimit = rowsPerPage) => {
@@ -120,6 +121,7 @@ function App() {
         return
       }
       console.error('Failed to load documents:', err)
+      setError('Failed to load documents page: ' + (err.message || 'Network error'))
     } finally {
       if (loadDocsAbortRef.current === controller) {
         setLoadingDocs(false)
@@ -149,8 +151,11 @@ function App() {
     }
   }, [token, loadDocuments, searchTerm])
 
-  // Search request cancellation reference
-  const abortControllerRef = useRef(null)
+  // Handle search term input change and reset page to 0
+  const handleSearchChange = useCallback((val) => {
+    setSearchTerm(val)
+    setPage(0)
+  }, [])
 
   // Debounced search effect (350ms delay) with AbortController cancellation
   useEffect(() => {
@@ -175,7 +180,7 @@ function App() {
       setIsSearching(true)
       setLoadingDocs(true)
       try {
-        const response = await searchDocuments(searchTerm, controller.signal)
+        const response = await searchDocuments(searchTerm, rowsPerPage, page * rowsPerPage, controller.signal)
         const rawResults = response?.results || response || []
         const mappedDocs = rawResults.map((item) => {
           if (item && item.file) {
@@ -193,12 +198,13 @@ function App() {
           Boolean(response?.isFallbackSearch)
         setIsFallbackSearch(isFallback)
         setDocuments(mappedDocs)
-        setTotalDocsCount(mappedDocs.length)
+        setTotalDocsCount(response?.total ?? mappedDocs.length)
       } catch (err) {
         if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
           return // Quietly ignore aborted search request
         }
         console.error('Search request failed:', err)
+        setError('Search operation failed: ' + (err.message || 'Network error'))
       } finally {
         if (abortControllerRef.current === controller) {
           setIsSearching(false)
@@ -208,7 +214,7 @@ function App() {
     }, 350)
 
     return () => clearTimeout(timer)
-  }, [searchTerm, token, loadDocuments])
+  }, [searchTerm, token, loadDocuments, page, rowsPerPage])
 
   // Login handler
   const handleLoginSuccess = useCallback((accessToken, userEmail) => {
@@ -512,7 +518,7 @@ function App() {
             {/* Top Search & Upload Control */}
             <SearchHeader
               searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
+              onSearchChange={handleSearchChange}
               isSearching={isSearching}
               file={file}
               onFileChange={handleFileChange}

@@ -15,7 +15,7 @@ from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue
 
 from google import genai
 from google.genai import types
-from google.genai.errors import APIError
+from google.genai.errors import APIError, ClientError
 
 from app.core.config import settings
 
@@ -142,7 +142,12 @@ async def generate_embedding(
     except asyncio.TimeoutError:
         logger.error("Gemini API call timed out after %s seconds.", settings.GEMINI_API_TIMEOUT_SECONDS)
         return None
-    except APIError as exc:
+    except (APIError, ClientError) as exc:
+        status_code = getattr(exc, "code", getattr(exc, "status_code", None))
+        if status_code == 429 or "429" in str(exc):
+            logger.warning("Gemini API Rate Limit (429) encountered. Applying 30s backoff delay...")
+            await asyncio.sleep(30)
+            return None
         logger.error("Gemini API error during embedding generation: %s", str(exc))
         return None
     except Exception as exc:
@@ -215,7 +220,7 @@ async def delete_file_vector(file_id: int) -> bool:
 
 
 async def search_file_vectors(
-    query_text: str, user_id: int, limit: int = 15, score_threshold: float = 0.35
+    query_text: str, user_id: int, limit: int = 15, score_threshold: float = 0.35, offset: int = 0
 ) -> List[tuple[int, float]]:
     """Perform multi-tenant scoped semantic vector similarity search on Qdrant.
 
@@ -235,6 +240,9 @@ async def search_file_vectors(
     q_client = get_qdrant_client()
     collection_name = settings.QDRANT_COLLECTION_NAME
 
+    # Oversample candidate points from Qdrant to prevent candidate starvation after filtering
+    fetch_limit = min(1000, max(100, offset + limit * 2))
+
     try:
         hits = await q_client.query_points(
             collection_name=collection_name,
@@ -247,7 +255,7 @@ async def search_file_vectors(
                     )
                 ]
             ),
-            limit=limit,
+            limit=fetch_limit,
             score_threshold=score_threshold,
         )
         matched_results = [
