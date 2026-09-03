@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
-from app.auth.auth import get_db
+from app.auth.auth_dependencies import get_db
 from app.core import security
 from app.database import Base
 from app.database.db_models import FileMetadata, User
@@ -129,7 +129,7 @@ def test_search_files_pagination(setup_test_database):
 
     mock_hits = [(f.fileid, 0.9 - (idx * 0.05)) for idx, f in enumerate(created_files)]
 
-    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=mock_hits)):
+    with patch("app.apis.routes.search_routes.search_file_vectors", AsyncMock(return_value=mock_hits)):
         response = client.get(
             "/files/search?q=test&limit=5&offset=0",
             headers={"Authorization": f"Bearer {token}"},
@@ -176,4 +176,3 @@ def test_list_files_unpaginated_returns_paginated_response(setup_test_database):
     assert data["limit"] == 3
     assert data["offset"] == 0
     assert len(data["items"]) == 3
-

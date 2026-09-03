@@ -19,7 +19,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.auth.auth import get_db
+from app.auth.auth_dependencies import get_db
 from app.core import security
 from app.database import Base
 from app.database.db_models import FileMetadata, User
@@ -342,7 +342,7 @@ def test_complete_upload_storage_verification_failure(setup_test_database):
     token = security.create_access_token(user_id=user.id)
 
     with patch(
-        "app.apis.routes.upload_file.get_object_metadata"
+        "app.apis.routes.document_routes.get_object_metadata"
     ) as mock_get_meta:
         mock_get_meta.side_effect = FileNotFoundError("S3 object missing")
 

@@ -1,0 +1,666 @@
+{
+  "mock_files": [
+    {
+      "filename": "resume_backend_engineer.pdf",
+      "title": "Senior Python Backend Engineer Resume",
+      "description": "Expert in Python FastAPI, SQLAlchemy, and Qdrant vector search pipelines.",
+      "tags": "career, resume, python"
+    },
+    {
+      "filename": "resume_hr_specialist.pdf",
+      "title": "Human Resources Specialist CV",
+      "description": "Talent acquisition executive with 5 years experience in tech hiring.",
+      "tags": "career, resume, hr"
+    },
+    {
+      "filename": "resume_finance_analyst.pdf",
+      "title": "Finance Analyst Profile",
+      "description": "Expert in financial forecasting, SQL dashboards, and corporate budgeting.",
+      "tags": "career, resume, finance"
+    },
+    {
+      "filename": "resume_ui_designer.pdf",
+      "title": "UI UX Designer Portfolio CV",
+      "description": "Creative designer specializing in Figma layouts, design systems, and user testing.",
+      "tags": "career, resume, design"
+    },
+    {
+      "filename": "resume_project_manager.pdf",
+      "title": "Technical Project Manager Resume",
+      "description": "Certified Scrum Master managing software delivery lifecycles and Agile teams.",
+      "tags": "career, resume, pm"
+    },
+    {
+      "filename": "monthly_finance_tracker.docx",
+      "title": "August Monthly Finance Tracker",
+      "description": "Detailed document tracking monthly budget analysis, cash out flow, and cost estimations.",
+      "tags": "finance, budget, money"
+    },
+    {
+      "filename": "q3_financial_forecast.xlsx",
+      "title": "Q3 Financial Performance Forecast",
+      "description": "Revenue targets and growth predictions for the third quarter.",
+      "tags": "finance, forecast, revenue"
+    },
+    {
+      "filename": "tax_declaration_2025.pdf",
+      "title": "Tax Declaration Form 2025",
+      "description": "Submitted income tax records and deduction receipts for the year 2025.",
+      "tags": "finance, taxes, government"
+    },
+    {
+      "filename": "vendor_a_invoice.pdf",
+      "title": "Invoice from Vendor A",
+      "description": "Billing statement for cloud server subscription and database resources.",
+      "tags": "finance, invoice, bill"
+    },
+    {
+      "filename": "uber_receipt_trip.pdf",
+      "title": "Uber Trip Receipt - Business travel",
+      "description": "Taxi travel receipt for business meeting transport reimbursement.",
+      "tags": "finance, receipt, travel"
+    },
+    {
+      "filename": "kubernetes_cheatsheet.txt",
+      "title": "Kubernetes Commands Cheat Sheet",
+      "description": "kubectl commands for app deployment, service configs, and namespace management.",
+      "tags": "devops, kubernetes, commands"
+    },
+    {
+      "filename": "docker_setup_guide.md",
+      "title": "Docker Setup Guide",
+      "description": "Step-by-step instructions for installing Docker Engine and setting up user groups.",
+      "tags": "devops, docker, containers"
+    },
+    {
+      "filename": "helm_chart_guide.pdf",
+      "title": "Helm Charts Best Practices",
+      "description": "Guide to writing reusable Kubernetes packages using templates and values.yaml.",
+      "tags": "devops, helm, kubernetes"
+    },
+    {
+      "filename": "pod_spec_template.yaml",
+      "title": "Kubernetes Pod Specification Template",
+      "description": "YAML configuration for multi-container deployments with persistent volumes.",
+      "tags": "devops, yaml, kubernetes"
+    },
+    {
+      "filename": "cluster_installation_guide.docx",
+      "title": "Kubeadm Cluster Installation Guide",
+      "description": "How to set up a production-ready Kubernetes cluster from scratch using kubeadm.",
+      "tags": "devops, cluster, admin"
+    },
+    {
+      "filename": "react_routing_tutorial.md",
+      "title": "React SPA Routing Tutorial",
+      "description": "Comprehensive tutorial on setting up frontend page navigation using React Router v6.",
+      "tags": "frontend, react, javascript"
+    },
+    {
+      "filename": "react_state_management.txt",
+      "title": "React State Management Overview",
+      "description": "Comparing Redux, Zustand, Recoil, and Context API for global frontend state.",
+      "tags": "frontend, react, redux"
+    },
+    {
+      "filename": "react_hooks_cheatsheet.pdf",
+      "title": "React Hooks Cheat Sheet",
+      "description": "Quick reference for useEffect, useState, useMemo, and custom hooks.",
+      "tags": "frontend, react, hooks"
+    },
+    {
+      "filename": "nextjs_configuration.json",
+      "title": "Next.js Core Configuration Options",
+      "description": "Configuration settings for styling, path aliases, and build directory targets.",
+      "tags": "frontend, nextjs, routing"
+    },
+    {
+      "filename": "webpack_setup_guide.md",
+      "title": "Custom Webpack Bundling Setup",
+      "description": "How to bundle single page application assets with loaders and minifiers.",
+      "tags": "frontend, webpack, build"
+    },
+    {
+      "filename": "auth_security_guidelines.pdf",
+      "title": "API Security & JWT Guidelines",
+      "description": "Best practices for hashing keys, signature signing, token expiration, and secure session management.",
+      "tags": "security, jwt, auth"
+    },
+    {
+      "filename": "oauth2_protocol_spec.docx",
+      "title": "OAuth2 Authorization Flow Specification",
+      "description": "How to implement password grant and authorization code grant types safely.",
+      "tags": "security, oauth2, authorization"
+    },
+    {
+      "filename": "ssl_certificate_setup.txt",
+      "title": "SSL Certificate Setup Guide",
+      "description": "Generating Let's Encrypt certificates using Certbot and Nginx configs.",
+      "tags": "security, ssl, certificates"
+    },
+    {
+      "filename": "password_hashing_guide.md",
+      "title": "Argon2id Password Hashing Guidelines",
+      "description": "Salt length, iterations, and memory parameters configuration for secure login hashing.",
+      "tags": "security, cryptography, passwords"
+    },
+    {
+      "filename": "api_key_rotation.pdf",
+      "title": "API Key Rotation Policy",
+      "description": "Standard operating procedure for rotating secret tokens and access keys.",
+      "tags": "security, policy, keys"
+    },
+    {
+      "filename": "italian_pasta_recipe.txt",
+      "title": "Homemade Italian Pasta & Carbonara",
+      "description": "Classic carbonara cooking steps using egg yolks, guanciale, pecorino, and black pepper.",
+      "tags": "recipes, cooking, pasta"
+    },
+    {
+      "filename": "chocolate_cake_steps.docx",
+      "title": "Fudge Chocolate Cake Recipe",
+      "description": "Ingredients and baking temperature instructions for rich double chocolate fudge cake.",
+      "tags": "recipes, baking, dessert"
+    },
+    {
+      "filename": "chicken_curry_instructions.pdf",
+      "title": "Spicy Indian Chicken Curry",
+      "description": "Traditional recipe using onions, tomatoes, ginger-garlic paste, and garam masala.",
+      "tags": "recipes, curry, chicken"
+    },
+    {
+      "filename": "greek_salad_guide.txt",
+      "title": "Healthy Greek Salad Recipe",
+      "description": "Simple summer salad with cucumbers, tomatoes, feta cheese, and olive oil.",
+      "tags": "recipes, salad, healthy"
+    },
+    {
+      "filename": "beef_stew_slowcooker.md",
+      "title": "Slow Cooker Beef Stew",
+      "description": "Winter recipe for tender beef cuts stewed with carrots, potatoes, and red wine.",
+      "tags": "recipes, beef, stew"
+    },
+    {
+      "filename": "paris_itinerary_3days.md",
+      "title": "Paris 3-Day Sightseeing Itinerary",
+      "description": "Planning visits to Eiffel Tower, Louvre Museum, and Versailles.",
+      "tags": "travel, itinerary, paris"
+    },
+    {
+      "filename": "flight_tickets_london.pdf",
+      "title": "Flight Tickets to London",
+      "description": "Boarding passes and flight schedule for trip to London Heathrow.",
+      "tags": "travel, tickets, london"
+    },
+    {
+      "filename": "hotel_booking.pdf",
+      "title": "Paris Hotel Booking Confirmation",
+      "description": "Receipt and reservation verification for hotel stay in Paris city center.",
+      "tags": "travel, booking, hotel"
+    },
+    {
+      "filename": "packing_list_japan.txt",
+      "title": "Tokyo Japan Packing List",
+      "description": "Essential adapter plugs, documents, and cash for 2 weeks in Japan.",
+      "tags": "travel, packing, japan"
+    },
+    {
+      "filename": "travel_insurance_policy.pdf",
+      "title": "Global Travel Medical Insurance",
+      "description": "Policy number and emergency contact numbers for international medical coverage.",
+      "tags": "travel, insurance, health"
+    },
+    {
+      "filename": "diet_plan.txt",
+      "title": "Weight Loss Keto Diet Plan",
+      "description": "Weekly meal schedule focusing on low carb, high fat proteins, and intermittent fasting.",
+      "tags": "health, diet, fitness"
+    },
+    {
+      "filename": "blood_test_report.pdf",
+      "title": "Annual Blood Test Panel Report",
+      "description": "Results for cholesterol levels, blood glucose, and vitamin D levels.",
+      "tags": "health, medical, blood"
+    },
+    {
+      "filename": "workout_routine_5day.md",
+      "title": "5-Day Push Pull Legs Workout Routine",
+      "description": "Hypertrophy training splits focusing on bench press, deadlifts, and squats.",
+      "tags": "health, gym, fitness"
+    },
+    {
+      "filename": "gym_membership.pdf",
+      "title": "Gold Gym Membership Contract",
+      "description": "Monthly subscription terms, facility rules, and billing details.",
+      "tags": "health, contract, gym"
+    },
+    {
+      "filename": "medical_bill_hospital.pdf",
+      "title": "Medical Treatment Billing Statement",
+      "description": "Outpatient consultation fee invoice and medication pharmacy receipts.",
+      "tags": "health, invoice, bill"
+    },
+    {
+      "filename": "social_media_strategy.md",
+      "title": "Q4 Social Media Campaign Plan",
+      "description": "Targeting Instagram, LinkedIn, and TikTok for product launch awareness.",
+      "tags": "marketing, social_media, branding"
+    },
+    {
+      "filename": "marketing_seo_practices.txt",
+      "title": "SEO Copywriting Best Practices",
+      "description": "Guide on keyword density, meta descriptions, and search ad ranking optimization.",
+      "tags": "marketing, seo, copy"
+    },
+    {
+      "filename": "ad_campaign_budget.xlsx",
+      "title": "Google Ads Campaign Budget Tracker",
+      "description": "Cost spreadsheet tracking cost-per-click and conversion rates.",
+      "tags": "marketing, budget, ads"
+    },
+    {
+      "filename": "branding_guidelines_v1.pdf",
+      "title": "Branding Guidelines Manual",
+      "description": "Official company logo placement, color codes, and font families specifications.",
+      "tags": "marketing, brand, logo"
+    },
+    {
+      "filename": "logo_design_draft.png",
+      "title": "Logo Concept Design Draft",
+      "description": "Initial design variations for new corporate brand logo.",
+      "tags": "marketing, design, asset"
+    },
+    {
+      "filename": "groceries_list.txt",
+      "title": "Weekly Groceries Shopping List",
+      "description": "Vegetables, milk, bread, laundry detergent, and dish washing soap list.",
+      "tags": "housekeeping, shopping, list"
+    },
+    {
+      "filename": "cleaning_schedule.docx",
+      "title": "Monthly Deep Cleaning Checklist",
+      "description": "Room cleaning schedule, bathroom scrub intervals, and dusting duties.",
+      "tags": "housekeeping, cleaning, routine"
+    },
+    {
+      "filename": "electricity_bill.pdf",
+      "title": "Monthly Electricity Utility Bill",
+      "description": "Power consumption statement and online payment verification receipt.",
+      "tags": "housekeeping, bill, utility"
+    },
+    {
+      "filename": "tenant_agreement.pdf",
+      "title": "Apartment Tenant Rental Agreement",
+      "description": "12-month housing rental lease contract, security deposit terms, and tenant rules.",
+      "tags": "housekeeping, agreement, rent"
+    },
+    {
+      "filename": "wifi_router_setup.md",
+      "title": "Home Wi-Fi Router Setup Guide",
+      "description": "Changing default admin password, SSID configuration, and DNS setup.",
+      "tags": "housekeeping, wifi, internet"
+    },
+    {
+      "filename": "scifi_novel_notes.txt",
+      "title": "Dune Novel Study Notes",
+      "description": "Analyzing characters and spice themes in Sci-Fi classic.",
+      "tags": "books, summary, scifi"
+    },
+    {
+      "filename": "fiction_summary.md",
+      "title": "Great Gatsby Chapter Summaries",
+      "description": "Quick recap of characters, themes, and tragic plots.",
+      "tags": "books, summary, fiction"
+    },
+    {
+      "filename": "biography_review.pdf",
+      "title": "Steve Jobs Biography Review",
+      "description": "Key takeaways on business innovation, design focus, and leadership.",
+      "tags": "books, review, business"
+    },
+    {
+      "filename": "history_study_guide.docx",
+      "title": "Roman Empire Rise and Fall Study Guide",
+      "description": "Key timelines of battles, emperors, and economic collapse.",
+      "tags": "books, study, history"
+    },
+    {
+      "filename": "selfhelp_action_plan.txt",
+      "title": "Atomic Habits Action Plan",
+      "description": "Summarizing steps to build good habits and remove bad ones.",
+      "tags": "books, summary, selfhelp"
+    },
+    {
+      "filename": "rpg_walkthrough.txt",
+      "title": "Elden Ring Boss Fight Walkthrough",
+      "description": "Stamina strategies and gear setup for defeating final bosses.",
+      "tags": "games, guide, rpg"
+    },
+    {
+      "filename": "boardgame_rules.pdf",
+      "title": "Settlers of Catan Official Rules",
+      "description": "Card setups, trading rates, and road building constraints.",
+      "tags": "games, rules, board"
+    },
+    {
+      "filename": "chess_strategies.md",
+      "title": "Chess Openings and Endgame Strategies",
+      "description": "Sicillian defense, Queen gambit, and king pawn configurations.",
+      "tags": "games, chess, tactics"
+    },
+    {
+      "filename": "minecraft_server_setup.docx",
+      "title": "Minecraft Multiplayer Server Setup Guide",
+      "description": "IP binding, port forwarding, and server ram limits.",
+      "tags": "games, setup, server"
+    },
+    {
+      "filename": "gaming_mouse_manual.pdf",
+      "title": "Logitech Mouse DPI Config Manual",
+      "description": "Customizing macro profiles, USB polling rates, and RGB settings.",
+      "tags": "games, manual, hardware"
+    },
+    {
+      "filename": "physics_mechanics_notes.pdf",
+      "title": "Physics Newtonian Mechanics Lecture Notes",
+      "description": "Formulas for kinetic energy, friction, and angular acceleration.",
+      "tags": "academic, physics, formula"
+    },
+    {
+      "filename": "calculus_formulas.pdf",
+      "title": "Calculus Derivative & Limits Reference",
+      "description": "Trigonometric integration tables, chain rule steps, and limit theorems.",
+      "tags": "academic, math, calculus"
+    },
+    {
+      "filename": "history_lecture_slides.pdf",
+      "title": "World War II European Front Slides",
+      "description": "Chronological history of major operations and treaties.",
+      "tags": "academic, history, slides"
+    },
+    {
+      "filename": "biology_lab_report.docx",
+      "title": "Cell Mitosis Biology Lab Report",
+      "description": "Observing onion root tip cells under compound light microscope.",
+      "tags": "academic, science, biology"
+    },
+    {
+      "filename": "essay_draft_philosophy.txt",
+      "title": "Philosophy Free Will Essay Draft",
+      "description": "Comparing determinism and compatibilism arguments.",
+      "tags": "academic, essay, philosophy"
+    },
+    {
+      "filename": "car_insurance_policy.pdf",
+      "title": "Monthly Auto Insurance Policy Statement",
+      "description": "Coverages details, deductible limits, and emergency roadside helpline numbers.",
+      "tags": "cars, insurance, contract"
+    },
+    {
+      "filename": "car_maintenance_log.xlsx",
+      "title": "Toyota Corolla Maintenance Log",
+      "description": "History of engine oil updates, tire changes, and brake pads replacement.",
+      "tags": "cars, service, log"
+    },
+    {
+      "filename": "car_loan_invoice.pdf",
+      "title": "Monthly Auto Loan Billing Invoice",
+      "description": "Remaining payments balance tracker and transaction receipts.",
+      "tags": "cars, invoice, payment"
+    },
+    {
+      "filename": "driver_license_renewal.pdf",
+      "title": "Driver License Renewal Application Receipt",
+      "description": "Fees paid and temporary license verification documentation.",
+      "tags": "cars, government, license"
+    },
+    {
+      "filename": "car_user_manual.pdf",
+      "title": "Honda Civic User Manual",
+      "description": "Dashboard warning lights explanation and fuse box wiring diagrams.",
+      "tags": "cars, manual, documentation"
+    },
+    {
+      "filename": "guitar_chords_page.txt",
+      "title": "Hotel California Guitar Tabs & Chords",
+      "description": "Chord progressions for intro, verses, and solo sections.",
+      "tags": "music, guitar, chords"
+    },
+    {
+      "filename": "playlist_collection.md",
+      "title": "Focus Instrumental Playlists Collection",
+      "description": "Curated ambient tracks list for programming and deep focus.",
+      "tags": "music, playlist, ambient"
+    },
+    {
+      "filename": "band_flyer_draft.png",
+      "title": "Local Rock Band Concert Flyer",
+      "description": "Design draft template for live show details.",
+      "tags": "music, gig, layout"
+    },
+    {
+      "filename": "midi_controller_guide.pdf",
+      "title": "USB MIDI Controller Settings Guide",
+      "description": "Mapping keys, adjusting velocities, and configuring DAW outputs.",
+      "tags": "music, midi, setup"
+    },
+    {
+      "filename": "vocal_training_exercises.txt",
+      "title": "Daily Vocal Training Warmups",
+      "description": "Scale exercises, breathing techniques, and range expansion exercises.",
+      "tags": "music, vocal, practice"
+    },
+    {
+      "filename": "tomato_planting_steps.txt",
+      "title": "Watering & Planting Tomato Guide",
+      "description": "Best watering schedule, fertilizer selection, and pruning steps for tomatoes.",
+      "tags": "gardening, planting, tomato"
+    },
+    {
+      "filename": "soil_ph_reference.pdf",
+      "title": "Soil pH and Nutrient Availability Chart",
+      "description": "Analyzing optimal soil levels for organic vegetable farms.",
+      "tags": "gardening, soil, reference"
+    },
+    {
+      "filename": "watering_schedule_summer.docx",
+      "title": "Summer Garden Watering Schedule",
+      "description": "Watering list for vegetables, flowers, and indoor houseplants.",
+      "tags": "gardening, routine, watering"
+    },
+    {
+      "filename": "nursery_invoice.pdf",
+      "title": "Plant Nursery Transaction Invoice",
+      "description": "Purchased fruit seedlings, soil mix, and plant pots billing.",
+      "tags": "gardening, invoice, receipts"
+    },
+    {
+      "filename": "garden_tool_care.md",
+      "title": "Rust Prevention & Tool Care Sheet",
+      "description": "How to clean, sharpen, and store garden spades and pruners.",
+      "tags": "gardening, tools, maintenance"
+    },
+    {
+      "filename": "camera_settings_guide.pdf",
+      "title": "Manual Camera Settings Guide",
+      "description": "Explaining exposure triangle: Aperture, Shutter Speed, and ISO levels.",
+      "tags": "photography, manual, camera"
+    },
+    {
+      "filename": "lens_collection_inventory.txt",
+      "title": "Photography Lens Collection Inventory",
+      "description": "Focal lengths list, purchase prices, and serial numbers tracking.",
+      "tags": "photography, lenses, inventory"
+    },
+    {
+      "filename": "photo_pricing_list.docx",
+      "title": "Portrait Photography Pricing Catalog",
+      "description": "Service fees for events, corporate headshots, and wedding shoots.",
+      "tags": "photography, business, pricing"
+    },
+    {
+      "filename": "shot_list_wedding.pdf",
+      "title": "Wedding Ceremony Shot List Template",
+      "description": "Essential moments checklist for wedding photography crew.",
+      "tags": "photography, checklist, wedding"
+    },
+    {
+      "filename": "lightroom_presets.md",
+      "title": "Lightroom Develop Presets Catalog",
+      "description": "Description of filter sets for editing portrait shots.",
+      "tags": "photography, lightroom, edit"
+    },
+    {
+      "filename": "knitting_pattern.txt",
+      "title": "Winter Wool Scarf Knitting Pattern",
+      "description": "Stitch types, row counts, and yarn amount estimations.",
+      "tags": "crafts, knitting, scarf"
+    },
+    {
+      "filename": "origami_instructions.pdf",
+      "title": "Paper Crane Origami Instructions",
+      "description": "Step-by-step folding diagrams for traditional paper swan design.",
+      "tags": "crafts, origami, paper"
+    },
+    {
+      "filename": "woodworking_blueprints.pdf",
+      "title": "Simple Wood Coffee Table Blueprints",
+      "description": "Cutting list dimensions, joinery types, and sanding steps.",
+      "tags": "crafts, wood, project"
+    },
+    {
+      "filename": "pottery_glaze_notes.docx",
+      "title": "Pottery Glazing & Kiln Firing Notes",
+      "description": "Fahrenheit temperature levels and clay glaze mixtures recipes.",
+      "tags": "crafts, pottery, clay"
+    },
+    {
+      "filename": "painting_ideas_list.txt",
+      "title": "Watercolor Painting Project Ideas",
+      "description": "Landscapes, flower portraits, and abstract art prompts.",
+      "tags": "crafts, painting, art"
+    },
+    {
+      "filename": "business_nda_template.docx",
+      "title": "Non-Disclosure Agreement Contract Template",
+      "description": "Standard business NDA document defining confidentiality terms.",
+      "tags": "business, nda, agreement"
+    },
+    {
+      "filename": "vendor_contract_agreement.pdf",
+      "title": "Vendor Services Master Agreement",
+      "description": "Legal contract specifying service terms, payouts, and liability limits.",
+      "tags": "business, contract, legal"
+    },
+    {
+      "filename": "meeting_slides_q4.pptx",
+      "title": "Partner Q4 Operations Review Slides",
+      "description": "Quarterly metrics presentation slides covering sales and operations.",
+      "tags": "business, slides, metrics"
+    },
+    {
+      "filename": "elevator_pitch_notes.txt",
+      "title": "Startup Pitch Script Notes",
+      "description": "60-second summary explaining product value proposition and market size.",
+      "tags": "business, pitch, sales"
+    },
+    {
+      "filename": "weekly_progress_report.md",
+      "title": "Weekly Project Progress Report",
+      "description": "Tasks completed this week, blockers, and scheduled deadlines.",
+      "tags": "business, status, report"
+    },
+    {
+      "filename": "personal_journal_entry.txt",
+      "title": "Personal Reflections Journal Entry",
+      "description": "Daily thoughts on workspace progress, goals, and productivity levels.",
+      "tags": "personal, journal, thoughts"
+    },
+    {
+      "filename": "birthday_planning.docx",
+      "title": "Family Birthday Party Planner",
+      "description": "Cake ordering details, guest lists, and decorations budget checklist.",
+      "tags": "personal, event, planning"
+    },
+    {
+      "filename": "password_tips_secure.md",
+      "title": "Password Manager Setup Guidelines",
+      "description": "Choosing master passwords, using 2FA, and rotating secret keys.",
+      "tags": "personal, security, guidelines"
+    },
+    {
+      "filename": "yearly_goals_list.txt",
+      "title": "New Year Goal Setting List",
+      "description": "Personal development targets: career paths, gym goals, and budget targets.",
+      "tags": "personal, goals, planning"
+    },
+    {
+      "filename": "gift_ideas_holiday.md",
+      "title": "Holiday Season Gift Ideas Checklist",
+      "description": "List of potential presents for family, friends, and coworkers.",
+      "tags": "personal, shopping, gifts"
+    }
+  ],
+  "test_queries": [
+    {
+      "query": "docker app deploy help",
+      "expected_filename": "kubernetes_cheatsheet.txt"
+    },
+    {
+      "query": "resume python backend dev",
+      "expected_filename": "resume_backend_engineer.pdf"
+    },
+    {
+      "query": "monthly cash out flow",
+      "expected_filename": "monthly_finance_tracker.docx"
+    },
+    {
+      "query": "react js setup router",
+      "expected_filename": "react_routing_tutorial.md"
+    },
+    {
+      "query": "how to hash password keys",
+      "expected_filename": "auth_security_guidelines.pdf"
+    },
+    {
+      "query": "pasta carbonara recipe",
+      "expected_filename": "italian_pasta_recipe.txt"
+    },
+    {
+      "query": "hotel reservation in paris",
+      "expected_filename": "hotel_booking.pdf"
+    },
+    {
+      "query": "weight loss diet card",
+      "expected_filename": "diet_plan.txt"
+    },
+    {
+      "query": "ad campaign seo plan",
+      "expected_filename": "marketing_seo_practices.txt"
+    },
+    {
+      "query": "rent agreement print out",
+      "expected_filename": "tenant_agreement.pdf"
+    },
+    {
+      "query": "calculus limits derivative cheat sheet",
+      "expected_filename": "calculus_formulas.pdf"
+    },
+    {
+      "query": "car monthly insurance paper",
+      "expected_filename": "car_insurance_policy.pdf"
+    },
+    {
+      "query": "guitar tabs chord chart",
+      "expected_filename": "guitar_chords_page.txt"
+    },
+    {
+      "query": "watering tomato plants guide",
+      "expected_filename": "tomato_planting_steps.txt"
+    },
+    {
+      "query": "nda contract doc",
+      "expected_filename": "business_nda_template.docx"
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from main import app
 from app.database import get_db
-from app.auth.auth import get_current_user
+from app.auth.auth_dependencies import get_current_user
 from app.database.db_models import FileMetadata, User
 
 client = TestClient(app)
@@ -37,7 +37,7 @@ def setup_dependency_overrides():
 
 
 def test_get_upload_url_route_success():
-    with patch("app.apis.routes.upload_file.create_presigned_put_url") as mock_create:
+    with patch("app.apis.routes.document_routes.create_presigned_put_url") as mock_create:
         mock_create.return_value = {
             "upload_url": "https://s3.example.com/uploads/123_test.txt",
             "key": "uploads/123_test.txt",
@@ -62,7 +62,7 @@ def test_get_upload_url_route_success():
 
 
 def test_complete_upload_route_success():
-    with patch("app.apis.routes.upload_file.get_object_metadata") as mock_meta:
+    with patch("app.apis.routes.document_routes.get_object_metadata") as mock_meta:
         mock_meta.return_value = {
             "size_bytes": 1024,
             "content_type": "text/plain",
@@ -100,7 +100,7 @@ def test_complete_upload_route_success():
 
 
 def test_complete_upload_route_not_found():
-    with patch("app.apis.routes.upload_file.get_object_metadata") as mock_meta:
+    with patch("app.apis.routes.document_routes.get_object_metadata") as mock_meta:
         mock_meta.side_effect = FileNotFoundError("Object not found in storage.")
 
         mock_file = FileMetadata(
@@ -130,7 +130,7 @@ def test_complete_upload_route_not_found():
 
 
 def test_get_view_url_route_success():
-    with patch("app.apis.routes.upload_file.create_presigned_get_url") as mock_create_get:
+    with patch("app.apis.routes.document_routes.create_presigned_get_url") as mock_create_get:
         mock_create_get.return_value = {
             "view_url": "https://s3.example.com/uploads/123_test.txt?auth=abc",
             "key": "uploads/123_test.txt",
@@ -241,7 +241,8 @@ def test_update_metadata_route_success():
 
 
 def test_delete_file_route_success():
-    with patch("app.apis.routes.upload_file.delete_s3_object") as mock_delete_s3:
+    with patch("app.apis.routes.document_routes.delete_s3_object") as mock_delete_s3, \
+         patch("app.apis.routes.document_routes.delete_file_vector", AsyncMock(return_value=True)):
         mock_file = FileMetadata(
             fileid=42,
             s3_key="uploads/123_test.txt",
@@ -279,7 +280,7 @@ def test_delete_file_route_not_found():
 
 
 def test_delete_file_route_failed_s3():
-    with patch("app.apis.routes.upload_file.delete_s3_object") as mock_delete_s3:
+    with patch("app.apis.routes.document_routes.delete_s3_object") as mock_delete_s3:
         mock_delete_s3.side_effect = RuntimeError("S3 delete failed")
         mock_file = FileMetadata(
             fileid=42,
@@ -304,8 +305,36 @@ def test_delete_file_route_failed_s3():
         mock_db_session.delete.assert_not_called()
 
 
+def test_delete_file_route_failed_qdrant():
+    with patch("app.apis.routes.document_routes.delete_s3_object") as mock_delete_s3, \
+         patch("app.apis.routes.document_routes.delete_file_vector", AsyncMock(return_value=False)):
+        mock_file = FileMetadata(
+            fileid=42,
+            s3_key="uploads/123_test.txt",
+            filename="test.txt",
+            content_type="text/plain",
+            size_bytes=100,
+            status="active",
+            title="Title",
+            description="Desc",
+            tags="tag",
+            userid=42,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        mock_db_session.query().filter().first.return_value = mock_file
+
+        response = client.delete("/files/42")
+
+        assert response.status_code == 500
+        assert "Failed to remove document vector embeddings" in response.json()["detail"]
+        mock_delete_s3.assert_called_once_with("uploads/123_test.txt")
+        mock_db_session.delete.assert_not_called()
+
+
 def test_delete_file_route_failed_db():
-    with patch("app.apis.routes.upload_file.delete_s3_object") as mock_delete_s3:
+    with patch("app.apis.routes.document_routes.delete_s3_object") as mock_delete_s3, \
+         patch("app.apis.routes.document_routes.delete_file_vector", AsyncMock(return_value=True)):
         mock_file = FileMetadata(
             fileid=42,
             s3_key="uploads/123_test.txt",
@@ -326,5 +355,5 @@ def test_delete_file_route_failed_db():
         response = client.delete("/files/42")
 
         assert response.status_code == 500
-        assert "Database deletion failed after storage object was removed" in response.json()["detail"]
+        assert "Database deletion failed after external storage" in response.json()["detail"]
         mock_delete_s3.assert_called_once_with("uploads/123_test.txt")

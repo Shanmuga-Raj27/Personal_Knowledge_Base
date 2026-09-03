@@ -4,11 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.core.config import settings
-from app.apis.routes.auth import router as auth_router
+from app.apis.routes.auth_routes import router as auth_router
+from app.apis.routes.document_routes import router as document_router
+from app.apis.routes.search_routes import router as search_router
+from app.apis.routes.system import router as system_router
 from contextlib import asynccontextmanager
 from app.services.AI.vector_service import init_qdrant_collection, close_qdrant_client
-from app.apis.routes.upload_file import recover_and_backfill_unindexed_files, router as upload_router
-from app.apis.routes.system import router as system_router
+from app.workers.indexing_worker import recover_and_backfill_unindexed_files
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-app.include_router(upload_router)
+app.include_router(document_router)
+app.include_router(search_router)
 app.include_router(system_router)
 
 

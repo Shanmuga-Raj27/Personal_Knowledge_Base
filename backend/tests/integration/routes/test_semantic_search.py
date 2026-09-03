@@ -11,10 +11,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
-from app.auth.auth import get_db
+from app.auth.auth_dependencies import get_db
 from app.core import security
 from app.database import Base
 from app.database.db_models import FileMetadata, User
+from app.utils.rate_limiter import SEARCH_REQUESTS
 
 # In-memory SQLite engine with StaticPool
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -106,7 +107,7 @@ def test_semantic_search_multi_tenant_isolation(setup_test_database):
     token_b = security.create_access_token(user_id=user_b.id)
 
     # Mock search_file_vectors returning [(file_a.fileid, 0.89), (file_b.fileid, 0.85)]
-    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[(file_a.fileid, 0.89), (file_b.fileid, 0.85)])):
+    with patch("app.apis.routes.search_routes.search_file_vectors", AsyncMock(return_value=[(file_a.fileid, 0.89), (file_b.fileid, 0.85)])):
         # User A searches -> Should ONLY return file_a with score
         res_a = client.get(
             "/files/search?q=spec",
@@ -153,7 +154,7 @@ def test_semantic_search_unrelated_query_pig_returns_clean_zero_matches(setup_te
 
     token = security.create_access_token(user_id=user.id)
     # Search for completely unrelated term 'pig' -> score < 0.55 returns []
-    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[])):
+    with patch("app.apis.routes.search_routes.search_file_vectors", AsyncMock(return_value=[])):
         res = client.get(
             "/files/search?q=pig",
             headers={"Authorization": f"Bearer {token}"},
@@ -200,7 +201,7 @@ def test_infrastructure_failure_returns_fallback_200(setup_test_database):
 
     token = security.create_access_token(user_id=user.id)
 
-    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(side_effect=RuntimeError("Qdrant connection refused"))):
+    with patch("app.apis.routes.search_routes.search_file_vectors", AsyncMock(side_effect=RuntimeError("Qdrant connection refused"))):
         res = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
         assert res.status_code == 200
         data = res.json()
@@ -212,7 +213,6 @@ def test_infrastructure_failure_returns_fallback_200(setup_test_database):
 
 
 def test_search_rate_limiter_exceeded_returns_429(setup_test_database):
-    from app.apis.routes.upload_file import SEARCH_REQUESTS
     SEARCH_REQUESTS.clear()
     db = setup_test_database
     user = User(email="rate_limit_user@example.com", hashed_password="pw", status="active")
@@ -220,7 +220,7 @@ def test_search_rate_limiter_exceeded_returns_429(setup_test_database):
     db.commit()
     token = security.create_access_token(user_id=user.id)
 
-    with patch("app.apis.routes.upload_file.search_file_vectors", AsyncMock(return_value=[])):
+    with patch("app.apis.routes.search_routes.search_file_vectors", AsyncMock(return_value=[])):
         # Make 30 allowed requests
         for _ in range(30):
             res = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
@@ -230,4 +230,3 @@ def test_search_rate_limiter_exceeded_returns_429(setup_test_database):
         res_overflow = client.get("/files/search?q=test", headers={"Authorization": f"Bearer {token}"})
         assert res_overflow.status_code == 429
         assert "Rate limit exceeded" in res_overflow.json()["detail"]
-

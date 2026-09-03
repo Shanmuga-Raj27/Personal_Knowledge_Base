@@ -16,7 +16,7 @@ from app.core import security
 from app.database import get_db
 from app.database.db_models import User
 from app.schemas.schemas import Token, UserLogin, UserOut, UserRegister
-from app.auth.auth import get_user_by_email
+from app.auth.auth_dependencies import get_user_by_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

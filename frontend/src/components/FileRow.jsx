@@ -120,22 +120,25 @@ function FileRow({ doc, onOpen, onEdit, onDelete }) {
                 }
                 if (status === 'failed') {
                   return (
-                    <Chip
-                      label="Failed"
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        height: 16,
-                        fontSize: '0.6rem',
-                        fontWeight: 700,
-                        borderColor: '#FECACA',
-                        color: '#991B1B',
-                        backgroundColor: '#FEF2F2',
-                        borderRadius: '4px',
-                        px: 0.5,
-                        flexShrink: 0
-                      }}
-                    />
+                    <Tooltip title={doc.lastError || doc.last_error || 'Vector indexing failed during background process.'} arrow>
+                      <Chip
+                        label="Failed"
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          height: 16,
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          borderColor: '#FECACA',
+                          color: '#991B1B',
+                          backgroundColor: '#FEF2F2',
+                          borderRadius: '4px',
+                          px: 0.5,
+                          flexShrink: 0,
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </Tooltip>
                   )
                 }
                 return (
