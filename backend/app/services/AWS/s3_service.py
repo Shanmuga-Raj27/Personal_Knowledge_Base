@@ -161,6 +161,51 @@ def delete_s3_object(key: str) -> None:
         raise RuntimeError(f"Failed to delete S3 object '{key}': {str(exc)}") from exc
 
 
+def read_object_bytes_limited(key: str, max_bytes: int) -> bytes:
+    """Read object bytes from S3/B2 up to max_bytes with head_object pre-check and streaming size limit."""
+    s3_client = _get_s3_client()
+    body = None
+
+    try:
+        metadata = s3_client.head_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+        )
+        size_bytes = int(metadata.get("ContentLength") or 0)
+        if size_bytes > max_bytes:
+            raise ValueError(f"Object is too large: {size_bytes} bytes")
+
+        response = s3_client.get_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+        )
+        body = response["Body"]
+
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            part = body.read(1024 * 1024)
+            if not part:
+                break
+            total += len(part)
+            if total > max_bytes:
+                raise ValueError(f"Object exceeded max read size: {max_bytes} bytes")
+            chunks.append(part)
+
+        return b"".join(chunks)
+    except ClientError as exc:
+        status_code = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        if error_code in ("404", "NoSuchKey", "NotFound") or status_code == 404:
+            raise FileNotFoundError(f"File object with key '{key}' does not exist.") from exc
+        raise RuntimeError("Failed to read object bytes from storage.") from exc
+    except BotoCoreError as exc:
+        raise RuntimeError("Failed to read object bytes from storage.") from exc
+    finally:
+        if body is not None:
+            body.close()
+
+
 # Non-blocking async wrappers to offload synchronous Boto3 I/O from FastAPI event loop
 async def async_create_presigned_put_url(filename: str, content_type: str) -> dict:
     return await run_in_threadpool(create_presigned_put_url, filename, content_type)
@@ -176,6 +221,11 @@ async def async_get_object_metadata(key: str) -> dict:
 
 async def async_delete_s3_object(key: str) -> None:
     await run_in_threadpool(delete_s3_object, key)
+
+
+async def async_read_object_bytes_limited(key: str, max_bytes: int) -> bytes:
+    return await run_in_threadpool(read_object_bytes_limited, key, max_bytes)
+
 
 
 

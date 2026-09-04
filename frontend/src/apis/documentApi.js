@@ -96,5 +96,20 @@ export const searchDocuments = (query, limit, offset, signal) => {
   })
 }
 
+/**
+ * Execute RAG grounded query against document chunks pipeline.
+ * @param {{ question: string, top_k?: number, score_threshold?: number, file_ids?: Array<number> }} payload
+ * @param {AbortSignal} [signal] Optional AbortSignal for request cancellation.
+ * @returns {Promise<{ answer: string, sources: Array<object>, diagnostics?: object }>}
+ */
+export const queryRagPipeline = (payload, signal) => {
+  const requestBody = {
+    top_k: 6,
+    score_threshold: 0.35,
+    ...payload,
+  }
+  return axiosClient.post('/rag/query', requestBody, { signal, timeout: 60000 })
+}
+
 
 

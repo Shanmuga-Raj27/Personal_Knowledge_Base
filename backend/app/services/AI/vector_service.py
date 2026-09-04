@@ -76,7 +76,7 @@ async def init_qdrant_collection() -> bool:
             await q_client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(
-                    size=768,
+                    size=settings.EMBEDDING_DIMENSIONS,
                     distance=models.Distance.COSINE,
                 ),
             )
@@ -118,7 +118,7 @@ def build_file_text_representation(
 async def generate_embedding(
     text: str, task_type: Optional[str] = "RETRIEVAL_DOCUMENT"
 ) -> Optional[List[float]]:
-    """Generate 768-dimension vector embedding from text using Gemini API with timeout guard."""
+    """Generate dense vector embedding from text using Gemini API with timeout guard."""
     g_client = get_gemini_client()
     if not g_client:
         logger.warning("Gemini client is not initialized (GEMINI_API_KEY missing).")
@@ -127,10 +127,10 @@ async def generate_embedding(
     try:
         response = await asyncio.wait_for(
             g_client.aio.models.embed_content(
-                model="gemini-embedding-2",
+                model=settings.GEMINI_EMBEDDING_MODEL,
                 contents=text,
                 config=types.EmbedContentConfig(
-                    output_dimensionality=768,
+                    output_dimensionality=settings.EMBEDDING_DIMENSIONS,
                     task_type=task_type,
                 ),
             ),
@@ -220,7 +220,7 @@ async def delete_file_vector(file_id: int) -> bool:
 
 
 async def search_file_vectors(
-    query_text: str, user_id: int, limit: int = 15, score_threshold: float = 0.35, offset: int = 0
+    query_text: str, user_id: int, limit: int = 15, score_threshold: Optional[float] = None, offset: int = 0
 ) -> List[tuple[int, float]]:
     """Perform multi-tenant scoped semantic vector similarity search on Qdrant.
 
@@ -229,6 +229,8 @@ async def search_file_vectors(
     """
     if not query_text.strip():
         return []
+
+    effective_threshold = score_threshold if score_threshold is not None else settings.RAG_SCORE_THRESHOLD
 
     query_vector = await generate_embedding(
         query_text, task_type="RETRIEVAL_QUERY"
@@ -256,7 +258,7 @@ async def search_file_vectors(
                 ]
             ),
             limit=fetch_limit,
-            score_threshold=score_threshold,
+            score_threshold=effective_threshold,
         )
         matched_results = [
             (hit.id, hit.score) for hit in hits.points if isinstance(hit.id, int)
@@ -265,7 +267,7 @@ async def search_file_vectors(
             "Qdrant oversampling fetched %d candidate points; %d points passed score threshold >= %.2f.",
             fetch_limit,
             len(matched_results),
-            score_threshold,
+            effective_threshold,
         )
         return matched_results
     except Exception as exc:

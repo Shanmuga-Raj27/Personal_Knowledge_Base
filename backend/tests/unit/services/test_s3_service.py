@@ -8,7 +8,10 @@ from app.services.AWS.s3_service import (
     create_presigned_get_url,
     get_object_metadata,
     delete_s3_object,
+    read_object_bytes_limited,
+    async_read_object_bytes_limited,
 )
+
 
 from app.core.config import settings
 
@@ -144,6 +147,99 @@ def test_delete_s3_object_failure():
 
         with pytest.raises(RuntimeError, match="Failed to delete S3 object"):
             delete_s3_object("uploads/file.pdf")
+
+
+def test_read_object_bytes_limited_success():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        mock_s3.head_object.return_value = {"ContentLength": 100}
+
+        mock_body = MagicMock()
+        mock_body.read.side_effect = [b"hello ", b"world", b""]
+        mock_s3.get_object.return_value = {"Body": mock_body}
+
+        data = read_object_bytes_limited("uploads/file.txt", max_bytes=1000)
+        assert data == b"hello world"
+        mock_s3.head_object.assert_called_once_with(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key="uploads/file.txt",
+        )
+        mock_s3.get_object.assert_called_once_with(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key="uploads/file.txt",
+        )
+        mock_body.close.assert_called_once()
+
+
+def test_read_object_bytes_limited_file_not_found():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        error_response = {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}}
+        mock_s3.head_object.side_effect = ClientError(error_response, "head_object")
+
+        with pytest.raises(FileNotFoundError, match="File object with key 'uploads/missing.txt' does not exist"):
+            read_object_bytes_limited("uploads/missing.txt", max_bytes=1000)
+
+
+def test_read_object_bytes_limited_head_too_large():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        mock_s3.head_object.return_value = {"ContentLength": 5000}
+
+        with pytest.raises(ValueError, match="Object is too large: 5000 bytes"):
+            read_object_bytes_limited("uploads/huge.pdf", max_bytes=1000)
+
+        mock_s3.get_object.assert_not_called()
+
+
+def test_read_object_bytes_limited_stream_exceeds_max_bytes():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        # Head object says 500 bytes (under 1000 limit)
+        mock_s3.head_object.return_value = {"ContentLength": 500}
+
+        mock_body = MagicMock()
+        # Stream unexpectedly returns 600 + 600 = 1200 bytes (> 1000 limit)
+        mock_body.read.side_effect = [b"a" * 600, b"b" * 600]
+        mock_s3.get_object.return_value = {"Body": mock_body}
+
+        with pytest.raises(ValueError, match="Object exceeded max read size: 1000 bytes"):
+            read_object_bytes_limited("uploads/expanding.pdf", max_bytes=1000)
+
+        mock_body.close.assert_called_once()
+
+
+def test_read_object_bytes_limited_client_error():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        error_response = {"Error": {"Code": "InternalError", "Message": "Internal Error"}}
+        mock_s3.head_object.side_effect = ClientError(error_response, "head_object")
+
+        with pytest.raises(RuntimeError, match="Failed to read object bytes from storage"):
+            read_object_bytes_limited("uploads/file.pdf", max_bytes=1000)
+
+
+@pytest.mark.anyio
+async def test_async_read_object_bytes_limited():
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_boto_client.return_value = mock_s3
+        mock_s3.head_object.return_value = {"ContentLength": 50}
+
+        mock_body = MagicMock()
+        mock_body.read.side_effect = [b"async content", b""]
+        mock_s3.get_object.return_value = {"Body": mock_body}
+
+        res = await async_read_object_bytes_limited("uploads/async.txt", max_bytes=100)
+        assert res == b"async content"
+        mock_body.close.assert_called_once()
+
+
 
 
 
