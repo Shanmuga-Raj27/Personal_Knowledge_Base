@@ -16,6 +16,11 @@ class FileStatus(str, Enum):
 class IndexingStatus(str, Enum):
     """Vector indexing status for Qdrant vector synchronization."""
     PENDING = "PENDING"
+    EXTRACTING = "EXTRACTING"
+    CHUNKED = "CHUNKED"
+    EMBEDDING = "EMBEDDING"
     INDEXING = "INDEXING"
     INDEXED = "INDEXED"
     FAILED = "FAILED"
+    FAILED_RETRYABLE = "FAILED_RETRYABLE"
+    FAILED_TERMINAL = "FAILED_TERMINAL"

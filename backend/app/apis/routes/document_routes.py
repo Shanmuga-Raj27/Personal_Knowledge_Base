@@ -38,6 +38,7 @@ from app.services.AWS.s3_service import (
 )
 from app.services.AI.vector_service import delete_file_vector
 from app.workers.indexing_worker import sync_vector_in_background
+from app.workers.rag_worker import sync_rag_chunks_in_background
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,8 @@ async def complete_upload(
         db.commit()
         db.refresh(db_file)
 
-        # Offload AI vector embedding generation & Qdrant indexing to background worker
+        # Offload AI vector embedding generation & Qdrant indexing to background worker.
+        # s3_key is passed so Phase 2 RAG extraction can also run (logging-only until Phase 3).
         background_tasks.add_task(
             sync_vector_in_background,
             file_id=db_file.fileid,
@@ -132,6 +134,16 @@ async def complete_upload(
             description=db_file.description,
             tags=db_file.tags,
             target_version=db_file.index_version,
+            s3_key=db_file.s3_key,
+        )
+
+        # Offload RAG chunking pipeline to separate background worker (Phase 3).
+        # This runs the full extraction → cleaning → chunking → MySQL staging path.
+        # Does NOT call Gemini/Qdrant; those are Phase 4.
+        background_tasks.add_task(
+            sync_rag_chunks_in_background,
+            file_id=db_file.fileid,
+            user_id=current_user.id,
         )
     except FileNotFoundError as exc:
         # Mark as failed in DB

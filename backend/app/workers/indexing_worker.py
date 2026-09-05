@@ -11,11 +11,17 @@ from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import or_
 
+from fastapi.concurrency import run_in_threadpool
+
 from app.core.config import settings
 from app.database.database import SessionLocal
 from app.database.db_models import FileMetadata
 from app.schemas.enums import FileStatus, IndexingStatus
 from app.services.AI.vector_service import upsert_file_vector
+from app.services.rag.document_processor import (
+    NoExtractableTextError,
+    process_pdf_from_storage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +37,43 @@ async def sync_vector_in_background(
     description: str | None,
     tags: str | None,
     target_version: int,
+    s3_key: str | None = None,
 ):
-    """Background worker task to compute Gemini embeddings and update Qdrant point asynchronously with semaphore rate limiting."""
+    """Background worker task to compute Gemini embeddings and update Qdrant point asynchronously with semaphore rate limiting.
+
+    Phase 2 (logging-only): If the file is a PDF and s3_key is provided, the full
+    RAG extraction pipeline is also run. Chunk stats are logged but nothing is
+    persisted until Phase 3 completes the MySQL schema and storage layer.
+    """
     async with _embedding_semaphore:
+        # ── Phase 2 RAG pipeline (logging-only, Option B) ─────────────────────
+        # Processes PDFs through the full extraction/chunking pipeline and logs
+        # stats to validate correctness. No data is persisted until Phase 3.
+        if s3_key and filename.lower().endswith(".pdf"):
+            try:
+                processed = await run_in_threadpool(process_pdf_from_storage, s3_key)
+                logger.info(
+                    "RAG Phase 2 processed file_id=%s pages=%s words=%s chunks=%s key=%s",
+                    file_id,
+                    processed.page_count,
+                    processed.extracted_word_count,
+                    len(processed.chunks),
+                    s3_key,
+                )
+            except NoExtractableTextError:
+                logger.info(
+                    "RAG Phase 2: file_id=%s has no extractable text layer (scanned/image-only PDF).",
+                    file_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "RAG Phase 2 processing failed for file_id=%s key=%s: %s",
+                    file_id,
+                    s3_key,
+                    exc,
+                )
+
+        # ── Existing metadata vector indexing (unchanged) ──────────────────
         indexed_success = False
         error_msg = None
         try:
