@@ -77,6 +77,12 @@ class Settings(BaseSettings):
     REDIS_CONNECT_TIMEOUT_SECONDS: float = 1.0
     RAG_CACHE_TTL_SECONDS: int = 3600
 
+    # Phase 5 - Generation and context budget
+    RAG_CONTEXT_BUDGET_TOKENS: int = Field(default=3000, ge=500)
+    RAG_PROMPT_VERSION: str = "v1"
+    RAG_MAX_PER_FILE_CONTRIBUTION: int = Field(default=3, ge=1)
+    RAG_GENERATION_TEMPERATURE: float = Field(default=0.2, ge=0.0, le=2.0)
+
     # Gemini reliability controls (Phase 4 canonical defaults)
     GEMINI_EMBEDDING_BATCH_SIZE: int = Field(default=64, ge=1, le=128)
     GEMINI_EMBEDDING_MAX_RETRIES: int = Field(default=5, ge=0, le=10)

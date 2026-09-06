@@ -12,10 +12,11 @@ Error table (RAG-phase-4.md:586-597):
     QDRANT_COLLECTION_MISMATCH → fail fast
 """
 
+import asyncio
 import logging
 import random
 import time
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 from app.core.config import settings
 
@@ -138,3 +139,58 @@ def with_retry(
     if last_exc:
         raise last_exc
     raise RuntimeError("with_retry exhausted without exception")
+
+
+async def with_retry_async(
+    fn: Callable[[], Awaitable[Any]],
+    max_retries: int | None = None,
+    base_delay: float | None = None,
+    jitter: bool = True,
+) -> Any:
+    """Async variant of with_retry: sleeps with asyncio.sleep, no thread blocking.
+
+    Uses the same settings-driven exponential backoff + jitter policy and
+    retries only retryable failures (429, timeout, 5xx).
+
+    Important: the caller must guarantee fn is safe to re-invoke (idempotent or
+    restartable from scratch). For streaming, re-open the stream in fn so a
+    retry never duplicates already-yielded output.
+
+    Args:
+        fn: Async callable to execute (no args).
+        max_retries: Override settings.RAG_MAX_RETRIES.
+        base_delay: Override settings.RAG_BACKOFF_BASE.
+        jitter: Add random(0,1) jitter.
+
+    Returns:
+        await fn() result on success.
+
+    Raises:
+        Last exception if non-retryable or retries exhausted.
+    """
+    if max_retries is None:
+        max_retries = settings.RAG_MAX_RETRIES
+    if base_delay is None:
+        base_delay = settings.RAG_BACKOFF_BASE
+
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await fn()
+        except Exception as exc:
+            last_exc = exc
+            if not is_retryable(exc) or attempt >= max_retries:
+                raise
+            delay = (base_delay * (2 ** attempt)) + (random.random() if jitter else 0)
+            logger.warning(
+                "Retryable %s (attempt %d/%d, async) — backing off %.2fs: %s",
+                classify_error(exc),
+                attempt + 1,
+                max_retries,
+                delay,
+                exc,
+            )
+            await asyncio.sleep(delay)
+    if last_exc:
+        raise last_exc
+    raise RuntimeError("with_retry_async exhausted without exception")

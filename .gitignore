@@ -136,3 +136,5 @@ logs/
 .kilo/
 .agents/
 prompt-base/
+
+*opencode.json
