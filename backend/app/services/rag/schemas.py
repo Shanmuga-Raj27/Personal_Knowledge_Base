@@ -5,6 +5,8 @@ Internal Data Transfer Objects (DTOs) for RAG PDF extraction and chunking pipeli
 """
 from dataclasses import dataclass
 
+from pydantic import BaseModel, Field
+
 
 @dataclass(frozen=True)
 class ExtractedPage:
@@ -29,3 +31,12 @@ class TextChunk:
     word_end: int
     word_count: int
     text_checksum: str
+
+
+class ChunkPayload(BaseModel):
+    """Tiny Qdrant payload — only 4 fields. Text stays in MySQL."""
+
+    user_id: int
+    file_id: int
+    index_version: int = Field(ge=1)
+    chunk_index: int = Field(ge=0)

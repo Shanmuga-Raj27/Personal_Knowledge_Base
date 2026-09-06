@@ -77,9 +77,16 @@ class Settings(BaseSettings):
     REDIS_CONNECT_TIMEOUT_SECONDS: float = 1.0
     RAG_CACHE_TTL_SECONDS: int = 3600
 
-    # Gemini reliability controls
-    GEMINI_EMBEDDING_BATCH_SIZE: int = 16
-    GEMINI_EMBEDDING_MAX_RETRIES: int = 3
+    # Gemini reliability controls (Phase 4 canonical defaults)
+    GEMINI_EMBEDDING_BATCH_SIZE: int = Field(default=64, ge=1, le=128)
+    GEMINI_EMBEDDING_MAX_RETRIES: int = Field(default=5, ge=0, le=10)
+    RAG_EMBEDDING_BATCH_SIZE: int = Field(default=64, ge=1, le=128)
+    RAG_EMBEDDING_CONCURRENCY: int = Field(default=4, ge=1, le=32)
+    RAG_MAX_RETRIES: int = Field(default=5, ge=0, le=10)
+    RAG_BACKOFF_BASE: float = Field(default=1.0, ge=0.0, le=10.0)
+    # Aliases for RAG-phase-4 doc naming (typo-tolerant)
+    RAG_QDRANT_COLLECTION: str | None = None
+    RAG_QDANT_COLLECTION: str | None = None
 
     @model_validator(mode="after")
     def validate_rag_settings(self) -> "Settings":
@@ -91,7 +98,34 @@ class Settings(BaseSettings):
             raise ValueError("RAG_DEFAULT_TOP_K must be <= RAG_MAX_TOP_K")
         if self.QDRANT_DISTANCE.upper() != "COSINE":
             raise ValueError("QDRANT_DISTANCE must be COSINE")
+        # Phase 4: keep legacy and canonical batch/retry fields in sync
+        if self.RAG_EMBEDDING_BATCH_SIZE == 64 and self.GEMINI_EMBEDDING_BATCH_SIZE != 64:
+            object.__setattr__(self, "RAG_EMBEDDING_BATCH_SIZE", self.GEMINI_EMBEDDING_BATCH_SIZE)
+        if self.RAG_MAX_RETRIES == 5 and self.GEMINI_EMBEDDING_MAX_RETRIES != 5:
+            object.__setattr__(self, "RAG_MAX_RETRIES", self.GEMINI_EMBEDDING_MAX_RETRIES)
+        if self.RAG_EMBEDDING_CONCURRENCY == 4 and self.MAX_CONCURRENT_EMBEDDING_TASKS != 5:
+            # legacy default was 5, new canonical is 4 — propagate only if user changed legacy
+            if self.MAX_CONCURRENT_EMBEDDING_TASKS != 5:
+                object.__setattr__(self, "RAG_EMBEDDING_CONCURRENCY", self.MAX_CONCURRENT_EMBEDDING_TASKS)
+        # Alias collection names for Phase 4 doc compatibility
+        alias = self.RAG_QDRANT_COLLECTION or self.RAG_QDANT_COLLECTION
+        if alias:
+            object.__setattr__(self, "QDRANT_RAG_COLLECTION_NAME", alias)
         return self
+
+    # ── Phase 4 compatibility properties ──────────────────────────────────
+    @property
+    def RAG_TOP_K(self) -> int:
+        """Alias for RAG_DEFAULT_TOP_K (Phase 4 doc naming)."""
+        return self.RAG_DEFAULT_TOP_K
+
+    @property
+    def RAG_SCORE_THRESHOLD_ALIAS(self) -> float:
+        return self.RAG_SCORE_THRESHOLD
+
+    @property
+    def RAG_QDRANT_COLLECTION_RESOLVED(self) -> str:
+        return self.QDRANT_RAG_COLLECTION_NAME
 
 
 settings = Settings()
