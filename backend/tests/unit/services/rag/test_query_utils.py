@@ -162,6 +162,52 @@ class TestBuildCacheKey:
         assert key.startswith("42:3:")
         assert len(key.split(":")) == 3
 
+    def test_different_prompt_version_different_key(self):
+        assert build_cache_key(1, 0, "a", None, 6, 0.35, prompt_version="v1") != build_cache_key(
+            1, 0, "a", None, 6, 0.35, prompt_version="v2"
+        )
+
+    def test_different_model_version_different_key(self):
+        assert build_cache_key(1, 0, "a", None, 6, 0.35, model_version="m1") != build_cache_key(
+            1, 0, "a", None, 6, 0.35, model_version="m2"
+        )
+
+    def test_collision_resistance_over_sample(self):
+        """Phase 7 1c: a representative set of distinct canonical inputs must
+        never collide — the hash suffix must be unique across the sample."""
+        questions = ["what is refund policy?", "how do I file a claim?", "hello",
+                     "summarize the contract", "x", "y", "a longer ambiguous question about policy"]
+        thresholds = [0.1, 0.35, 0.5, 0.9]
+        top_ks = [1, 6, 20]
+        users = [1, 2, 42, 99]
+        revisions = [0, 1, 5]
+        # Note: [1,2] and [2,1] intentionally produce the SAME key (file_ids
+        # are sorted before hashing), and [] is equivalent to None ("search all"),
+        # so here we only use genuinely distinct sets.
+        file_sets = [None, [1], [2], [1, 2], [7, 8]]
+
+        def keys_for(user, rev, q, f, k, t, p, m):
+            return build_cache_key(user, rev, q, f, k, t, p, m)
+
+        hashes = set()
+        # Full cartesian product would be huge; sample representative tuples.
+        tuples = []
+        for q in questions:
+            for t in thresholds:
+                for k in top_ks:
+                    for u in users:
+                        for r in revisions:
+                            tuples.append((u, r, q, None, k, t, "v1", "gemini-3.6-flash"))
+        for u in users:
+            for f in file_sets:
+                tuples.append((u, 0, "shared question", f, 6, 0.35, "v1", "gemini-3.6-flash"))
+
+        for tup in tuples:
+            hashes.add(keys_for(*tup))
+
+        # Every distinct canonical input must map to a distinct cache key.
+        assert len(hashes) == len(tuples)
+
 
 class TestNormalizeScoreFiltered:
     def _chunk(self, score):

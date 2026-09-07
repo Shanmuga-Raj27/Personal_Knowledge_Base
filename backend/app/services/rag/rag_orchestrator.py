@@ -20,6 +20,7 @@ from typing import Any, AsyncIterator
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.services.rag import runtime_metrics
 from app.services.rag.answer_cache import get_cached_answer, set_cached_answer
 from app.services.rag.generation import (
     SourceBlock,
@@ -133,8 +134,16 @@ async def run_rag_query(
         Dicts following the SSE event contract above.
     """
     start = time.monotonic()
+    _metrics_on = runtime_metrics.enabled()
+    if _metrics_on:
+        runtime_metrics.increment("queries.total")
+
+    def _record_stage(name: str, t0: float) -> None:
+        if _metrics_on:
+            runtime_metrics.record_stage(name, (time.monotonic() - t0) * 1000)
 
     # 1. Prove file IDs belong to the user and are actively indexed.
+    t0 = time.monotonic()
     validated_file_ids = validate_file_ids(request.user_id, request.file_ids, db)
 
     # 2. Cache identity: user + corpus revision + canonical request.
@@ -147,16 +156,22 @@ async def run_rag_query(
         top_k=request.top_k,
         score_threshold=request.score_threshold,
     )
+    _record_stage("validate", t0)
 
     # 3. Cache check (fail-open: return None on any Redis problem).
+    t0 = time.monotonic()
     cached = await get_cached_answer(cache_key)
+    _record_stage("cache_read", t0)
     if cached is not None:
+        if _metrics_on:
+            runtime_metrics.increment("queries.cache_hit")
         logger.info(
             "RAG cache HIT user_id=%s key=%s", request.user_id, cache_key[:30]
         )
         diagnostics = RAGDiagnostics(cache_hit=True)
         diagnostics.query_time_ms = round((time.monotonic() - start) * 1000, 1)
         yield {"type": "token", "text": cached}
+        _record_stage("total", start)
         yield {
             "type": "final",
             "sources": [],
@@ -164,7 +179,11 @@ async def run_rag_query(
         }
         return
 
+    if _metrics_on:
+        runtime_metrics.increment("queries.cache_miss")
+
     # 4. Embed question (RETRIEVAL_QUERY) and retrieve candidates from Qdrant.
+    t0 = time.monotonic()
     ranked_hits = search_similar_chunks(
         user_id=request.user_id,
         query_text=request.question,
@@ -172,9 +191,13 @@ async def run_rag_query(
         top_k=request.top_k,
         score_threshold=request.score_threshold,
     )
+    _record_stage("search", t0)
 
     if not ranked_hits:
         logger.info("RAG no hits user_id=%s", request.user_id)
+        if _metrics_on:
+            runtime_metrics.increment("queries.abstain")
+        _record_stage("total", start)
         yield _abstain(
             cache_hit=False,
             chunks_retrieved=0,
@@ -185,13 +208,18 @@ async def run_rag_query(
         return
 
     # 5. Hydrate content from MySQL (single query, preserves Qdrant rank).
+    t0 = time.monotonic()
     hydrated = hydrate_chunks(request.user_id, ranked_hits, db)
+    _record_stage("hydrate", t0)
 
     if not hydrated:
         logger.info(
             "RAG hydration empty user_id=%s (stale/foreign hits dropped)",
             request.user_id,
         )
+        if _metrics_on:
+            runtime_metrics.increment("queries.abstain")
+        _record_stage("total", start)
         yield _abstain(
             cache_hit=False,
             chunks_retrieved=len(ranked_hits),
@@ -202,10 +230,12 @@ async def run_rag_query(
         return
 
     # 6. Filter low scores, deduplicate overlaps, cap per-file, fit budget.
+    t0 = time.monotonic()
     filtered = normalize_score_filtered(hydrated, request.score_threshold)
     deduped = deduplicate_chunks(filtered)
     capped = cap_per_file_contribution(deduped)
     budget_chunks = _fit_context_budget(capped)
+    _record_stage("postprocess", t0)
 
     if not budget_chunks:
         logger.info(
@@ -213,6 +243,9 @@ async def run_rag_query(
             request.user_id,
             len(filtered),
         )
+        if _metrics_on:
+            runtime_metrics.increment("queries.abstain")
+        _record_stage("total", start)
         yield _abstain(
             cache_hit=False,
             chunks_retrieved=len(ranked_hits),
@@ -227,15 +260,25 @@ async def run_rag_query(
     valid_chunk_ids = {s.chunk_id for s in sources}
 
     full_answer = ""
-    async for token in generate_answer_stream(request.question, sources):
-        full_answer += token
-        yield {"type": "token", "text": token}
+    t0 = time.monotonic()
+    try:
+        async for token in generate_answer_stream(request.question, sources):
+            full_answer += token
+            yield {"type": "token", "text": token}
+    finally:
+        _record_stage("generate", t0)
 
     # 8. Validate citations against actually-retrieved chunk IDs.
+    t0 = time.monotonic()
     valid_citations = validate_citations(full_answer, valid_chunk_ids)
+    _record_stage("citation", t0)
+    if _metrics_on:
+        runtime_metrics.increment("citations.valid", len(valid_citations))
 
     # 9. Cache the final answer (fire-and-forget, never raises).
+    t0 = time.monotonic()
     await set_cached_answer(cache_key, full_answer)
+    _record_stage("cache_write", t0)
 
     # 10. Emit final event with sources + diagnostics.
     diagnostics = RAGDiagnostics(
@@ -258,6 +301,7 @@ async def run_rag_query(
         for s in sources
     ]
 
+    _record_stage("total", start)
     yield {
         "type": "final",
         "sources": source_details,

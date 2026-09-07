@@ -423,3 +423,46 @@ class TestBuildChunkIdIntegration:
         chunks = db_session.query(DocumentChunk).order_by(DocumentChunk.chunk_index).all()
         assert chunks[0].chunk_id == str(build_chunk_id(100, 1, 0))
         assert chunks[1].chunk_id == str(build_chunk_id(100, 1, 1))
+
+
+class TestStateClaimExclusivity:
+    def test_concurrent_reclaim_for_same_version_is_exclusive(self, db_session: Session):
+        """Phase 7 1d: two concurrent claims on the same file/version must not
+        duplicate rows. Re-staging for a version replaces (deletes + inserts)
+        so a single complete chunk set always wins — never two competing sets."""
+        file = _make_file_metadata(fileid=50, userid=1, active_index_version=0)
+        db_session.add(file)
+        db_session.commit()
+
+        # First claim stages 3 chunks as version 1.
+        stage_document_chunks(db_session, file, _make_processed_document(chunk_count=3))
+        assert file.active_index_version == 0  # not yet activated
+
+        # A second (concurrent) claim for the same version stages only 1 chunk.
+        # Because claims write version 1, the second claim must replace the
+        # first — the file version can never accumulate stale rows.
+        file.active_index_version = 0  # simulate both claims observing version 0
+        db_session.commit()
+        stage_document_chunks(db_session, file, _make_processed_document(chunk_count=1))
+
+        rows = db_session.query(DocumentChunk).filter(
+            DocumentChunk.file_id == file.fileid,
+            DocumentChunk.index_version == 1,
+        ).all()
+        assert len(rows) == 1  # exclusive: the later claim replaced the earlier one
+
+    def test_distinct_versions_coexist_over_separate_versions(self, db_session: Session):
+        """Different index versions are separate claims and may coexist until
+        cutover — the serving query resolves to exactly one active version."""
+        file = _make_file_metadata(fileid=60, userid=1, active_index_version=1)
+        db_session.add(file)
+        db_session.commit()
+
+        stage_document_chunks(db_session, file, _make_processed_document(chunk_count=2))  # v2
+        db_session.refresh(file)
+        v2_rows = db_session.query(DocumentChunk).filter(
+            DocumentChunk.file_id == file.fileid,
+            DocumentChunk.index_version == 2,
+        ).count()
+        assert v2_rows == 2
+        assert file.active_index_version == 1  # v1 still active, v2 staged-not-active

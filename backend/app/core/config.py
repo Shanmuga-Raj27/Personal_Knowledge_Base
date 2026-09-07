@@ -83,6 +83,13 @@ class Settings(BaseSettings):
     RAG_MAX_PER_FILE_CONTRIBUTION: int = Field(default=3, ge=1)
     RAG_GENERATION_TEMPERATURE: float = Field(default=0.2, ge=0.0, le=2.0)
 
+    # Phase 7 - Metrics and evaluation
+    # Master switch for the admin-writeable /system/rag-metrics surface and
+    # the in-process metric counters. Default OFF: observability is opt-in and
+    # never changes behaviour. The batch evaluation script reads this flag to
+    # decide whether to write the local JSON report.
+    RAG_METRICS_ENABLED: bool = False
+
     # Gemini reliability controls (Phase 4 canonical defaults)
     GEMINI_EMBEDDING_BATCH_SIZE: int = Field(default=64, ge=1, le=128)
     GEMINI_EMBEDDING_MAX_RETRIES: int = Field(default=5, ge=0, le=10)

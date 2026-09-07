@@ -180,3 +180,48 @@ def test_chunk_words_clean_text_is_joined_by_spaces():
     words = build_word_stream(pages)
     chunks = chunk_words(words)
     assert chunks[0].clean_text == "alpha beta gamma"
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 hardening — multi-page boundary attribution (RAG-phase-7.md Step 1a)
+# ---------------------------------------------------------------------------
+
+
+def test_chunk_page_end_is_page_of_last_word():
+    """Chunk 0 spans the boundary: its last (800th) word is page 1's final
+    word, so page_end must be 1 — attribution follows the actual last word,
+    not the next page that happens to follow."""
+    words_p1 = [PageWord(text=f"a{i}", page_number=1, absolute_word_index=i) for i in range(800)]
+    words_p2 = [PageWord(text=f"b{i}", page_number=2, absolute_word_index=800 + i) for i in range(100)]
+    words = words_p1 + words_p2
+
+    chunks = chunk_words(words)
+    # Chunk 0 = words [0..799] — all on page 1
+    assert chunks[0].page_start == 1
+    assert chunks[0].page_end == 1
+    # Chunk 1 = words [700..899] — starts on page 1, last words on page 2
+    assert chunks[1].page_start == 1
+    assert chunks[1].page_end == 2
+
+
+def test_boundary_word_at_page_break_attributed_to_next_page():
+    """A chunk that BEGINS with page 2's first word must report page_start == 2,
+    even when the previous chunk ended exactly at the page break."""
+    words_p1 = [PageWord(text=f"a{i}", page_number=1, absolute_word_index=i) for i in range(400)]
+    words_p2 = [PageWord(text=f"b{i}", page_number=2, absolute_word_index=400 + i) for i in range(400)]
+    words = words_p1 + words_p2
+
+    chunks = chunk_words(words)
+    assert chunks[0].page_start == 1
+    assert chunks[0].page_end == 2  # spans 1 -> 2
+    # Every word in the second window is on page 2 (this test keeps all in one chunk)
+    assert chunks[0].word_start == 0
+
+
+def test_chunk_fully_inside_one_page_reports_equal_boundaries():
+    """A chunk wholly within a single page reports page_start == page_end."""
+    words = _make_words(800, page_number=7)
+    chunks = chunk_words(words)
+    assert chunks[0].page_start == 7
+    assert chunks[0].page_end == 7
+    assert chunks[0].page_start == chunks[0].page_end

@@ -1,0 +1,55 @@
+{
+  "model": null,
+  "dataset": "data/eval_cases.jsonl",
+  "ics": {
+    "top_k": 10
+  },
+  "aggregate": {
+    "num_queries": 4,
+    "recall_at_5": 0.75,
+    "recall_at_10": 0.75,
+    "precision_at_10": 0.3,
+    "mrr": 0.625,
+    "ndcg_at_10": 0.6445,
+    "citation_accuracy": 0.875,
+    "abstention_rate": 0.25
+  },
+  "per_query": [
+    {
+      "question": "What is the 30-day refund window?",
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "precision_at_10": 0.4,
+      "reciprocal_rank": 1.0,
+      "ndcg_at_10": 1.0,
+      "abstained": false
+    },
+    {
+      "question": "Are shipping costs refundable?",
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "precision_at_10": 0.2,
+      "reciprocal_rank": 0.5,
+      "ndcg_at_10": 0.6309,
+      "abstained": false
+    },
+    {
+      "question": "What happens to returns after 60 days?",
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "precision_at_10": 0.0,
+      "reciprocal_rank": 0.0,
+      "ndcg_at_10": 0.0,
+      "abstained": true
+    },
+    {
+      "question": "Is the lifetime warranty transferable?",
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "precision_at_10": 0.6,
+      "reciprocal_rank": 1.0,
+      "ndcg_at_10": 0.9469,
+      "abstained": false
+    }
+  ]
+}
