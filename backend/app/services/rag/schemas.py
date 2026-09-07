@@ -90,3 +90,58 @@ class RAGFinalEvent(BaseModel):
     type: str = "final"
     sources: list[RAGSourceResponse] = Field(default_factory=list)
     diagnostics: RAGQueryDiagnostics = Field(default_factory=RAGQueryDiagnostics)
+
+
+# ── Phase 6 RAG inspection models ─────────────────────────────────────────
+
+
+class RAGIndexVersionInfo(BaseModel):
+    """One indexed version's stats for the status endpoint."""
+
+    index_version: int
+    chunk_count: int
+    indexed_chunk_count: int
+    status: str
+    progress: float = Field(ge=0.0, le=1.0)
+
+
+class RAGIndexStatusResponse(BaseModel):
+    """Response for GET /documents/{id}/index-status."""
+
+    file_id: int
+    filename: str
+    indexing_status: str
+    active_index_version: int
+    corpus_revision: int
+    progress: float = Field(ge=0.0, le=1.0)  # 0..1, derived from lifecycle
+    chunk_count: int
+    indexed_chunk_count: int
+    rag_error_code: str | None = None
+    rag_error_message: str | None = None
+
+
+class RAGChunkInspection(BaseModel):
+    """One chunk for GET /documents/{id}/chunks."""
+
+    chunk_id: str
+    chunk_index: int
+    index_version: int
+    page_start: int
+    page_end: int
+    word_count: int
+    word_start: int
+    word_end: int
+    clean_text: str
+    # raw_text is backend-derived from clean_text only when a raw source is
+    # available; for RAG chunks we store no raw_text column, so this is
+    # optional and omitted unless explicitly reconstructed.
+    raw_text: str | None = None
+
+
+class RAGChunkListResponse(BaseModel):
+    """Response for GET /documents/{id}/chunks."""
+
+    file_id: int
+    index_version: int
+    chunks: list[RAGChunkInspection] = Field(default_factory=list)
+    total: int

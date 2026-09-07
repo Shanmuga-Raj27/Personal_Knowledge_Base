@@ -4,7 +4,8 @@ backend/app/workers/rag_worker.py
 Background worker task for RAG chunking pipeline.
 
 Separate from sync_vector_in_background to keep metadata indexing and RAG indexing
-decoupled. Runs Phase 2 extraction/chunking then stages chunks to MySQL.
+decoupled. Runs Phase 2 extraction/chunking, stages chunks to MySQL, then runs
+Phase 4 embedding + Qdrant cutover (run_full_indexing).
 
 Flow:
     claim file atomically
@@ -16,10 +17,13 @@ Flow:
     stage_document_chunks in new session
     │
     v
-    handle errors / persist status
+    close session (release DB lock)
     │
     v
-    close session (before Qdrant/Gemini work)
+    open NEW session → run_full_indexing (Phase 4)
+    │
+    v
+    handle errors / persist status
 """
 import asyncio
 import logging
@@ -33,6 +37,7 @@ from app.database.db_models import FileMetadata, User
 from app.schemas.enums import FileStatus, IndexingStatus
 from app.services.AI.vector_service import upsert_file_vector
 from app.services.rag.document_processor import process_pdf_from_storage, NoExtractableTextError
+from app.services.rag.indexing_service import run_full_indexing
 from app.services.rag.persistence import (
     stage_document_chunks,
     mark_rag_failure,
@@ -170,16 +175,78 @@ async def sync_rag_chunks_in_background(file_id: int, user_id: int) -> None:
                 return
 
             # ── Step 5: Close session (release DB lock) ────────────────────────
-            # NOTE: Do NOT call sync_vector_in_background or Qdrant/Gemini work here.
-            # Those belong in a separate step or Phase 4.
+            # Chunks are staged; now release DB before Phase 4 network calls.
+            # Capture staged version BEFORE commit/close: commit expires loaded
+            # attributes and close detaches the instance, so reading
+            # active_index_version afterwards would raise DetachedInstanceError.
+            staged_version = db_file.active_index_version
             db.commit()
             db.close()
 
             logger.info(
-                "RAG worker: file_id=%s fully processed (status=CHUNKED, version=%d).",
+                "RAG worker: file_id=%s staged %d chunks (version=%s). Starting indexing.",
                 file_id,
-                db_file.active_index_version,
+                len(processed.chunks),
+                staged_version,
             )
+
+            # ── Step 6: Phase 4 — Embed + Upsert + Cutover ────────────────────
+            # Open a NEW session. run_full_indexing uses short transactions
+            # and with_retry-wrapped Gemini/Qdrant calls; no long DB lock held.
+            index_db = SessionLocal()
+            try:
+                index_file = index_db.query(FileMetadata).filter(
+                    FileMetadata.fileid == file_id
+                ).first()
+                if index_file is None:
+                    logger.error("RAG worker: file %s missing for indexing.", file_id)
+                    return
+
+                result = await run_in_threadpool(
+                    run_full_indexing,
+                    index_db,
+                    index_file,
+                )
+
+                logger.info(
+                    "RAG worker: file_id=%s indexing success=%s active_version=%s",
+                    file_id,
+                    result.get("success"),
+                    result.get("active_index_version"),
+                )
+
+                if not result.get("success"):
+                    # run_full_indexing already set FAILED_RETRYABLE + error codes
+                    logger.warning(
+                        "RAG worker: file_id=%s indexing did not complete successfully.",
+                        file_id,
+                    )
+
+            except Exception as exc:
+                code, message, retryable = map_rag_exception(exc)
+                logger.error(
+                    "RAG worker: indexing failed for file_id=%s: %s (%s)",
+                    file_id,
+                    exc,
+                    code,
+                )
+                # Re-fetch file in case session is stale
+                try:
+                    fail_file = index_db.query(FileMetadata).filter(
+                        FileMetadata.fileid == file_id
+                    ).first()
+                    if fail_file:
+                        mark_rag_failure(
+                            db=index_db,
+                            file=fail_file,
+                            code=code,
+                            message=message,
+                            retryable=retryable,
+                        )
+                except Exception:
+                    index_db.rollback()
+            finally:
+                index_db.close()
 
         except Exception as exc:
             logger.error(

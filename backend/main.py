@@ -8,6 +8,8 @@ from app.apis.routes.auth_routes import router as auth_router
 from app.apis.routes.document_routes import router as document_router
 from app.apis.routes.search_routes import router as search_router
 from app.apis.routes.system import router as system_router
+from app.apis.routes.rag_routes import router as rag_router
+from app.apis.routes.rag_document_routes import router as rag_document_router
 from contextlib import asynccontextmanager
 from app.services.AI.vector_service import init_qdrant_collection, close_qdrant_client
 from app.services.AI.rag_vector_service import ensure_rag_collection
@@ -48,6 +50,8 @@ app.include_router(auth_router)
 app.include_router(document_router)
 app.include_router(search_router)
 app.include_router(system_router)
+app.include_router(rag_router)
+app.include_router(rag_document_router)
 
 
 from urllib.parse import urlparse
