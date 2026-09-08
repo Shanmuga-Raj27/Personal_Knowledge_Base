@@ -70,12 +70,13 @@ class Settings(BaseSettings):
     RAG_MAX_TOP_K: int = Field(default=20, ge=1)
     RAG_SCORE_THRESHOLD: float = Field(default=0.35, ge=0.0, le=1.0)
 
-    # Redis cache
+    # Redis cache — TTL extended to 24h so same query/file hits across
+    # browser sessions within a day; corpus_revision still invalidates on re-index.
     RAG_CACHE_ENABLED: bool = True
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_SOCKET_TIMEOUT_SECONDS: float = 1.0
     REDIS_CONNECT_TIMEOUT_SECONDS: float = 1.0
-    RAG_CACHE_TTL_SECONDS: int = 3600
+    RAG_CACHE_TTL_SECONDS: int = 86400
 
     # Phase 5 - Generation and context budget
     RAG_CONTEXT_BUDGET_TOKENS: int = Field(default=3000, ge=500)

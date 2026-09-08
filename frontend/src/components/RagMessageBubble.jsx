@@ -36,6 +36,27 @@ function formatPages(source) {
     : `Pages ${source.page_start}–${source.page_end}`
 }
 
+// Citation sanitizer: replaces raw [id=<uuid>] tokens the model emits with
+// human-safe numbered refs [1], [2] that map to the expandable Sources list.
+// Unknown ids are stripped. No secret (chunk uuid) ever reaches the UI.
+const CITATION_BRACKET_RE =
+  /\[(?:id|chunk_id)=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi
+const CITATION_BARE_RE =
+  /(?:id|chunk_id)=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+
+function sanitizeCitations(text, sources) {
+  if (!text) return text
+  const idToRef = new Map()
+  ;(sources || []).forEach((s, idx) => {
+    if (s?.chunk_id) idToRef.set(s.chunk_id.toLowerCase(), `[${idx + 1}]`)
+  })
+  let out = text.replace(CITATION_BRACKET_RE, (match, id) => idToRef.get(id.toLowerCase()) ?? '')
+  out = out.replace(CITATION_BARE_RE, '')
+  // Collapse artefacts like "  " or " .", " ," left after stripping unknown ids
+  out = out.replace(/\[\s*\]/g, '').replace(/ {2,}/g, ' ')
+  return out
+}
+
 const codeBlockSx = {
   mt: 1,
   mb: 1,
@@ -200,7 +221,7 @@ function RagMessageBubble({ message }) {
           </Alert>
         ) : (
           <>
-            <MarkdownContent>{text}</MarkdownContent>
+            <MarkdownContent>{sanitizeCitations(text, sources)}</MarkdownContent>
             {streaming && text && (
               <Typography component="span" sx={{ color: '#0A192F', ml: 0.5 }}>
                 ▌

@@ -26,5 +26,6 @@ dependencies = [
     "pymupdf>=1.28.2",
     "redis>=8.1.0",
     "streamlit>=1.63.0",
+    "gunicorn>=26.2.0",
 ]
 

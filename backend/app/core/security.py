@@ -50,21 +50,24 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(*, user_id: int, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(*, user_id: int, email: Optional[str] = None, expires_delta: Optional[timedelta] = None) -> str:
     """Create a signed JWT access token with the user ID as subject.
 
     Args:
         user_id: The integer primary key of the user.
+        email: Optional user email to embed for frontend rehydration without extra storage.
         expires_delta: Optional custom expiration time. Defaults to 30 minutes.
 
     Returns:
-        A signed JWT string containing 'sub' as str(user_id).
+        A signed JWT string containing 'sub' as str(user_id) and optionally 'email'.
     """
-    to_encode = {"sub": str(user_id)}
+    to_encode: dict = {"sub": str(user_id)}
+    if email:
+        to_encode["email"] = email
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    to_encode["exp"] = expire
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

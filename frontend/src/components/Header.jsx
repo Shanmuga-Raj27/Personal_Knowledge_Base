@@ -104,7 +104,7 @@ function Header({ backendStatus, currentUser, onLogout }) {
             </Box>
           </Box>
 
-          {/* User Session Avatar Dropdown */}
+          {/* User Session Avatar Dropdown — always visible when authenticated */}
           {currentUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography
@@ -115,7 +115,7 @@ function Header({ backendStatus, currentUser, onLogout }) {
                   display: { xs: 'none', sm: 'block' }
                 }}
               >
-                {currentUser.email}
+                {currentUser.email || `User #${currentUser.id ?? ''}`}
               </Typography>
               <Avatar
                 onClick={handleMenuOpen}
@@ -169,7 +169,7 @@ function Header({ backendStatus, currentUser, onLogout }) {
                     User Session
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#64748B', wordBreak: 'break-all' }}>
-                    {currentUser.email}
+                    {currentUser.email || `User #${currentUser.id ?? ''}`}
                   </Typography>
                 </Box>
                 <Divider />

@@ -73,7 +73,7 @@ export default function AuthPage({ onLoginSuccess }) {
         // Authenticate User
         const response = await loginUser(email, password)
         if (response && response.access_token) {
-          onLoginSuccess(response.access_token)
+          onLoginSuccess(response.access_token, email)
         } else {
           throw new Error('Invalid authentication response from server.')
         }

@@ -42,12 +42,21 @@ function App() {
   const [token, setToken] = useState(() => getToken())
   const [currentUser, setCurrentUser] = useState(() => {
     const activeToken = getToken()
-    const email = localStorage.getItem('pkb_user_email')
-    if (activeToken && email && isAuthenticated()) {
-      const decoded = decodeToken(activeToken)
-      return { id: decoded?.sub, email }
+    if (!activeToken || !isAuthenticated()) return null
+    const decoded = decodeToken(activeToken)
+    const rawEmail = localStorage.getItem('pkb_user_email')
+    // Clean up a poisoned literal "undefined" left by the old bug path.
+    if (rawEmail === 'undefined' || rawEmail === 'null') {
+      localStorage.removeItem('pkb_user_email')
     }
-    return null
+    const storedEmail = rawEmail && rawEmail !== 'undefined' && rawEmail !== 'null' ? rawEmail : null
+    const tokenEmail = decoded?.email || null
+    const email = tokenEmail || storedEmail || null
+    // Persist token email to localStorage for older tokens that didn't carry it
+    if (tokenEmail && tokenEmail !== storedEmail) {
+      localStorage.setItem('pkb_user_email', tokenEmail)
+    }
+    return { id: decoded?.sub, email }
   })
 
   // App frame state
@@ -71,10 +80,14 @@ function App() {
   // Login handler
   const handleLoginSuccess = useCallback((accessToken, userEmail) => {
     saveToken(accessToken)
-    localStorage.setItem('pkb_user_email', userEmail)
     const decoded = decodeToken(accessToken)
+    const tokenEmail = decoded?.email || null
+    const safeEmail = userEmail && userEmail !== 'undefined' && userEmail !== 'null' ? String(userEmail) : null
+    const finalEmail = tokenEmail || safeEmail || null
+    if (finalEmail) localStorage.setItem('pkb_user_email', finalEmail)
+    else localStorage.removeItem('pkb_user_email')
     setToken(accessToken)
-    setCurrentUser({ id: decoded?.sub, email: userEmail })
+    setCurrentUser({ id: decoded?.sub, email: finalEmail })
   }, [])
 
   // Logout handler

@@ -200,7 +200,7 @@ function KnowledgeBase({ userId }) {
         elevation={0}
         sx={{ p: 2, borderRadius: '12px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}
       >
-        <Stack direction="row" spacing={1} alignItems="flex-end">
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-end' }}>
           <TextField
             fullWidth
             multiline

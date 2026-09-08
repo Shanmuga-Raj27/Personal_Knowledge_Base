@@ -102,8 +102,11 @@ def build_cache_key(
     prompt_version = prompt_version or settings.RAG_PROMPT_VERSION
     model_version = model_version or settings.GEMINI_GENERATION_MODEL
 
+    # Normalize question so the same query with different casing/whitespace
+    # hits the same cache key across browser sessions.
+    normalized_q = " ".join(question.strip().lower().split())
     canonical = {
-        "q": question.strip(),
+        "q": normalized_q,
         "f": sorted(file_ids) if file_ids else "all",
         "k": int(top_k),
         "t": float(score_threshold),

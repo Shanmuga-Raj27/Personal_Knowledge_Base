@@ -152,8 +152,8 @@ async def login_user(
     # Clear rate limit counter on successful login
     clear_failed_attempts(client_ip, payload.email)
 
-    # Issue JWT access token with user.id as numeric 'sub' claim
-    access_token = security.create_access_token(user_id=user.id)
+    # Issue JWT access token with user.id as 'sub' and email for frontend rehydration
+    access_token = security.create_access_token(user_id=user.id, email=user.email)  # type: ignore[arg-type]
     return Token(access_token=access_token, token_type="bearer")
 
 
@@ -187,5 +187,5 @@ async def login_user_form(
         )
 
     clear_failed_attempts(client_ip, email)
-    access_token = security.create_access_token(user_id=user.id)
+    access_token = security.create_access_token(user_id=user.id, email=user.email)  # type: ignore[arg-type]
     return Token(access_token=access_token, token_type="bearer")
