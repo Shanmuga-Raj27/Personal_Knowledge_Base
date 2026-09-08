@@ -59,7 +59,9 @@ class RAGQueryRequest(BaseModel):
     score_threshold: float = Field(default=0.35, ge=0.0, le=1.0)
     file_ids: Optional[list[int]] = Field(
         default=None,
-        description="Optional file IDs scoping the query; None searches all.",
+        min_length=1,
+        max_length=5,
+        description="Optional file IDs scoping the query; None searches all. When provided, 1-5 IDs only.",
     )
 
 

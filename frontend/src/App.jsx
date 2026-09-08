@@ -1,33 +1,21 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   ThemeProvider,
   createTheme,
   CssBaseline,
   Container,
   Box,
-  Alert,
-  Typography,
-  Snackbar,
-  Button
+  Tabs,
+  Tab,
+  Typography
 } from '@mui/material'
-import VisibilityIcon from '@mui/icons-material/Visibility'
 import { pingSystem } from './apis/systemApi'
-import {
-  getUploadUrl,
-  completeUpload,
-  getViewUrl,
-  fetchFiles,
-  updateFileMetadata,
-  deleteFile,
-  searchDocuments
-} from './apis/documentApi'
 
 import Header from './components/Header'
-import SearchHeader from './components/SearchHeader'
-import FileList from './components/FileList'
-import EditMetadataDialog from './components/EditMetadataDialog'
-import DeleteConfirmDialog from './components/DeleteConfirmDialog'
 import AuthPage from './pages/AuthPage'
+import VaultPage from './pages/VaultPage'
+import KnowledgeBase from './pages/KnowledgeBase'
+import { KnowledgeBaseFilesProvider } from './context/KnowledgeBaseFilesContext'
 
 import {
   getToken,
@@ -37,13 +25,17 @@ import {
   isAuthenticated
 } from './services/authService'
 
-// File validation mapping
-const ALLOWED_EXTENSIONS = {
-  'text/plain': '.txt',
-  'text/markdown': '.md',
-  'application/pdf': '.pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx'
-}
+/**
+ * frontend/src/App.jsx
+ *
+ * Phase 8 §3 Step 6 — composition root only.
+ *
+ * Owns the auth gate, theme, header, footer, and the MUI Tabs that switch
+ * between the two authenticated views (Vault / Knowledge Base). Everything
+ * page-specific lives in ./pages/VaultPage.jsx and ./pages/KnowledgeBase.jsx —
+ * conditional render unmounts the hidden view, so each page reloads its data
+ * (documents) on entry.
+ */
 
 function App() {
   // Session States
@@ -58,181 +50,23 @@ function App() {
     return null
   })
 
-  // System States
-  const [file, setFile] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [viewLoading, setViewLoading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const [lastUploadedKey, setLastUploadedKey] = useState(null)
+  // App frame state
   const [backendStatus, setBackendStatus] = useState('checking')
+  const [view, setView] = useState('vault')
 
-  // Document management & pagination states
-  const [documents, setDocuments] = useState([])
-  const [loadingDocs, setLoadingDocs] = useState(false)
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(50)
-  const [totalDocsCount, setTotalDocsCount] = useState(0)
-
-  // Search filter & AI state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const [isFallbackSearch, setIsFallbackSearch] = useState(false)
-
-  // Edit metadata modal states
-  const [editOpen, setEditOpen] = useState(false)
-  const [editingDoc, setEditingDoc] = useState(null)
-  const [editTitle, setEditTitle] = useState('')
-  const [editDescription, setEditDescription] = useState('')
-  const [editTags, setEditTags] = useState([])
-  const [tagInput, setTagInput] = useState('')
-
-  // Delete modal states
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [docToDelete, setDocToDelete] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-
-  // Document loading & search AbortController references
-  const loadDocsAbortRef = useRef(null)
-  const abortControllerRef = useRef(null)
-
-  // Load verified files from database with pagination and AbortController cancellation
-  const loadDocuments = useCallback(async (targetPage = page, targetLimit = rowsPerPage) => {
-    if (loadDocsAbortRef.current) {
-      loadDocsAbortRef.current.abort()
-    }
-    const controller = new AbortController()
-    loadDocsAbortRef.current = controller
-
-    setLoadingDocs(true)
-    try {
-      const res = await fetchFiles(targetLimit, targetPage * targetLimit, controller.signal)
-      if (Array.isArray(res)) {
-        setDocuments(res)
-        setTotalDocsCount(res.length)
-      } else if (res && Array.isArray(res.items)) {
-        setDocuments(res.items)
-        setTotalDocsCount(res.total ?? res.items.length)
-      }
-    } catch (err) {
-      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-        return
-      }
-      console.error('Failed to load documents:', err)
-      setError('Failed to load documents page: ' + (err.message || 'Network error'))
-    } finally {
-      if (loadDocsAbortRef.current === controller) {
-        setLoadingDocs(false)
-      }
-    }
-  }, [page, rowsPerPage])
-
-  // Check backend connectivity on mount (or token changes)
+  // Check backend connectivity once on mount (feeds the Header status dot).
   useEffect(() => {
     const checkConnection = async () => {
       try {
         await pingSystem()
         setBackendStatus('online')
-        if (isAuthenticated() && !searchTerm.trim()) {
-          loadDocuments()
-        }
       } catch (err) {
         console.error('Backend connection check failed:', err)
         setBackendStatus('offline')
       }
     }
     checkConnection()
-    return () => {
-      if (loadDocsAbortRef.current) {
-        loadDocsAbortRef.current.abort()
-      }
-    }
-  }, [token, loadDocuments, searchTerm])
-
-  // Refactored Search Execution Helper
-  const executeSearch = useCallback(async (query, targetPage, targetRowsPerPage) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    setIsSearching(true)
-    setLoadingDocs(true)
-    try {
-      const response = await searchDocuments(query, targetRowsPerPage, targetPage * targetRowsPerPage, controller.signal)
-      const rawResults = response?.results || response || []
-      const mappedDocs = rawResults.map((item) => {
-        if (item && item.file) {
-          const fileObj = { ...item.file }
-          if (item.score !== undefined && item.score !== null) {
-            fileObj.score = item.score
-          }
-          return fileObj
-        }
-        return item
-      })
-      const isFallback =
-        response?.search_mode === 'fallback' ||
-        response?.searchMode === 'fallback' ||
-        Boolean(response?.isFallbackSearch)
-      setIsFallbackSearch(isFallback)
-      setDocuments(mappedDocs)
-      setTotalDocsCount(response?.total ?? mappedDocs.length)
-    } catch (err) {
-      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-        return // Quietly ignore aborted search request
-      }
-      console.error('Search request failed:', err)
-      setError('Search operation failed: ' + (err.message || 'Network error'))
-    } finally {
-      if (abortControllerRef.current === controller) {
-        setIsSearching(false)
-        setLoadingDocs(false)
-      }
-    }
   }, [])
-
-  // Handle search term input change
-  const handleSearchChange = useCallback((val) => {
-    setSearchTerm(val)
-  }, [])
-
-  // Effect 1 (Search Input Handler): Watch searchTerm with 350ms debounce
-  useEffect(() => {
-    if (!token || !isAuthenticated()) return
-
-    const timer = setTimeout(() => {
-      if (!searchTerm.trim()) {
-        setIsFallbackSearch(false)
-        setIsSearching(false)
-        loadDocuments(page, rowsPerPage)
-        return
-      }
-      setPage(0)
-      executeSearch(searchTerm, 0, rowsPerPage)
-    }, 350)
-
-    return () => clearTimeout(timer)
-  }, [searchTerm, token, loadDocuments, executeSearch, page, rowsPerPage])
-
-  // Track initial mount for pagination effect
-  const isNavMountRef = useRef(true)
-
-  // Effect 2 (Page / Row Limit Navigation Handler): Watch [page, rowsPerPage] for immediate search execution
-  useEffect(() => {
-    if (isNavMountRef.current) {
-      isNavMountRef.current = false
-      return
-    }
-    if (!token || !isAuthenticated()) return
-
-    if (searchTerm.trim()) {
-      executeSearch(searchTerm, page, rowsPerPage)
-    }
-  }, [page, rowsPerPage, token, executeSearch, searchTerm])
 
   // Login handler
   const handleLoginSuccess = useCallback((accessToken, userEmail) => {
@@ -249,231 +83,13 @@ function App() {
     localStorage.removeItem('pkb_user_email')
     setToken(null)
     setCurrentUser(null)
-    setDocuments([])
-    setSuccess(null)
-    setError(null)
+    setView('vault')
   }, [])
 
-  // Handle selected file validation
-  const handleFileChange = useCallback((e) => {
-    const selectedFile = e.target.files[0]
-    setError(null)
-    setSuccess(null)
-
-    if (!selectedFile) {
-      setFile(null)
-      return
-    }
-
-    if (!(selectedFile.type in ALLOWED_EXTENSIONS)) {
-      setError(`Unsupported file type (${selectedFile.type || 'unknown'}). Please upload a .txt, .md, .pdf, or .docx file.`)
-      setFile(null)
-      return
-    }
-
-    setFile(selectedFile)
+  // Tab switch handler
+  const handleViewChange = useCallback((_e, v) => {
+    setView(v)
   }, [])
-
-  // Handle starting metadata customization
-  const handleStartEdit = useCallback((doc) => {
-    setEditingDoc(doc)
-    setEditTitle(doc.title || '')
-    setEditDescription(doc.description || '')
-    const parsedTags = doc.tags ? doc.tags.split(',').map((t) => t.trim()).filter(Boolean) : []
-    setEditTags(parsedTags)
-    setTagInput('')
-    setEditOpen(true)
-  }, [])
-
-  // Add tag chip in form
-  const handleAddTag = useCallback(() => {
-    const trimmed = tagInput.trim()
-    if (!trimmed) return
-    if (trimmed.length > 50) return
-
-    const currentCombinedLength = editTags.join(',').length
-    const projectedCombinedLength = editTags.length > 0 ? currentCombinedLength + 1 + trimmed.length : trimmed.length
-    if (projectedCombinedLength > 100) return
-
-    if (!editTags.includes(trimmed)) {
-      setEditTags([...editTags, trimmed])
-    }
-    setTagInput('')
-  }, [tagInput, editTags])
-
-  // Remove tag chip in form
-  const handleRemoveTag = useCallback((tagToRemove) => {
-    setEditTags((prevTags) => prevTags.filter((t) => t !== tagToRemove))
-  }, [])
-
-  // Submit metadata changes to database
-  const handleSaveMetadata = useCallback(async () => {
-    if (!editingDoc) return
-    
-    const finalTitle = editTitle.trim().slice(0, 100)
-    const finalDescription = editDescription.trim().slice(0, 255)
-    const tagsString = editTags.join(',')
-
-    if (tagsString.length > 100) {
-      setError('Combined tags length cannot exceed 100 characters.')
-      return
-    }
-
-    try {
-      await updateFileMetadata(editingDoc.fileId, {
-        title: finalTitle,
-        description: finalDescription,
-        tags: tagsString
-      })
-      setEditOpen(false)
-      loadDocuments()
-      setSuccess({
-        message: 'Document metadata updated successfully.',
-        key: editingDoc.s3Key
-      })
-    } catch (err) {
-      console.error('Failed to save metadata:', err)
-      setError(err.message || 'Failed to update metadata.')
-    }
-  }, [editingDoc, editTitle, editDescription, editTags, loadDocuments])
-
-  // Handle prompting deletion modal
-  const handlePromptDelete = useCallback((doc) => {
-    setDocToDelete(doc)
-    setDeleteConfirmOpen(true)
-  }, [])
-
-  // Handle confirming file deletion
-  const handleConfirmDelete = useCallback(async () => {
-    if (!docToDelete) return
-
-    setDeleting(true)
-    setError(null)
-    setSuccess(null)
-    try {
-      await deleteFile(docToDelete.fileId)
-      setDeleteConfirmOpen(false)
-      const docName = docToDelete.title || docToDelete.filename
-      setDocToDelete(null)
-      loadDocuments()
-      setSuccess({
-        message: `Document "${docName}" permanently deleted.`,
-        key: null
-      })
-    } catch (err) {
-      console.error('Failed to delete document:', err)
-      setError(err.response?.data?.detail || err.message || 'Failed to delete file.')
-    } finally {
-      setDeleting(false)
-    }
-  }, [docToDelete, loadDocuments])
-
-  // Handle document upload directly to S3 storage via presigned URL
-  const handleUpload = useCallback(async () => {
-    if (!file) return
-
-    setUploading(true)
-    setVerifying(false)
-    setProgress(0)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      // Step 1: Request presigned PUT URL
-      const { uploadUrl, key } = await getUploadUrl(file.name, file.type)
-
-      // Step 2: Upload file directly using XMLHttpRequest to track progress
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhr.open('PUT', uploadUrl, true)
-        xhr.setRequestHeader('Content-Type', file.type)
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100)
-            setProgress(percent)
-          }
-        }
-
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve()
-          } else {
-            reject(new Error(`Storage upload failed with status ${xhr.status}`))
-          }
-        }
-
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload.'))
-        }
-
-        xhr.send(file)
-      })
-
-      // Step 3: Two-step handshake verification with backend
-      setVerifying(true)
-      const verifyRes = await completeUpload(key, file.name)
-
-      if (verifyRes.verified) {
-        setSuccess({
-          message: 'Document uploaded and verified in cloud storage.',
-          key: key
-        })
-        setLastUploadedKey(key)
-        setFile(null)
-        loadDocuments()
-
-        if (verifyRes.metadata) {
-          handleStartEdit(verifyRes.metadata)
-        }
-      } else {
-        throw new Error('Upload verification failed. File not found in storage.')
-      }
-    } catch (err) {
-      console.error(err)
-      setError(err.message || 'An error occurred during upload.')
-    } finally {
-      setUploading(false)
-      setVerifying(false)
-    }
-  }, [file, loadDocuments, handleStartEdit])
-
-  // Handle requesting presigned GET URL to view or read the file
-  const handleViewFile = useCallback(async (keyToView) => {
-    const targetKey = keyToView || lastUploadedKey
-    if (!targetKey) return
-
-    setViewLoading(true)
-    setError(null)
-    try {
-      const { viewUrl } = await getViewUrl(targetKey)
-      if (viewUrl) {
-        const isDocx = targetKey.toLowerCase().endsWith('.docx') || targetKey.toLowerCase().includes('.docx')
-        const openUrl = isDocx
-          ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(viewUrl)}`
-          : viewUrl
-        window.open(openUrl, '_blank')
-      }
-    } catch (err) {
-      console.error(err)
-      setError(err.message || 'Failed to generate view URL.')
-    } finally {
-      setViewLoading(false)
-    }
-  }, [lastUploadedKey])
-
-  // Pagination Change Handlers
-  const handlePageChange = useCallback((event, newPage) => {
-    setPage(newPage)
-    loadDocuments(newPage, rowsPerPage)
-  }, [loadDocuments, rowsPerPage])
-
-  const handleRowsPerPageChange = useCallback((event) => {
-    const newLimit = parseInt(event.target.value, 10)
-    setRowsPerPage(newLimit)
-    setPage(0)
-    loadDocuments(0, newLimit)
-  }, [loadDocuments])
 
   // Tokenized Light Theme Design System
   const theme = useMemo(
@@ -533,108 +149,39 @@ function App() {
           <AuthPage onLoginSuccess={handleLoginSuccess} />
         ) : (
           <Container maxWidth="lg" sx={{ mt: 5, mb: 6, flexGrow: 1 }}>
-            {/* Top Search & Upload Control */}
-            <SearchHeader
-              searchTerm={searchTerm}
-              onSearchChange={handleSearchChange}
-              isSearching={isSearching}
-              file={file}
-              onFileChange={handleFileChange}
-              uploading={uploading}
-              verifying={verifying}
-              progress={progress}
-              onUpload={handleUpload}
-              onClearFile={() => setFile(null)}
-            />
-
-            {/* Fallback Alert Banner */}
-            {isFallbackSearch && searchTerm.trim() && (
-              <Alert 
-                severity="info" 
-                onClose={() => setIsFallbackSearch(false)}
-                sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1' }}
+            {/* View switcher: Vault <-> Knowledge Base */}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+              <Tabs
+                value={view}
+                onChange={handleViewChange}
+                textColor="primary"
+                indicatorColor="primary"
+                sx={{
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.9rem'
+                  }
+                }}
               >
-                Semantic AI search returned no vector matches or is offline. Displaying keyword search results instead.
-              </Alert>
-            )}
+                <Tab label="Vault" value="vault" />
+                <Tab label="Knowledge Base" value="knowledge" />
+              </Tabs>
+            </Box>
 
-            {/* Alert Banners */}
-            {error && (
-              <Alert 
-                severity="error" 
-                onClose={() => setError(null)}
-                sx={{ mb: 3, borderRadius: '8px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#991B1B' }}
-              >
-                {error}
-              </Alert>
-            )}
-
-            {success && (
-              <Alert 
-                severity="success" 
-                onClose={() => setSuccess(null)}
-                action={
-                  success.key && (
-                    <Button
-                      color="inherit"
-                      size="small"
-                      disabled={viewLoading}
-                      startIcon={<VisibilityIcon fontSize="small" />}
-                      onClick={() => handleViewFile(success.key)}
-                      sx={{ textTransform: 'none', fontWeight: 700 }}
-                    >
-                      {viewLoading ? 'Opening...' : 'View File'}
-                    </Button>
-                  )
-                }
-                sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BBF7D0', backgroundColor: '#F0FDF4', color: '#166534' }}
-              >
-                {success.message}
-              </Alert>
-            )}
-
-            {/* Main Traditional File List / Table */}
-            <FileList
-              documents={documents}
-              loadingDocs={loadingDocs}
-              searchTerm={searchTerm}
-              onOpen={handleViewFile}
-              onEdit={handleStartEdit}
-              onDelete={handlePromptDelete}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              totalCount={totalDocsCount}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
+            {/* Shared KB selection lives above both pages so Vault can add
+                to it and the Knowledge Base page sees it immediately.
+                Each page itself is keep-mounted for scroll/chat state. */}
+            <KnowledgeBaseFilesProvider userId={currentUser?.id}>
+              <Box sx={{ display: view === 'knowledge' ? 'block' : 'none' }}>
+                <KnowledgeBase userId={currentUser?.id} />
+              </Box>
+              <Box sx={{ display: view === 'vault' ? 'block' : 'none' }}>
+                <VaultPage />
+              </Box>
+            </KnowledgeBaseFilesProvider>
           </Container>
         )}
-
-        {/* Metadata Customization Modal */}
-        <EditMetadataDialog
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          editingDoc={editingDoc}
-          editTitle={editTitle}
-          setEditTitle={setEditTitle}
-          editDescription={editDescription}
-          setEditDescription={setEditDescription}
-          editTags={editTags}
-          tagInput={tagInput}
-          setTagInput={setTagInput}
-          onAddTag={handleAddTag}
-          onRemoveTag={handleRemoveTag}
-          onSave={handleSaveMetadata}
-        />
-
-        {/* Delete Confirmation Modal */}
-        <DeleteConfirmDialog
-          open={deleteConfirmOpen}
-          onClose={() => setDeleteConfirmOpen(false)}
-          docToDelete={docToDelete}
-          deleting={deleting}
-          onConfirmDelete={handleConfirmDelete}
-        />
 
         {/* Footer */}
         <Box

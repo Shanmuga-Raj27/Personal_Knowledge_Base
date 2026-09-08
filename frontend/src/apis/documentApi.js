@@ -97,19 +97,16 @@ export const searchDocuments = (query, limit, offset, signal) => {
 }
 
 /**
- * Execute RAG grounded query against document chunks pipeline.
- * @param {{ question: string, top_k?: number, score_threshold?: number, file_ids?: Array<number> }} payload
- * @param {AbortSignal} [signal] Optional AbortSignal for request cancellation.
- * @returns {Promise<{ answer: string, sources: Array<object>, diagnostics?: object }>}
+ * Trigger RAG indexing for a user-owned document.
+ * Wraps the existing POST /documents endpoint (rag_document_routes.py).
+ * @param {number} fileId The fileId to index.
+ * @returns {Promise<{ id: number, filename: string, indexing_status: string }>}
  */
-export const queryRagPipeline = (payload, signal) => {
-  const requestBody = {
-    top_k: 6,
-    score_threshold: 0.35,
-    ...payload,
-  }
-  return axiosClient.post('/rag/query', requestBody, { signal, timeout: 60000 })
+export const triggerRagIndexing = (fileId) => {
+  return axiosClient.post('/documents', { file_id: fileId })
 }
 
-
-
+/**
+ * RAG query support has moved to src/apis/ragApi.js (Phase 8).
+ * Use streamRagQuery() from ragApi.js for the SSE-aware POST /rag/query client.
+ */

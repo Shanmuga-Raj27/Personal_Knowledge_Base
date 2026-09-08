@@ -12,7 +12,6 @@ import {
   ListItemIcon
 } from '@mui/material'
 import Logout from '@mui/icons-material/Logout'
-import AccountCircle from '@mui/icons-material/AccountCircle'
 
 function Header({ backendStatus, currentUser, onLogout }) {
   const [anchorEl, setAnchorEl] = useState(null)

@@ -10,7 +10,7 @@ import {
   Box,
   Typography,
   Skeleton,
-  TablePagination
+  TablePagination,
 } from '@mui/material'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import FileRow from './FileRow'
@@ -22,13 +22,19 @@ function FileList({
   onOpen,
   onEdit,
   onDelete,
+  onAddToKnowledgeBase,
+  selectedIds,
+  onToggleSelect,
+  selectionMode = false,
+  onLongPress,
   page = 0,
   rowsPerPage = 50,
   totalCount = 0,
   onPageChange,
-  onRowsPerPageChange
+  onRowsPerPageChange,
 }) {
   const displayedDocs = documents || []
+  const colSpan = selectionMode ? 4 : 3
 
   return (
     <TableContainer
@@ -38,22 +44,38 @@ function FileList({
         borderRadius: '12px',
         border: '1px solid #E2E8F0',
         backgroundColor: '#FFFFFF',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     >
       <Table sx={{ minWidth: 650, tableLayout: 'fixed' }}>
         <TableHead sx={{ backgroundColor: '#F8FAFC' }}>
-          <TableRow sx={{ '& th': { borderColor: '#E2E8F0', color: '#64748B', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' } }}>
+          <TableRow
+            sx={{
+              '& th': {
+                borderColor: '#E2E8F0',
+                color: '#64748B',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              },
+            }}
+          >
+            {selectionMode && <TableCell padding="checkbox" sx={{ width: 48 }} />}
             <TableCell sx={{ width: '32%' }}>Document / Format</TableCell>
             <TableCell sx={{ width: '48%' }}>Metadata & Tags</TableCell>
-            <TableCell align="right" sx={{ width: '130px' }}>Actions</TableCell>
+            <TableCell align="right" sx={{ width: 56 }} />
           </TableRow>
         </TableHead>
         <TableBody>
           {loadingDocs ? (
-            // Skeleton Loading State
             Array.from({ length: 4 }).map((_, index) => (
               <TableRow key={index} sx={{ '& td': { borderColor: '#E2E8F0', py: 2.5 } }}>
+                {selectionMode && (
+                  <TableCell padding="checkbox">
+                    <Skeleton variant="circular" width={20} height={20} sx={{ mx: 'auto' }} />
+                  </TableCell>
+                )}
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Skeleton variant="circular" width={28} height={28} />
@@ -68,18 +90,13 @@ function FileList({
                   <Skeleton variant="text" width="30%" height={16} />
                 </TableCell>
                 <TableCell align="right">
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                    <Skeleton variant="circular" width={28} height={28} />
-                    <Skeleton variant="circular" width={28} height={28} />
-                    <Skeleton variant="circular" width={28} height={28} />
-                  </Box>
+                  <Skeleton variant="circular" width={28} height={28} sx={{ ml: 'auto' }} />
                 </TableCell>
               </TableRow>
             ))
           ) : displayedDocs.length === 0 ? (
-            // Empty State View
             <TableRow>
-              <TableCell colSpan={3} sx={{ borderBottom: 'none', py: 8 }}>
+              <TableCell colSpan={colSpan} sx={{ borderBottom: 'none', py: 8 }}>
                 <Box
                   sx={{
                     display: 'flex',
@@ -87,7 +104,7 @@ function FileList({
                     alignItems: 'center',
                     justifyContent: 'center',
                     textAlign: 'center',
-                    gap: 1.5
+                    gap: 1.5,
                   }}
                 >
                   <FolderOpenIcon sx={{ fontSize: 48, color: '#94A3B8' }} />
@@ -103,14 +120,18 @@ function FileList({
               </TableCell>
             </TableRow>
           ) : (
-            // Document List Rows
             displayedDocs.map((doc) => (
               <FileRow
                 key={doc.fileId}
                 doc={doc}
+                selected={selectedIds ? selectedIds.has(doc.fileId) : false}
+                onToggleSelect={onToggleSelect}
+                selectionMode={selectionMode}
+                onLongPress={onLongPress}
                 onOpen={onOpen}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onAddToKnowledgeBase={onAddToKnowledgeBase}
               />
             ))
           )}
