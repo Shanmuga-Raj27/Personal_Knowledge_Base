@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+tests/
+streamlit_app/
+data/
+*.pyc
+.git/
+.env
+*.log
+*.tmp
+*.bak

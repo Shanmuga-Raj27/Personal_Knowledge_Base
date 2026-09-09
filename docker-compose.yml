@@ -1,0 +1,84 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      QDRANT_HOST: ${QDRANT_HOST}
+      SECRET_KEY: ${SECRET_KEY}
+      VITE_API_URL: ${VITE_API_URL:-/}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_PRESIGNED_URL_EXPIRY: ${S3_PRESIGNED_URL_EXPIRY:-3600}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-2}
+      GEMINI_GENERATION_MODEL: ${GEMINI_GENERATION_MODEL:-gemini-3.6-flash}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-document_vault}
+      QDRANT_RAG_COLLECTION_NAME: ${QDRANT_RAG_COLLECTION_NAME:-document_chunks_v1}
+      QDRANT_DISTANCE: ${QDRANT_DISTANCE:-COSINE}
+      DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-20}
+      DATABASE_MAX_OVERFLOW: ${DATABASE_MAX_OVERFLOW:-40}
+      RAG_CACHE_ENABLED: ${RAG_CACHE_ENABLED:-true}
+      RAG_CACHE_TTL_SECONDS: ${RAG_CACHE_TTL_SECONDS:-86400}
+      RAG_DEFAULT_TOP_K: ${RAG_DEFAULT_TOP_K:-6}
+      RAG_MAX_TOP_K: ${RAG_MAX_TOP_K:-20}
+      RAG_SCORE_THRESHOLD: ${RAG_SCORE_THRESHOLD:-0.35}
+      RAG_CHUNK_WORDS: ${RAG_CHUNK_WORDS:-800}
+      RAG_CHUNK_OVERLAP_WORDS: ${RAG_CHUNK_OVERLAP_WORDS:-100}
+      RAG_CONTEXT_BUDGET_TOKENS: ${RAG_CONTEXT_BUDGET_TOKENS:-3000}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-personal_knowledge_base}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+  redis_data:
+  qdrant_data:

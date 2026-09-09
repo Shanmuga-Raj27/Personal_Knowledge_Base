@@ -9,6 +9,50 @@
 
 ---
 
+## 📋 Navigation
+
+| # | Section |
+| :---: | :--- |
+| — | [1. Before You Start](#1-before-you-start) |
+| 1 | [Step 1 — Prepare the Project Locally](#2-step-1--prepare-the-project-locally) |
+| 2 | [Step 2 — Check Required Local Tools](#3-step-2--check-required-local-tools) |
+| 3 | [Step 3 — Create / Verify AWS EC2](#4-step-3--create--verify-aws-ec2) |
+| 4 | [Step 4 — Allocate an Elastic IP](#5-step-4--allocate-an-elastic-ip) |
+| 5 | [Step 5 — Connect to EC2 Using SSH](#6-step-5--connect-to-ec2-using-ssh) |
+| 6 | [Step 6 — Prepare Ubuntu](#7-step-6--prepare-ubuntu) |
+| 7 | [Step 7 — Configure Swap](#8-step-7--configure-swap) |
+| 8 | [Step 8 — Install Docker on EC2](#9-step-8--install-docker-on-ec2) |
+| 9 | [Step 9 — Clone the Project on EC2](#10-step-9--clone-the-project-on-ec2) |
+| 10 | [Step 10 — Create the Production Environment File](#11-step-10--create-the-production-environment-file) |
+| 11 | [Step 11 — Add / Verify Gunicorn Dependency](#12-step-11--add--verify-gunicorn-dependency) |
+| 12 | [Step 12 — Create the Backend Dockerfile](#13-step-12--create-the-backend-dockerfile) |
+| 13 | [Step 13 — Create Docker Compose](#14-step-13--create-docker-compose) |
+| 14 | [Step 14 — Commit Deployment Files](#15-step-14--commit-deployment-files) |
+| 15 | [Step 15 — Pull the New Code on EC2](#16-step-15--pull-the-new-code-on-ec2) |
+| 16 | [Step 16 — Build and Start Docker Services](#17-step-16--build-and-start-docker-services) |
+| 17 | [Step 17 — Understand the First Docker Startup](#18-step-17--understand-the-first-docker-startup) |
+| 18 | [Step 18 — Check Individual Services](#19-step-18--check-individual-services) |
+| 19 | [Step 19 — Check Backend Directly](#20-step-19--check-backend-directly) |
+| 20 | [Step 20 — Run Alembic Database Migrations](#21-step-20--run-alembic-database-migrations) |
+| 21 | [Step 21 — Build the Frontend](#22-step-21--build-the-frontend) |
+| 22 | [Step 22 — Install Nginx on EC2](#23-step-22--install-nginx-on-ec2) |
+| 23 | [Step 23 — Create the Frontend Static Directory](#24-step-23--create-the-frontend-static-directory) |
+| 24 | [Step 24 — Configure Nginx](#25-step-24--configure-nginx) |
+| 25 | [Step 25 — Enable the Nginx Site](#26-step-25--enable-the-nginx-site) |
+| 26 | [Step 26 — Configure Ubuntu Firewall (UFW)](#27-step-26--configure-ubuntu-firewall-ufw) |
+| 27 | [Step 27 — First Full Application Test](#28-step-27--first-full-application-test) |
+| 28 | [Step 28 — Application Smoke Test](#29-step-28--application-smoke-test) |
+| 29 | [Step 29 — Basic Docker Commands You Should Know](#30-step-29--basic-docker-commands-you-should-know) |
+| 30 | [Step 30 — Basic Nginx Commands](#31-step-30--basic-nginx-commands) |
+| 31 | [Step 31 — Basic EC2 Resource Checks](#32-step-31--basic-ec2-resource-checks) |
+| 32 | [Step 32 — What to Do When Something Fails](#33-step-32--what-to-do-when-something-fails) |
+| 33 | [Step 33 — Updating the Application Later](#34-step-33--updating-the-application-later) |
+| 34 | [Step 34 — Data Persistence and What `docker compose down` Means](#35-step-34--data-persistence-and-what-docker-compose-down-means) |
+| 35 | [Step 35 — Backup Reminder](#36-step-35--backup-reminder) |
+| 36 | [Step 36 — Phase 1 Completion Checklist](#37-step-36--phase-1-completion-checklist) |
+
+---
+
 ## 1. Before You Start
 
 This guide assumes:
@@ -675,14 +719,50 @@ Create:
 backend/Dockerfile
 ```
 
-The Dockerfile should:
+**File reference:** [`backend/Dockerfile`](../../backend/Dockerfile)
 
-1. Start from a small Python image.
-2. Install backend dependencies.
-3. Copy the backend application.
-4. Start FastAPI using Gunicorn with Uvicorn workers.
+This file builds the production backend image. It contains these stages:
 
-The important production command is conceptually:
+| Stage | What it does |
+| :--- | :--- |
+| `FROM python:3.12-slim` | Small Python base image |
+| `apt-get install` | System libraries needed by `pymupdf` (PDF extraction) |
+| `COPY requirements.txt` + `pip install` | Install Python dependencies |
+| `COPY . .` | Copy backend application code into the image |
+| `EXPOSE 8000` | Document that the container listens on port 8000 |
+| `CMD [gunicorn ...]` | Start Gunicorn with Uvicorn workers on startup |
+
+### `pywin32` filtering
+
+The `requirements.txt` contains `pywin32==312` (Windows-only). The Dockerfile uses `grep -v pywin32` to skip this line during `pip install` on Linux.
+
+### `.dockerignore` file
+
+Create:
+
+```text
+backend/.dockerignore
+```
+
+**File reference:** [`backend/.dockerignore`](../../backend/.dockerignore)
+
+This file keeps the production image lean by excluding files that are not needed at runtime:
+
+| Excluded | Reason |
+| :--- | :--- |
+| `.venv/` | Virtual environment (Docker installs its own) |
+| `tests/` | Not needed in production |
+| `streamlit_app/` | Alternative UI, not part of backend image |
+| `data/` | Evaluation data, not needed at runtime |
+| `__pycache__/` | Python bytecode cache |
+| `.pytest_cache/` | Test cache |
+| `.git/` | Git history not needed in image |
+| `.env` | Secrets must never be baked into the image |
+| `*.log`, `*.tmp` | Temporary files |
+
+### Production command explained
+
+The Dockerfile's `CMD` runs:
 
 ```text
 gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:8000 main:app
@@ -694,11 +774,9 @@ Meaning:
 | :--- | :--- |
 | `gunicorn` | Production process manager |
 | `-k uvicorn.workers.UvicornWorker` | Use Uvicorn workers for FastAPI/ASGI |
-| `-w 2` | Start 2 workers |
-| `-b 0.0.0.0:8000` | Listen on port 8000 inside the container |
+| `-w 2` | Start 2 workers (conservative for 2 GB server) |
+| `-b 0.0.0.0:8000` | Listen on all interfaces inside the container |
 | `main:app` | Load the `app` object from `main.py` |
-
-> Do not copy a complete Dockerfile from this document blindly. The exact `COPY` paths must match the actual repository structure.
 
 ---
 
@@ -714,16 +792,9 @@ Create:
 docker-compose.yml
 ```
 
-The Compose file should define these four services:
+**File reference:** [`docker-compose.yml`](../../docker-compose.yml)
 
-```text
-docker-compose.yml
-│
-├── backend
-├── mysql
-├── redis
-└── qdrant
-```
+This file defines four services that run together as one application stack:
 
 ### Target architecture
 
@@ -746,9 +817,40 @@ Docker Compose
       └── qdrant_data volume
 ```
 
+### Services defined
+
+| Service | Image | Purpose |
+| :--- | :--- | :--- |
+| `backend` | Built from `backend/Dockerfile` | FastAPI application |
+| `mysql` | `mysql:8.0` | Relational database |
+| `redis` | `redis:7-alpine` | Cache layer |
+| `qdrant` | `qdrant/qdrant:latest` | Vector database |
+
+### Health checks
+
+Every dependency service (`mysql`, `redis`, `qdrant`) has a health check. The backend uses:
+
+```text
+depends_on:
+  mysql:
+    condition: service_healthy
+```
+
+This means Docker Compose will **not start the backend until all three dependencies report healthy**. Without this, the backend might try to connect before MySQL or Qdrant are ready.
+
+### Environment variables
+
+The compose file passes environment variables to the backend container using `${VAR}` syntax. Compose reads these values from:
+
+```text
+others/.env    ← on the EC2 server
+```
+
+This means **all docker compose commands must include `--env-file ./others/.env`** so Compose knows where to find the values.
+
 ### Important port rule
 
-The backend can be published only to the EC2 host:
+The backend is published only to the EC2 host:
 
 ```text
 127.0.0.1:8000:8000
@@ -757,12 +859,12 @@ The backend can be published only to the EC2 host:
 This means:
 
 ```text
-Internet ❌ → 8000
+Internet ✗ → 8000
 
 Nginx → 127.0.0.1:8000 → backend
 ```
 
-MySQL, Redis, and Qdrant should not have public port mappings.
+MySQL, Redis, and Qdrant have **no public port mappings** — they are only reachable inside the Docker network.
 
 ### Why volumes?
 
@@ -806,6 +908,7 @@ Review:
 
 ```text
 backend/Dockerfile
+backend/.dockerignore
 docker-compose.yml
 requirements.txt
 others/.env.example
@@ -820,7 +923,7 @@ others/.env
 Then:
 
 ```cmd
-git add backend/Dockerfile docker-compose.yml requirements.txt
+git add backend/Dockerfile backend/.dockerignore docker-compose.yml requirements.txt
 git commit -m "Add Docker production deployment"
 git push origin main
 ```
@@ -869,7 +972,7 @@ docker-compose.yml
 Before starting, validate the Compose configuration:
 
 ```bash
-docker compose config
+docker compose --env-file ./others/.env config
 ```
 
 **What it does:** Parses the Compose file and reports configuration errors.
@@ -877,7 +980,7 @@ docker compose config
 If it is valid, build/start:
 
 ```bash
-docker compose up -d --build
+docker compose --env-file ./others/.env up -d --build
 ```
 
 **What it does:**
@@ -889,7 +992,7 @@ docker compose up -d --build
 Check service status:
 
 ```bash
-docker compose ps
+docker compose --env-file ./others/.env ps
 ```
 
 Expected conceptually:
@@ -929,19 +1032,19 @@ Start containers
 Check all logs:
 
 ```bash
-docker compose logs
+docker compose --env-file ./others/.env logs
 ```
 
 Check only backend:
 
 ```bash
-docker compose logs backend
+docker compose --env-file ./others/.env logs backend
 ```
 
 Follow backend logs live:
 
 ```bash
-docker compose logs -f backend
+docker compose --env-file ./others/.env logs -f backend
 ```
 
 Press:
@@ -961,37 +1064,37 @@ to stop following the logs. This does **not** stop the container.
 ### List containers
 
 ```bash
-docker compose ps
+docker compose --env-file ./others/.env ps
 ```
 
 ### MySQL logs
 
 ```bash
-docker compose logs mysql
+docker compose --env-file ./others/.env logs mysql
 ```
 
 ### Redis logs
 
 ```bash
-docker compose logs redis
+docker compose --env-file ./others/.env logs redis
 ```
 
 ### Qdrant logs
 
 ```bash
-docker compose logs qdrant
+docker compose --env-file ./others/.env logs qdrant
 ```
 
 ### Backend logs
 
 ```bash
-docker compose logs backend
+docker compose --env-file ./others/.env logs backend
 ```
 
 If a service keeps restarting:
 
 ```bash
-docker compose ps
+docker compose --env-file ./others/.env ps
 ```
 
 and then inspect that service's logs.
@@ -1033,8 +1136,8 @@ If this works, the backend is running.
 If it fails, check:
 
 ```bash
-docker compose ps
-docker compose logs backend
+docker compose --env-file ./others/.env ps
+docker compose --env-file ./others/.env logs backend
 ```
 
 ---
@@ -1046,7 +1149,7 @@ docker compose logs backend
 Once the backend and MySQL are running:
 
 ```bash
-docker compose exec backend alembic upgrade head
+docker compose --env-file ./others/.env exec backend alembic upgrade head
 ```
 
 **What it does:** Runs the database migrations inside the backend container.
@@ -1499,25 +1602,25 @@ docker ps -a
 ### Compose service status
 
 ```bash
-docker compose ps
+docker compose --env-file ./others/.env ps
 ```
 
 ### Start services
 
 ```bash
-docker compose up -d
+docker compose --env-file ./others/.env up -d
 ```
 
 ### Build and start
 
 ```bash
-docker compose up -d --build
+docker compose --env-file ./others/.env up -d --build
 ```
 
 ### Stop services
 
 ```bash
-docker compose stop
+docker compose --env-file ./others/.env stop
 ```
 
 **Important:** `stop` stops containers but does not remove them.
@@ -1525,19 +1628,19 @@ docker compose stop
 ### Start previously stopped services
 
 ```bash
-docker compose start
+docker compose --env-file ./others/.env start
 ```
 
 ### Restart services
 
 ```bash
-docker compose restart
+docker compose --env-file ./others/.env restart
 ```
 
 ### Stop and remove containers/network
 
 ```bash
-docker compose down
+docker compose --env-file ./others/.env down
 ```
 
 This does **not** normally remove named volumes unless you explicitly ask Docker to remove them.
@@ -1545,31 +1648,31 @@ This does **not** normally remove named volumes unless you explicitly ask Docker
 ### View logs
 
 ```bash
-docker compose logs
+docker compose --env-file ./others/.env logs
 ```
 
 ### Backend logs
 
 ```bash
-docker compose logs backend
+docker compose --env-file ./others/.env logs backend
 ```
 
 ### Follow backend logs
 
 ```bash
-docker compose logs -f backend
+docker compose --env-file ./others/.env logs -f backend
 ```
 
 ### Execute a command inside backend container
 
 ```bash
-docker compose exec backend <command>
+docker compose --env-file ./others/.env exec backend <command>
 ```
 
 Example:
 
 ```bash
-docker compose exec backend alembic upgrade head
+docker compose --env-file ./others/.env exec backend alembic upgrade head
 ```
 
 ### Check Docker disk usage
@@ -1710,13 +1813,13 @@ Port 80 → allowed?
 Check backend:
 
 ```bash
-docker compose ps
+docker compose --env-file ./others/.env ps
 ```
 
 Then:
 
 ```bash
-docker compose logs backend
+docker compose --env-file ./others/.env logs backend
 ```
 
 Test backend directly:
@@ -1734,8 +1837,8 @@ If direct backend access works but browser API calls fail, investigate Nginx rou
 Run:
 
 ```bash
-docker compose ps
-docker compose logs backend
+docker compose --env-file ./others/.env ps
+docker compose --env-file ./others/.env logs backend
 ```
 
 Look for:
@@ -1755,8 +1858,8 @@ Dependency errors
 Check:
 
 ```bash
-docker compose ps
-docker compose logs mysql
+docker compose --env-file ./others/.env ps
+docker compose --env-file ./others/.env logs mysql
 ```
 
 Verify the backend uses:
@@ -1790,7 +1893,7 @@ localhost:6379
 Check:
 
 ```bash
-docker compose logs redis
+docker compose --env-file ./others/.env logs redis
 ```
 
 ---
@@ -1812,7 +1915,7 @@ localhost:6333
 Check:
 
 ```bash
-docker compose logs qdrant
+docker compose --env-file ./others/.env logs qdrant
 ```
 
 ---
@@ -1822,13 +1925,13 @@ docker compose logs qdrant
 Run:
 
 ```bash
-docker compose logs backend
+docker compose --env-file ./others/.env logs backend
 ```
 
 Then:
 
 ```bash
-docker compose exec backend alembic upgrade head
+docker compose --env-file ./others/.env exec backend alembic upgrade head
 ```
 
 Check the database connection and migration error before changing anything.
@@ -1861,13 +1964,13 @@ git pull origin main
 Rebuild backend if backend code/dependencies changed:
 
 ```bash
-docker compose up -d --build backend
+docker compose --env-file ./others/.env up -d --build backend
 ```
 
 Run migrations if the database schema changed:
 
 ```bash
-docker compose exec backend alembic upgrade head
+docker compose --env-file ./others/.env exec backend alembic upgrade head
 ```
 
 If frontend code changed:
@@ -1902,7 +2005,7 @@ This distinction is important for a fresher.
 ### Restart
 
 ```bash
-docker compose restart
+docker compose --env-file ./others/.env restart
 ```
 
 ```text
@@ -1916,7 +2019,7 @@ Data remains
 ### Stop
 
 ```bash
-docker compose stop
+docker compose --env-file ./others/.env stop
 ```
 
 ```text
@@ -1930,7 +2033,7 @@ Data remains
 ### Down
 
 ```bash
-docker compose down
+docker compose --env-file ./others/.env down
 ```
 
 ```text
@@ -1946,7 +2049,7 @@ Named volumes normally remain
 Avoid casually running:
 
 ```bash
-docker compose down -v
+docker compose --env-file ./others/.env down -v
 ```
 
 `-v` asks Compose to remove named volumes.
