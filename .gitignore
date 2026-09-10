@@ -51,7 +51,6 @@ instance/
 # Alembic (migrations)
 # ============================================
 backend/alembic/versions/*.pyc
-backend/alembic.ini
 backend/alembic/__pycache__/
 
 # ============================================
