@@ -131,7 +131,7 @@ The application follows a three-layer structure:
 │  ┌──────────┐  ┌──────────────┐  ┌───────────┐  ┌──────────────────┐    │
 │  │ AuthPage │  │  VaultPage   │  │ Knowledge │  │  SearchHeader    │    │
 │  │ (Login/  │  │ (Document    │  │ Base Page │  │ (Semantic Search │    │
-│  │ Register)│  │  List/Upload)│  │ (File     │  │   + Upload UI)   │    │
+│  │ Register)│  │  List/Upload)│  │ (File Q/A)│  │   + Upload UI)   │    │
 │  └────┬─────┘  └──────┬───────┘  └─────┬─────┘  └────────┬─────────┘    │
 │       │               │                │                 │              │
 │       └───────────────┴────────────────┴─────────────────┘              │
