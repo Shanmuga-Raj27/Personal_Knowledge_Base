@@ -5,7 +5,7 @@ Application settings loaded from environment variables.
 Uses Pydantic Settings for validation and type safety.
 """
 from pathlib import Path
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV_FILE = Path(__file__).resolve().parents[3] / "others" / ".env"
@@ -101,6 +101,14 @@ class Settings(BaseSettings):
     # Aliases for RAG-phase-4 doc naming (typo-tolerant)
     RAG_QDRANT_COLLECTION: str | None = None
     RAG_QDANT_COLLECTION: str | None = None
+
+    @field_validator("AWS_ENDPOINT_URL", mode="before")
+    @classmethod
+    def empty_endpoint_to_none(cls, v):
+        """Convert empty/whitespace endpoint values to None so boto3 uses the default AWS endpoint."""
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
     @model_validator(mode="after")
     def validate_rag_settings(self) -> "Settings":
