@@ -13,6 +13,15 @@ The project combines a modern web interface with a secure backend, structured da
 
 ---
 
+**Note:** The application is deployed on AWS EC2 using an Elastic IP. Due to limitations on my AWS free-tier credits, the instance is not running 24/7. If you would like to access a live demo, please contact me via email or LinkedIn, and I’ll arrange access.
+
+**Contact**
+
+Email: rshanmugaraj11@gmail.com
+Linkedin: https://www.linkedin.com/in/shanmugaraj27
+
+---
+
 ## Key Features
 
 - **User Authentication** — Users can register and log in securely. Passwords are protected and authenticated sessions use JWT-based access tokens.
