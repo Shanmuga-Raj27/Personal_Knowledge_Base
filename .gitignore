@@ -137,3 +137,5 @@ logs/
 prompt-base/
 
 *opencode.json
+
+/aws-secret
