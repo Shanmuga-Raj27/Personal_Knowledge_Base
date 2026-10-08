@@ -92,10 +92,12 @@ services:
       - source: 0.0.0.0/0
         description: same-workspace
 
-cron:
-  - name: pkb-migrate
-    command: alembic upgrade head
-    service: pkb-backend
+  # Alembic migration cron job — builds same Docker image, runs migrations daily
+  - type: cron
+    name: pkb-migrate
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
     schedule: "0 0 * * *"
-    type: cron
+    dockerCommand: alembic upgrade head
     region: oregon
