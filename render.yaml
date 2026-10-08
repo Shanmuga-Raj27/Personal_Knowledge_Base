@@ -52,7 +52,8 @@ services:
   - type: pserv
     name: pkb-mysql
     runtime: docker
-    image: mysql:8.0
+    image:
+      url: mysql:8.0
     plan: starter
     region: oregon
     disk:
@@ -73,7 +74,8 @@ services:
   - type: pserv
     name: pkb-qdrant
     runtime: docker
-    image: qdrant/qdrant:latest
+    image:
+      url: qdrant/qdrant:latest
     plan: starter
     region: oregon
     disk:
@@ -90,7 +92,7 @@ services:
       - source: 0.0.0.0/0
         description: same-workspace
 
-cronJobs:
+cron:
   - name: pkb-migrate
     command: alembic upgrade head
     service: pkb-backend
