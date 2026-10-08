@@ -51,7 +51,7 @@ services:
   # MySQL as a private Docker service (Blueprints don't support MySQL natively)
   - type: pserv
     name: pkb-mysql
-    runtime: docker
+    runtime: image
     image:
       url: mysql:8.0
     plan: starter
@@ -73,7 +73,7 @@ services:
   # Qdrant as a private Docker service
   - type: pserv
     name: pkb-qdrant
-    runtime: docker
+    runtime: image
     image:
       url: qdrant/qdrant:latest
     plan: starter
