@@ -1,0 +1,69 @@
+services:
+  - type: web
+    name: pkb-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: frankfurt
+    branch: main
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pkb-mysql
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: pkb-redis
+          type: redis
+          property: connectionString
+      - key: QDRANT_HOST
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: VITE_API_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: eu-central-003
+      - key: AWS_ENDPOINT_URL
+        sync: false
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: QDRANT_COLLECTION_NAME
+        value: document_vault
+      - key: QDRANT_RAG_COLLECTION_NAME
+        value: document_chunks_v1
+      - key: QDRANT_DISTANCE
+        value: COSINE
+      - key: RAG_CACHE_ENABLED
+        value: true
+      - key: RAG_CACHE_TTL_SECONDS
+        value: 86400
+      - key: RAG_DEFAULT_TOP_K
+        value: 6
+      - key: EMBEDDING_DIMENSIONS
+        value: 768
+
+databases:
+  - name: pkb-mysql
+    plan: starter
+    databaseName: personal_knowledge_base
+    user: pkb
+
+  - name: pkb-redis
+    type: redis
+    plan: starter
+
+cronJobs:
+  - name: pkb-migrate
+    command: alembic upgrade head
+    service: pkb-backend
+    schedule: "0 0 * * *"
