@@ -1,4 +1,4 @@
-# Personal Knowledge Base
+# 📚 Personal Knowledge Base
 
 A cloud-based document workspace that helps users store, organize, and search their personal files using AI.
 
@@ -13,110 +13,64 @@ The project combines a modern web interface with a secure backend, structured da
 
 ---
 
-**Note:** The application is deployed on AWS EC2 using an Elastic IP. Due to limitations on my AWS free-tier credits, the instance is not running 24/7. If you would like to access a live demo, please contact me via email or LinkedIn, and I’ll arrange access.
+**🚀 Live Demo:** [https://personal-knowledge-base-blue.vercel.app/](https://personal-knowledge-base-blue.vercel.app/)
 
-**Contact**: Email: rshanmugaraj11@gmail.com | Linkedin: https://www.linkedin.com/in/shanmugaraj27
+> **Deployment note:** The frontend is hosted on Vercel. The backend and supporting services run separately on AWS EC2 and may not be available continuously because of AWS free-tier credit limitations. If the demo is unavailable, contact me by email or LinkedIn.
+
+**Contact:** [Email](mailto:rshanmugaraj11@gmail.com) · [LinkedIn](https://www.linkedin.com/in/shanmugaraj27)
 
 ---
 
-## Key Features
+## ✨ Key Features
 
 - **User Authentication** — Users can register and log in securely. Passwords are protected and authenticated sessions use JWT-based access tokens.
+
 - **Document Storage** — Users can upload and manage files in their personal document vault.
+
 - **AI-Powered Search** — The application can understand the meaning of document content, allowing users to find relevant information without relying only on exact keywords.
+
 - **Document Information Management** — File titles, descriptions, tags, ownership, and other information are stored separately from the actual files.
+
 - **Fast Search and Responses** — Redis is used to cache frequently requested information and reduce unnecessary processing.
+
 - **AI Knowledge Retrieval (RAG)** — Documents can be processed into smaller sections so the AI can retrieve relevant information and use it when answering user questions.
+
 - **REST API** — The frontend communicates with the backend through a structured API covering authentication, document management, search, health checks, and AI/RAG operations.
+
 - **Background Processing** — Document indexing and other longer-running tasks are handled in the background so normal application usage remains responsive.
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 ### Frontend
-
-| Category | Technology |
-|---|---|
-| Core Library | React 19 |
-| Build Tool | Vite |
-| UI Components | Material UI (MUI) v9, Emotion CSS |
-| HTTP Client | Axios |
-| State Management | React Context API |
-| Testing | Vitest |
-| Code Quality | ESLint |
+- **React 19** — User interface
+- **Vite** — Frontend build tool
+- **Material UI (MUI)** — UI components and styling
+- **Axios** — Backend API communication
 
 ### Backend
+- **Python 3.12+** — Backend language
+- **FastAPI** — REST API framework
+- **SQLAlchemy** — Database access
+- **Pydantic** — Request validation and application settings
+- **JWT and Argon2id** — Token-based authentication and password hashing
+- **Uvicorn / Gunicorn** — API serving
 
-| Category | Technology |
-|---|---|
-| Language | Python 3.12+ |
-| Framework | FastAPI |
-| Database Access | SQLAlchemy 2.0 |
-| Database Migrations | Alembic 1.19.1 |
-| Validation & Configuration | Pydantic v2, Pydantic Settings |
-| Authentication | JWT (HS256), Argon2id password hashing |
-| API Server | Uvicorn for development, Gunicorn + Uvicorn workers for production |
-| Testing | Pytest, pytest-asyncio, httpx |
-| PDF Processing | PyMuPDF |
-| File Upload Handling | python-multipart |
+### AI
+- **Google Gemini API** — Embeddings and AI-generated responses
+- **Retrieval-Augmented Generation (RAG)** — Document chunking, retrieval, and question answering
 
-### Databases and Caching
+### Database
+- **MySQL 8** — User accounts and document metadata
+- **Qdrant** — Vector search
+- **Redis** — Caching
 
-| Purpose | Technology |
-|---|---|
-| Main Database | MySQL 8.0 |
-| Vector Search Database | Qdrant |
-| Caching | Redis 7 |
-
-### Cloud and Infrastructure
-
-| Purpose | Technology |
-|---|---|
-| **Production File Storage** | **AWS S3** |
-| **Development & Testing File Storage** | **Backblaze B2** |
-| Production Cloud Server | AWS EC2 |
-| Containers | Docker, Docker Compose |
-| AI Services | Google Gemini API |
-
-### Development Tools
-
-| Purpose | Technology |
-|---|---|
-| Python Package Management | pip, uv |
-| Code Formatting | Black |
-| Frontend Linting | ESLint |
-| Configuration | Pydantic Settings, `.env` files |
-| Local Environment | Docker Compose with health checks |
-
----
-
-## Cloud Storage Setup
-
-The project uses two different object-storage services for different environments.
-
-### Development and Testing — Backblaze B2
-
-**Backblaze B2** is used for local development and testing.
-
-It provides the application with cloud-based file storage without using the production storage environment during development.
-
-The application uses the S3-compatible API provided by Backblaze B2, which allows the same general upload approach to be used during development.
-
-### Production — AWS S3
-
-**AWS S3** is used for the production environment.
-
-When the application is deployed for real users, uploaded files are stored in an AWS S3 bucket. AWS EC2 hosts the production application and communicates with S3 for file-storage operations.
-
-### Environment Separation
-
-| Environment | File Storage | Purpose |
-|---|---|---|
-| Development | Backblaze B2 | Building and testing the application |
-| Production | AWS S3 | Storing files for the live application |
-
-The application selects the appropriate storage service through environment configuration. **Backblaze B2 is not the production storage service, and AWS S3 is not the development storage service.**
+### Cloud
+- **AWS EC2** — Backend application hosting
+- **AWS S3** — Production file storage
+- **Backblaze B2** — Development and testing file storage using an S3-compatible API
+- **Docker and Docker Compose** — Containerization and multi-service setup
 
 ---
 
@@ -125,11 +79,12 @@ The application selects the appropriate storage service through environment conf
 The application follows a three-layer structure:
 
 1. **Frontend** — Provides the user interface for login, file management, knowledge-base selection, and search.
+
 2. **Backend** — Handles authentication, document management, search, AI processing, and communication with other services.
+
 3. **Data and Cloud Services** — Store file information, files, search data, and cached results.
 
 ### Architecture Diagram
-
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         CLIENT (React + Vite)                           │
@@ -205,21 +160,30 @@ The application follows a three-layer structure:
 ### How the Application Works
 
 1. A user interacts with the application through the React frontend.
+
 2. The frontend communicates with the FastAPI backend through secure API requests.
+
 3. The backend verifies the user's access and handles the requested operation.
+
 4. MySQL stores information about files, users, ownership, titles, descriptions, and tags.
+
 5. The actual uploaded files are stored in the configured cloud storage:
+
    - **Backblaze B2 during development and testing**
+
    - **AWS S3 in production**
+
 6. Qdrant stores information that helps the application perform meaning-based document searches.
+
 7. Google Gemini is used to create document embeddings and generate AI responses.
+
 8. Redis stores frequently used results to improve response speed.
+
 9. Background workers process document indexing and RAG-related tasks without blocking normal application requests.
 
 ---
 
-## Project Folder Structure
-
+## 📁 Project Folder Structure
 ```text
 Personal_Knowledge_Base/
 │
@@ -325,13 +289,21 @@ The Personal Knowledge Base is designed to demonstrate a complete modern softwar
 The project brings together:
 
 - A responsive web interface
+
 - Secure user authentication
+
 - Cloud-based document storage
+
 - Structured document and user information
+
 - AI-powered search
+
 - AI-assisted question answering
+
 - Background document processing
+
 - Containerized application services
+
 - Separate development and production cloud environments
 
 This makes the project a practical example of how a full-stack application can be designed, developed, tested, and prepared for production deployment.
