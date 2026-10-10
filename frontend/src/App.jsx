@@ -9,6 +9,7 @@ import {
   Tab,
   Typography
 } from '@mui/material'
+import { Analytics } from '@vercel/analytics/react'
 import { pingSystem } from './apis/systemApi'
 
 import Header from './components/Header'
@@ -212,6 +213,7 @@ function App() {
             </Typography>
           </Container>
         </Box>
+        <Analytics />
       </Box>
     </ThemeProvider>
   )
