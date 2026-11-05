@@ -8,6 +8,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       QDRANT_HOST: ${QDRANT_HOST}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
       SECRET_KEY: ${SECRET_KEY}
       VITE_API_URL: ${VITE_API_URL:-/}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}

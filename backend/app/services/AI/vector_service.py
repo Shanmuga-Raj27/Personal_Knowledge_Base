@@ -36,6 +36,7 @@ def get_qdrant_client() -> AsyncQdrantClient:
             if _qdrant_client is None:
                 _qdrant_client = AsyncQdrantClient(
                     url=settings.QDRANT_HOST,
+                    api_key=settings.QDRANT_API_KEY,
                     check_compatibility=False,
                 )
     return _qdrant_client

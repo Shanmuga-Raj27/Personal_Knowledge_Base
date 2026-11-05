@@ -55,6 +55,7 @@ def get_qdrant_client() -> QdrantClient:
         if _qdrant_client is None:
             _qdrant_client = QdrantClient(
                 url=settings.QDRANT_HOST,
+                api_key=settings.QDRANT_API_KEY,
                 timeout=int(settings.GEMINI_API_TIMEOUT_SECONDS),
                 check_compatibility=False,
             )
