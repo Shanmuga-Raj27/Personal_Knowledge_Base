@@ -5,14 +5,13 @@ import {
   CssBaseline,
   Container,
   Box,
-  Tabs,
-  Tab,
   Typography
 } from '@mui/material'
 import { Analytics } from '@vercel/analytics/react'
 import { pingSystem } from './apis/systemApi'
 
 import Header from './components/Header'
+import Sidebar from './components/Sidebar'
 import AuthPage from './pages/AuthPage'
 import VaultPage from './pages/VaultPage'
 import KnowledgeBase from './pages/KnowledgeBase'
@@ -63,6 +62,11 @@ function App() {
   // App frame state
   const [backendStatus, setBackendStatus] = useState('checking')
   const [view, setView] = useState('vault')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev)
+  }, [])
 
   // Check backend connectivity once on mount (feeds the Header status dot).
   useEffect(() => {
@@ -98,11 +102,6 @@ function App() {
     setToken(null)
     setCurrentUser(null)
     setView('vault')
-  }, [])
-
-  // Tab switch handler
-  const handleViewChange = useCallback((_e, v) => {
-    setView(v)
   }, [])
 
   // Tokenized Light Theme Design System
@@ -156,63 +155,101 @@ function App() {
           backendStatus={backendStatus}
           currentUser={currentUser}
           onLogout={handleLogout}
+          onToggleSidebar={handleToggleSidebar}
+          sidebarOpen={sidebarOpen}
         />
 
         {/* Conditional views depending on session */}
         {!isUserAuthenticated ? (
-          <AuthPage onLoginSuccess={handleLoginSuccess} />
+          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <AuthPage onLoginSuccess={handleLoginSuccess} />
+            <Box
+              component="footer"
+              sx={{
+                py: 3,
+                borderTop: '1px solid #E2E8F0',
+                backgroundColor: '#FFFFFF',
+                textAlign: 'center',
+                mt: 'auto'
+              }}
+            >
+              <Container maxWidth="lg">
+                <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>
+                  &copy; {new Date().getFullYear()} Personal Knowledge Base. Minimalist Cloud Document Vault.
+                </Typography>
+              </Container>
+            </Box>
+          </Box>
         ) : (
-          <Container maxWidth="lg" sx={{ mt: 5, mb: 6, flexGrow: 1 }}>
-            {/* View switcher: Vault <-> Knowledge Base */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-              <Tabs
-                value={view}
-                onChange={handleViewChange}
-                textColor="primary"
-                indicatorColor="primary"
+          <KnowledgeBaseFilesProvider userId={currentUser?.id}>
+            <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 'calc(100vh - 64px)' }}>
+              {/* Collapsible Left-side Navigation Sidebar */}
+              <Sidebar
+                open={sidebarOpen}
+                onToggle={handleToggleSidebar}
+                currentView={view}
+                onViewChange={setView}
+              />
+
+              {/* Main Workspace Area */}
+              <Box
+                component="main"
                 sx={{
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.9rem'
-                  }
+                  flexGrow: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  backgroundColor: '#F8FAFC',
+                  overflow: 'hidden'
                 }}
               >
-                <Tab label="Vault" value="vault" />
-                <Tab label="Knowledge Base" value="knowledge" />
-              </Tabs>
+                {/* Knowledge Base View */}
+                <Box
+                  sx={{
+                    display: view === 'knowledge' ? 'flex' : 'none',
+                    flexDirection: 'column',
+                    flexGrow: 1,
+                    minHeight: 0
+                  }}
+                >
+                  <KnowledgeBase userId={currentUser?.id} />
+                </Box>
+
+                {/* Vault View */}
+                <Box
+                  sx={{
+                    display: view === 'vault' ? 'flex' : 'none',
+                    flexDirection: 'column',
+                    flexGrow: 1,
+                    overflowY: 'auto'
+                  }}
+                >
+                  <Container maxWidth="lg" sx={{ mt: 4, mb: 6, flexGrow: 1 }}>
+                    <VaultPage />
+                  </Container>
+
+                  {/* Vault Footer */}
+                  <Box
+                    component="footer"
+                    sx={{
+                      py: 3,
+                      borderTop: '1px solid #E2E8F0',
+                      backgroundColor: '#FFFFFF',
+                      textAlign: 'center',
+                      mt: 'auto'
+                    }}
+                  >
+                    <Container maxWidth="lg">
+                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>
+                        &copy; {new Date().getFullYear()} Personal Knowledge Base. Minimalist Cloud Document Vault.
+                      </Typography>
+                    </Container>
+                  </Box>
+                </Box>
+              </Box>
             </Box>
-
-            {/* Shared KB selection lives above both pages so Vault can add
-                to it and the Knowledge Base page sees it immediately.
-                Each page itself is keep-mounted for scroll/chat state. */}
-            <KnowledgeBaseFilesProvider userId={currentUser?.id}>
-              <Box sx={{ display: view === 'knowledge' ? 'block' : 'none' }}>
-                <KnowledgeBase userId={currentUser?.id} />
-              </Box>
-              <Box sx={{ display: view === 'vault' ? 'block' : 'none' }}>
-                <VaultPage />
-              </Box>
-            </KnowledgeBaseFilesProvider>
-          </Container>
+          </KnowledgeBaseFilesProvider>
         )}
-
-        {/* Footer */}
-        <Box
-          component="footer"
-          sx={{
-            py: 3,
-            borderTop: '1px solid #E2E8F0',
-            backgroundColor: '#FFFFFF',
-            textAlign: 'center'
-          }}
-        >
-          <Container maxWidth="lg">
-            <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>
-              &copy; {new Date().getFullYear()} Personal Knowledge Base. Minimalist Cloud Document Vault.
-            </Typography>
-          </Container>
-        </Box>
         <Analytics />
       </Box>
     </ThemeProvider>

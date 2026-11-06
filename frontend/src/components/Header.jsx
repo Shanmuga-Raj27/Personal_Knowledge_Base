@@ -9,11 +9,14 @@ import {
   Menu,
   MenuItem,
   Divider,
-  ListItemIcon
+  ListItemIcon,
+  IconButton,
+  Tooltip
 } from '@mui/material'
 import Logout from '@mui/icons-material/Logout'
+import MenuIcon from '@mui/icons-material/Menu'
 
-function Header({ backendStatus, currentUser, onLogout }) {
+function Header({ backendStatus, currentUser, onLogout, onToggleSidebar, sidebarOpen }) {
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
 
@@ -46,10 +49,33 @@ function Header({ backendStatus, currentUser, onLogout }) {
         color: '#0F172A'
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ px: { xs: 2, sm: 3 } }}>
         <Toolbar disableGutters sx={{ height: 64, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {/* Logo & Status Indicator */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+            {currentUser && onToggleSidebar && (
+              <Tooltip title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+                <IconButton
+                  onClick={onToggleSidebar}
+                  size="small"
+                  edge="start"
+                  aria-label="Toggle navigation menu"
+                  sx={{
+                    color: '#0A192F',
+                    p: 1,
+                    mr: 0.5,
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    '&:hover': {
+                      backgroundColor: '#F8FAFC',
+                      borderColor: '#CBD5E1'
+                    }
+                  }}
+                >
+                  <MenuIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
             <Typography
               variant="h6"
               sx={{
