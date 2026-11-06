@@ -6,7 +6,9 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
+      # REDIS_URL: ${REDIS_URL}
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
       QDRANT_HOST: ${QDRANT_HOST}
       QDRANT_API_KEY: ${QDRANT_API_KEY}
       SECRET_KEY: ${SECRET_KEY}
@@ -38,10 +40,10 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
+      # redis:
+      #   condition: service_healthy
+      # qdrant:
+      #   condition: service_healthy
 
   mysql:
     image: mysql:8.0
@@ -57,29 +59,31 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Old local Redis container kept commented out for reference/fallback
+  # redis:
+  #   image: redis:7-alpine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
-  qdrant:
-    image: qdrant/qdrant:latest
-    restart: unless-stopped
-    volumes:
-      - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/6333'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Old local Qdrant container kept commented out for reference/fallback
+  # qdrant:
+  #   image: qdrant/qdrant:latest
+  #   restart: unless-stopped
+  #   volumes:
+  #     - qdrant_data:/qdrant/storage
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/6333'"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
   mysql_data:
-  redis_data:
-  qdrant_data:
+  # redis_data:
+  # qdrant_data:

@@ -5,9 +5,15 @@ Unit tests for Redis cache client factory, fail-open ping guard, and shutdown cl
 """
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from redis.exceptions import RedisError
-
-from app.services.cache.redis_cache import get_redis_client, ping_redis, close_redis_client
+# Old RedisError import:
+# from redis.exceptions import RedisError
+from app.services.cache.redis_cache import (
+    get_redis_client,
+    ping_redis,
+    close_redis_client,
+    UpstashRedisError,
+    UpstashRedisRestClient,
+)
 
 
 def test_get_redis_client_singleton():
@@ -15,12 +21,25 @@ def test_get_redis_client_singleton():
     client1 = get_redis_client()
     client2 = get_redis_client()
     assert client1 is client2
+    assert isinstance(client1, UpstashRedisRestClient)
 
 
 def test_ping_redis_disabled():
     """Test that ping_redis returns False immediately when RAG_CACHE_ENABLED is False."""
     async def _run():
         with patch("app.services.cache.redis_cache.settings.RAG_CACHE_ENABLED", False):
+            result = await ping_redis()
+            assert result is False
+
+    asyncio.run(_run())
+
+
+def test_ping_redis_missing_credentials():
+    """Test that ping_redis returns False when Upstash credentials are missing."""
+    async def _run():
+        with patch("app.services.cache.redis_cache.settings.RAG_CACHE_ENABLED", True), \
+             patch("app.services.cache.redis_cache.settings.UPSTASH_REDIS_REST_URL", ""), \
+             patch("app.services.cache.redis_cache.settings.UPSTASH_REDIS_REST_TOKEN", ""):
             result = await ping_redis()
             assert result is False
 
@@ -34,6 +53,8 @@ def test_ping_redis_success():
         mock_r_client.ping = AsyncMock(return_value=True)
 
         with patch("app.services.cache.redis_cache.settings.RAG_CACHE_ENABLED", True), \
+             patch("app.services.cache.redis_cache.settings.UPSTASH_REDIS_REST_URL", "https://mock.upstash.io"), \
+             patch("app.services.cache.redis_cache.settings.UPSTASH_REDIS_REST_TOKEN", "mock-token"), \
              patch("app.services.cache.redis_cache.get_redis_client", return_value=mock_r_client):
             result = await ping_redis()
             assert result is True
@@ -43,12 +64,16 @@ def test_ping_redis_success():
 
 
 def test_ping_redis_failure_fail_open():
-    """Test that ping_redis catches RedisError, logs warning, and returns False (fail open)."""
+    """Test that ping_redis catches UpstashRedisError, logs warning, and returns False (fail open)."""
     async def _run():
+        # Old RedisError test:
+        # mock_r_client.ping = AsyncMock(side_effect=RedisError("Connection refused"))
         mock_r_client = MagicMock()
-        mock_r_client.ping = AsyncMock(side_effect=RedisError("Connection refused"))
+        mock_r_client.ping = AsyncMock(side_effect=UpstashRedisError("Connection refused"))
 
         with patch("app.services.cache.redis_cache.settings.RAG_CACHE_ENABLED", True), \
+             patch("app.services.cache.redis_cache.settings.UPSTASH_REDIS_REST_URL", "https://mock.upstash.io"), \
+             patch("app.services.cache.redis_cache.settings.UPSTASH_REDIS_REST_TOKEN", "mock-token"), \
              patch("app.services.cache.redis_cache.get_redis_client", return_value=mock_r_client):
             result = await ping_redis()
             assert result is False

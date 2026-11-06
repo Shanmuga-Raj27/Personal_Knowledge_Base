@@ -7,11 +7,21 @@ Unit tests for Phase 5 answer_cache:
 - fail-open: Redis exceptions never propagate
 """
 import asyncio
+import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from redis.exceptions import RedisError
+from app.services.cache.redis_cache import UpstashRedisError
 
+import app.services.rag.answer_cache as answer_cache_mod
 from app.services.rag.answer_cache import get_cached_answer, set_cached_answer
+
+
+@pytest.fixture(autouse=True)
+def clear_local_cache():
+    answer_cache_mod._local_cache.clear()
+    yield
+    answer_cache_mod._local_cache.clear()
 
 
 class TestGetCachedAnswer:
