@@ -1,3 +1,4 @@
+import React from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -5,7 +6,8 @@ import {
   DialogActions,
   Button,
   Typography,
-  Box
+  Box,
+  useTheme,
 } from '@mui/material'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 
@@ -14,8 +16,11 @@ export default function DeleteConfirmDialog({
   onClose,
   docToDelete,
   deleting,
-  onConfirmDelete
+  onConfirmDelete,
 }) {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
   return (
     <Dialog
       open={open}
@@ -25,42 +30,48 @@ export default function DeleteConfirmDialog({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: '12px',
-            border: '1px solid #E2E8F0',
-            backgroundColor: '#FFFFFF',
-            p: 1
-          }
-        }
+            borderRadius: '14px',
+            border: `1px solid ${theme.palette.divider}`,
+            backgroundColor: theme.palette.background.paper,
+            p: 1,
+          },
+        },
       }}
     >
       <DialogTitle
         sx={{
-          fontWeight: 800,
-          fontSize: '1.15rem',
+          fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
+          fontWeight: 700,
+          fontSize: '1.2rem',
           color: '#DC2626',
           display: 'flex',
           alignItems: 'center',
           gap: 1,
           pt: 2,
-          pb: 1
+          pb: 1,
         }}
       >
         <WarningAmberIcon sx={{ color: '#DC2626' }} /> Confirm Permanent Deletion
       </DialogTitle>
       <DialogContent sx={{ py: 1.5 }}>
-        <Typography variant="body2" sx={{ mb: 2, color: '#0F172A', fontWeight: 600 }}>
-          Are you sure you want to delete <strong>{docToDelete?.title || docToDelete?.filename}</strong>?
+        <Typography
+          variant="body2"
+          sx={{ mb: 2, color: isDark ? '#F1F5F9' : '#0A0A0A', fontWeight: 600 }}
+        >
+          Are you sure you want to delete{' '}
+          <strong>{docToDelete?.title || docToDelete?.filename}</strong>?
         </Typography>
         <Box
           sx={{
             p: 1.5,
             borderRadius: '8px',
-            backgroundColor: 'rgba(220, 38, 38, 0.05)',
-            border: '1px solid rgba(220, 38, 38, 0.2)'
+            backgroundColor: isDark ? 'rgba(220, 38, 38, 0.12)' : 'rgba(220, 38, 38, 0.05)',
+            border: '1px solid rgba(220, 38, 38, 0.25)',
           }}
         >
           <Typography variant="caption" sx={{ color: '#DC2626', display: 'block', fontWeight: 500 }}>
-            This will permanently remove the file from cloud storage and MySQL database. This action cannot be undone.
+            This will permanently remove the file from Swan Drive S3 cloud storage and metadata database.
+            This action cannot be undone.
           </Typography>
         </Box>
       </DialogContent>
@@ -68,7 +79,7 @@ export default function DeleteConfirmDialog({
         <Button
           disabled={deleting}
           onClick={onClose}
-          sx={{ color: '#64748B', fontWeight: 600, '&:hover': { color: '#0F172A' } }}
+          sx={{ color: theme.palette.text.secondary, fontWeight: 600, '&:hover': { color: '#0A0A0A' } }}
         >
           Cancel
         </Button>
@@ -82,7 +93,8 @@ export default function DeleteConfirmDialog({
             fontWeight: 700,
             borderRadius: '8px',
             boxShadow: 'none',
-            '&:hover': { backgroundColor: '#B91C1C', boxShadow: 'none' }
+            px: 2.5,
+            '&:hover': { backgroundColor: '#B91C1C', boxShadow: 'none' },
           }}
         >
           {deleting ? 'Deleting...' : 'Delete Document'}

@@ -10,24 +10,12 @@ import {
   Alert,
   Tooltip,
   Link,
+  useTheme,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-
-/**
- * frontend/src/components/RagMessageBubble.jsx
- *
- * Phase 8 §5.4 chat bubble. Renders one conversation message:
- *   - user message: right-aligned question pill
- *   - assistant message: live answer text (pre-wrap), collapsible citations
- *     from `sources`, and a "Developer diagnostics" expander that is only
- *     visible in the debug flow (never part of the normal answer).
- *
- * Purely presentational: no network, no business logic. Collapse open/close is
- * local view state. All styling is MUI via the sx prop + theme tokens.
- */
 
 function formatPages(source) {
   if (source.page_start == null) return ''
@@ -36,9 +24,6 @@ function formatPages(source) {
     : `Pages ${source.page_start}–${source.page_end}`
 }
 
-// Citation sanitizer: replaces raw [id=<uuid>] tokens the model emits with
-// human-safe numbered refs [1], [2] that map to the expandable Sources list.
-// Unknown ids are stripped. No secret (chunk uuid) ever reaches the UI.
 const CITATION_BRACKET_RE =
   /\[(?:id|chunk_id)=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi
 const CITATION_BARE_RE =
@@ -52,58 +37,60 @@ function sanitizeCitations(text, sources) {
   })
   let out = text.replace(CITATION_BRACKET_RE, (match, id) => idToRef.get(id.toLowerCase()) ?? '')
   out = out.replace(CITATION_BARE_RE, '')
-  // Collapse artefacts like "  " or " .", " ," left after stripping unknown ids
   out = out.replace(/\[\s*\]/g, '').replace(/ {2,}/g, ' ')
   return out
 }
 
-const codeBlockSx = {
-  mt: 1,
-  mb: 1,
-  p: 1.25,
-  borderRadius: '8px',
-  backgroundColor: '#0F172A',
-  color: '#E2E8F0',
-  fontSize: '0.8125rem',
-  fontFamily: "'Roboto Mono', Consolas, monospace",
-  overflowX: 'auto',
-  whiteSpace: 'pre',
-  wordBreak: 'normal',
-  '& code': {
-    backgroundColor: 'transparent',
-    color: 'inherit',
-    p: 0,
-    fontSize: 'inherit',
-    fontFamily: 'inherit',
-  },
-}
+function MarkdownContent({ children, isDark, textSecondary }) {
+  const codeBlockSx = {
+    mt: 1,
+    mb: 1,
+    p: 1.5,
+    borderRadius: '8px',
+    backgroundColor: isDark ? '#161922' : '#0F172A',
+    color: '#E2E8F0',
+    fontSize: '0.8125rem',
+    fontFamily: "'Roboto Mono', Consolas, monospace",
+    overflowX: 'auto',
+    whiteSpace: 'pre',
+    wordBreak: 'normal',
+    border: `1px solid ${isDark ? '#262D3D' : '#1E293B'}`,
+    '& code': {
+      backgroundColor: 'transparent',
+      color: 'inherit',
+      p: 0,
+      fontSize: 'inherit',
+      fontFamily: 'inherit',
+    },
+  }
 
-const inlineCodeSx = {
-  backgroundColor: '#EEF2F7',
-  color: '#0A192F',
-  borderRadius: '4px',
-  px: 0.5,
-  py: 0.1,
-  fontSize: '0.82em',
-  fontFamily: "'Roboto Mono', Consolas, monospace",
-}
+  const inlineCodeSx = {
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9',
+    color: isDark ? '#F1F5F9' : '#0A0A0A',
+    borderRadius: '4px',
+    px: 0.6,
+    py: 0.15,
+    fontSize: '0.84em',
+    fontFamily: "'Roboto Mono', Consolas, monospace",
+    border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0'}`,
+  }
 
-function MarkdownContent({ children }) {
   return (
     <Typography
       component="div"
       variant="body1"
       sx={{
-        color: '#0F172A',
-        lineHeight: 1.6,
+        color: isDark ? '#F1F5F9' : '#0A0A0A',
+        lineHeight: 1.65,
         wordBreak: 'break-word',
         fontSize: '0.9375rem',
         '& > *:first-of-type': { mt: 0 },
         '& > *:last-child': { mb: 0 },
-        '& p': { mt: 0.25, mb: 0.75 },
+        '& p': { mt: 0.25, mb: 0.8 },
         '& h1, & h2, & h3, & h4, & h5, & h6': {
-          color: '#0A192F',
-          fontWeight: 800,
+          fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
+          color: isDark ? '#FFFFFF' : '#0A0A0A',
+          fontWeight: 700,
           lineHeight: 1.3,
           mb: 0.5,
           mt: 1.25,
@@ -112,19 +99,19 @@ function MarkdownContent({ children }) {
         '& h2': { fontSize: '1.125rem' },
         '& h3': { fontSize: '1.05rem' },
         '& h4, & h5, & h6': { fontSize: '0.975rem' },
-        '& ul, & ol': { mt: 0.25, mb: 0.75, pl: 3 },
+        '& ul, & ol': { mt: 0.25, mb: 0.8, pl: 3 },
         '& li': { mb: 0.25 },
         '& blockquote': {
           ml: 0,
           pl: 1.5,
-          borderLeft: '3px solid #E2E8F0',
-          color: '#475569',
+          borderLeft: '3px solid #FF6B00',
+          color: textSecondary,
           my: 0.75,
         },
-        '& hr': { border: 'none', borderTop: '1px solid #E2E8F0', my: 1.25 },
+        '& hr': { border: 'none', borderTop: `1px solid ${isDark ? '#262D3D' : '#EAECEF'}`, my: 1.25 },
         '& table': { borderCollapse: 'collapse', mb: 0.75, fontSize: '0.85rem' },
-        '& th, & td': { border: '1px solid #E2E8F0', px: 1, py: 0.5 },
-        '& th': { backgroundColor: '#F8FAFC', fontWeight: 700 },
+        '& th, & td': { border: `1px solid ${isDark ? '#262D3D' : '#EAECEF'}`, px: 1, py: 0.5 },
+        '& th': { backgroundColor: isDark ? '#161922' : '#F8FAFC', fontWeight: 700 },
       }}
     >
       <ReactMarkdown
@@ -142,7 +129,7 @@ function MarkdownContent({ children }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 underline="hover"
-                color="primary"
+                sx={{ color: '#0284C7', fontWeight: 600 }}
                 {...props}
               >
                 {children}
@@ -166,6 +153,9 @@ function MarkdownContent({ children }) {
 }
 
 function RagMessageBubble({ message }) {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
 
@@ -182,14 +172,15 @@ function RagMessageBubble({ message }) {
         <Box
           sx={{
             maxWidth: '75%',
-            px: 2,
-            py: 1.25,
-            borderRadius: '12px 12px 4px 12px',
-            backgroundColor: '#0A192F',
+            px: 2.2,
+            py: 1.4,
+            borderRadius: '14px 14px 4px 14px',
+            backgroundColor: isDark ? '#1A1E29' : '#0A0A0A',
             color: '#FFFFFF',
+            border: isDark ? '1px solid #2B3245' : '1px solid #1A1A1A',
           }}
         >
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
+          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5, fontSize: '0.92rem' }}>
             {text}
           </Typography>
         </Box>
@@ -204,11 +195,11 @@ function RagMessageBubble({ message }) {
         sx={{
           maxWidth: '85%',
           width: '100%',
-          px: 2,
-          py: 1.5,
-          borderRadius: '12px 12px 12px 4px',
-          border: '1px solid #E2E8F0',
-          backgroundColor: '#FFFFFF',
+          px: 2.5,
+          py: 2,
+          borderRadius: '14px 14px 14px 4px',
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.background.paper,
         }}
       >
         {error ? (
@@ -221,17 +212,19 @@ function RagMessageBubble({ message }) {
           </Alert>
         ) : (
           <>
-            <MarkdownContent>{sanitizeCitations(text, sources)}</MarkdownContent>
+            <MarkdownContent isDark={isDark} textSecondary={theme.palette.text.secondary}>
+              {sanitizeCitations(text, sources)}
+            </MarkdownContent>
             {streaming && text && (
-              <Typography component="span" sx={{ color: '#0A192F', ml: 0.5 }}>
+              <Typography component="span" sx={{ color: '#FF6B00', ml: 0.5, fontWeight: 700 }}>
                 ▌
               </Typography>
             )}
 
             {/* Streaming state with no tokens yet */}
             {streaming && !text && (
-              <Typography variant="body2" sx={{ color: '#64748B' }}>
-                Thinking…
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                Synthesizing answer from selected documents…
               </Typography>
             )}
           </>
@@ -239,8 +232,8 @@ function RagMessageBubble({ message }) {
 
         {/* Collapsible citations */}
         {hasSources && (
-          <Box sx={{ mt: 1.5 }}>
-            <Divider sx={{ mb: 1 }} />
+          <Box sx={{ mt: 2 }}>
+            <Divider sx={{ mb: 1.2, borderColor: theme.palette.divider }} />
             <Box
               sx={{
                 display: 'flex',
@@ -248,15 +241,23 @@ function RagMessageBubble({ message }) {
                 justifyContent: 'space-between',
               }}
             >
-              <Typography variant="overline" sx={{ color: '#64748B', letterSpacing: '0.04em' }}>
-                Sources ({sources.length})
+              <Typography
+                variant="overline"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  letterSpacing: '0.04em',
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                }}
+              >
+                Sources & Citations ({sources.length})
               </Typography>
               <IconButton
                 size="small"
                 onClick={() => setSourcesOpen((prev) => !prev)}
                 aria-expanded={sourcesOpen}
                 aria-label="Toggle sources"
-                sx={{ color: '#64748B' }}
+                sx={{ color: theme.palette.text.secondary }}
               >
                 <ExpandMoreIcon
                   fontSize="small"
@@ -273,17 +274,19 @@ function RagMessageBubble({ message }) {
                   <Tooltip key={source.chunk_id || idx} title={source.chunk_id || ''} arrow>
                     <Chip
                       size="small"
-                      icon={<ChatBubbleOutlineOutlinedIcon />}
-                      label={`${source.filename}${formatPages(source) ? ` · ${formatPages(source)}` : ''}`}
+                      icon={<ChatBubbleOutlineOutlinedIcon sx={{ fontSize: '14px !important' }} />}
+                      label={`[${idx + 1}] ${source.filename}${formatPages(source) ? ` · ${formatPages(source)}` : ''}`}
                       variant="outlined"
                       sx={{
                         justifyContent: 'flex-start',
+                        borderColor: theme.palette.divider,
+                        backgroundColor: isDark ? '#141720' : '#F8FAFC',
                         '& .MuiChip-label': {
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          color: '#0F172A',
+                          color: isDark ? '#F1F5F9' : '#0A0A0A',
                         },
-                        '& .MuiChip-icon': { color: '#64748B' },
+                        '& .MuiChip-icon': { color: '#0284C7' },
                       }}
                     />
                   </Tooltip>
@@ -293,10 +296,10 @@ function RagMessageBubble({ message }) {
           </Box>
         )}
 
-        {/* Developer diagnostics expander (gated, never in normal answer flow) */}
+        {/* Developer diagnostics expander */}
         {hasDiagnostics && (
           <Box sx={{ mt: 1.5 }}>
-            <Divider sx={{ mb: 1 }} />
+            <Divider sx={{ mb: 1, borderColor: theme.palette.divider }} />
             <Box
               sx={{
                 display: 'flex',
@@ -304,15 +307,18 @@ function RagMessageBubble({ message }) {
                 justifyContent: 'space-between',
               }}
             >
-              <Typography variant="overline" sx={{ color: '#94A3B8', letterSpacing: '0.04em' }}>
-                Developer diagnostics
+              <Typography
+                variant="overline"
+                sx={{ color: theme.palette.text.secondary, letterSpacing: '0.04em', fontSize: '0.68rem' }}
+              >
+                Developer Diagnostics
               </Typography>
               <IconButton
                 size="small"
                 onClick={() => setDiagnosticsOpen((prev) => !prev)}
                 aria-expanded={diagnosticsOpen}
                 aria-label="Toggle developer diagnostics"
-                sx={{ color: '#94A3B8' }}
+                sx={{ color: theme.palette.text.secondary }}
               >
                 <ExpandMoreIcon
                   fontSize="small"
@@ -330,10 +336,10 @@ function RagMessageBubble({ message }) {
                   mt: 1,
                   p: 1.25,
                   borderRadius: '8px',
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
+                  backgroundColor: isDark ? '#0C0E14' : '#F8FAFC',
+                  border: `1px solid ${theme.palette.divider}`,
                   fontSize: '0.75rem',
-                  color: '#334155',
+                  color: theme.palette.text.secondary,
                   fontFamily: "'Roboto Mono', Consolas, monospace",
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',

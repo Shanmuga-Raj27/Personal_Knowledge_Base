@@ -1,43 +1,52 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   ThemeProvider,
-  createTheme,
   CssBaseline,
   Container,
   Box,
-  Typography
+  Typography,
 } from '@mui/material'
 import { Analytics } from '@vercel/analytics/react'
 import { pingSystem } from './apis/systemApi'
 
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
+import LandingPage from './pages/LandingPage'
 import AuthPage from './pages/AuthPage'
 import VaultPage from './pages/VaultPage'
 import KnowledgeBase from './pages/KnowledgeBase'
 import { KnowledgeBaseFilesProvider } from './context/KnowledgeBaseFilesContext'
+import { createAppTheme } from './theme'
 
 import {
   getToken,
   clearToken,
   decodeToken,
   saveToken,
-  isAuthenticated
+  isAuthenticated,
 } from './services/authService'
 
 /**
  * frontend/src/App.jsx
  *
- * Phase 8 §3 Step 6 — composition root only.
- *
- * Owns the auth gate, theme, header, footer, and the MUI Tabs that switch
- * between the two authenticated views (Vault / Knowledge Base). Everything
- * page-specific lives in ./pages/VaultPage.jsx and ./pages/KnowledgeBase.jsx —
- * conditional render unmounts the hidden view, so each page reloads its data
- * (documents) on entry.
+ * Swan Drive — AI Cloud Storage Platform
+ * Frontend UI/UX Redesign Root.
  */
 
 function App() {
+  // Theme Mode State (Light / Dark)
+  const [themeMode, setThemeMode] = useState(() => {
+    return localStorage.getItem('swan_drive_theme') || 'light'
+  })
+
+  const handleToggleTheme = useCallback(() => {
+    setThemeMode((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light'
+      localStorage.setItem('swan_drive_theme', next)
+      return next
+    })
+  }, [])
+
   // Session States
   const [token, setToken] = useState(() => getToken())
   const [currentUser, setCurrentUser] = useState(() => {
@@ -58,6 +67,9 @@ function App() {
     }
     return { id: decoded?.sub, email }
   })
+
+  // Unauthenticated view state: 'landing' | 'login' | 'register'
+  const [authView, setAuthView] = useState('landing')
 
   // App frame state
   const [backendStatus, setBackendStatus] = useState('checking')
@@ -102,86 +114,81 @@ function App() {
     setToken(null)
     setCurrentUser(null)
     setView('vault')
+    setAuthView('landing')
   }, [])
 
-  // Tokenized Light Theme Design System
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: 'light',
-          primary: {
-            main: '#0A192F'
-          },
-          background: {
-            default: '#F8FAFC',
-            paper: '#FFFFFF'
-          },
-          text: {
-            primary: '#0F172A',
-            secondary: '#64748B'
-          },
-          divider: '#E2E8F0'
-        },
-        typography: {
-          fontFamily: `'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
-          button: {
-            textTransform: 'none',
-            fontWeight: 700
-          }
-        },
-        components: {
-          MuiPaper: {
-            styleOverrides: {
-              root: {
-                backgroundImage: 'none',
-                boxShadow: 'none'
-              }
-            }
-          }
-        }
-      }),
-    []
-  )
+  // Create Swan Drive Theme based on mode
+  const theme = useMemo(() => createAppTheme(themeMode), [themeMode])
 
   const isUserAuthenticated = token && isAuthenticated()
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
-        {/* Minimal Header */}
-        <Header
-          backendStatus={backendStatus}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          onToggleSidebar={handleToggleSidebar}
-          sidebarOpen={sidebarOpen}
-        />
-
-        {/* Conditional views depending on session */}
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: theme.palette.background.default,
+          color: theme.palette.text.primary,
+        }}
+      >
         {!isUserAuthenticated ? (
-          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            <AuthPage onLoginSuccess={handleLoginSuccess} />
-            <Box
-              component="footer"
-              sx={{
-                py: 3,
-                borderTop: '1px solid #E2E8F0',
-                backgroundColor: '#FFFFFF',
-                textAlign: 'center',
-                mt: 'auto'
-              }}
-            >
-              <Container maxWidth="lg">
-                <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>
-                  &copy; {new Date().getFullYear()} Personal Knowledge Base. Minimalist Cloud Document Vault.
-                </Typography>
-              </Container>
+          authView === 'landing' ? (
+            <LandingPage
+              onLoginClick={() => setAuthView('login')}
+              onRegisterClick={() => setAuthView('register')}
+              themeMode={themeMode}
+              onToggleTheme={handleToggleTheme}
+            />
+          ) : (
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <Header
+                backendStatus={backendStatus}
+                currentUser={null}
+                onLogout={handleLogout}
+                themeMode={themeMode}
+                onToggleTheme={handleToggleTheme}
+              />
+              <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+                <AuthPage
+                  onLoginSuccess={handleLoginSuccess}
+                  onBackToLanding={() => setAuthView('landing')}
+                  initialMode={authView}
+                />
+              </Box>
+              <Box
+                component="footer"
+                sx={{
+                  py: 3,
+                  borderTop: `1px solid ${theme.palette.divider}`,
+                  backgroundColor: theme.palette.background.paper,
+                  textAlign: 'center',
+                  mt: 'auto',
+                }}
+              >
+                <Container maxWidth="lg">
+                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                    &copy; {new Date().getFullYear()} Swan Drive SaaS. Intelligent Cloud Storage & Semantic AI.
+                  </Typography>
+                </Container>
+              </Box>
             </Box>
-          </Box>
+          )
         ) : (
           <KnowledgeBaseFilesProvider userId={currentUser?.id}>
+            {/* Authenticated Swan Drive Header */}
+            <Header
+              backendStatus={backendStatus}
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onToggleSidebar={handleToggleSidebar}
+              sidebarOpen={sidebarOpen}
+              themeMode={themeMode}
+              onToggleTheme={handleToggleTheme}
+            />
+
             <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 'calc(100vh - 64px)' }}>
               {/* Collapsible Left-side Navigation Sidebar */}
               <Sidebar
@@ -199,8 +206,8 @@ function App() {
                   minWidth: 0,
                   display: 'flex',
                   flexDirection: 'column',
-                  backgroundColor: '#F8FAFC',
-                  overflow: 'hidden'
+                  backgroundColor: theme.palette.background.default,
+                  overflow: 'hidden',
                 }}
               >
                 {/* Knowledge Base View */}
@@ -209,7 +216,7 @@ function App() {
                     display: view === 'knowledge' ? 'flex' : 'none',
                     flexDirection: 'column',
                     flexGrow: 1,
-                    minHeight: 0
+                    minHeight: 0,
                   }}
                 >
                   <KnowledgeBase userId={currentUser?.id} />
@@ -221,7 +228,7 @@ function App() {
                     display: view === 'vault' ? 'flex' : 'none',
                     flexDirection: 'column',
                     flexGrow: 1,
-                    overflowY: 'auto'
+                    overflowY: 'auto',
                   }}
                 >
                   <Container maxWidth="lg" sx={{ mt: 4, mb: 6, flexGrow: 1 }}>
@@ -233,15 +240,15 @@ function App() {
                     component="footer"
                     sx={{
                       py: 3,
-                      borderTop: '1px solid #E2E8F0',
-                      backgroundColor: '#FFFFFF',
+                      borderTop: `1px solid ${theme.palette.divider}`,
+                      backgroundColor: theme.palette.background.paper,
                       textAlign: 'center',
-                      mt: 'auto'
+                      mt: 'auto',
                     }}
                   >
                     <Container maxWidth="lg">
-                      <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 500 }}>
-                        &copy; {new Date().getFullYear()} Personal Knowledge Base. Minimalist Cloud Document Vault.
+                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                        &copy; {new Date().getFullYear()} Swan Drive. Minimalist Cloud Document Vault & Knowledge Base.
                       </Typography>
                     </Container>
                   </Box>

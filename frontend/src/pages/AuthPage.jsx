@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Container,
@@ -10,16 +10,21 @@ import {
   InputAdornment,
   Typography,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  Stack,
 } from '@mui/material'
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { loginUser, registerUser } from '../apis/authApi'
+import { SwanLogo } from './LandingPage'
 
-export default function AuthPage({ onLoginSuccess }) {
-  const [isLogin, setIsLogin] = useState(true)
+export default function AuthPage({ onLoginSuccess, onBackToLanding, initialMode = 'login' }) {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
+  const [isLogin, setIsLogin] = useState(initialMode !== 'register')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -94,32 +99,110 @@ export default function AuthPage({ onLoginSuccess }) {
   }
 
   return (
-    <Container maxWidth="xs" sx={{ minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-      <Card sx={{ width: '100%', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)' }}>
-        <CardContent sx={{ p: 4 }}>
-          {/* Header Icon & Title */}
+    <Container
+      maxWidth="xs"
+      sx={{
+        minHeight: '85vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 6,
+      }}
+    >
+      {/* Back to landing button */}
+      {onBackToLanding && (
+        <Box sx={{ width: '100%', mb: 2 }}>
+          <Button
+            startIcon={<ArrowBackIcon fontSize="small" />}
+            onClick={onBackToLanding}
+            size="small"
+            sx={{
+              color: theme.palette.text.secondary,
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              '&:hover': {
+                color: '#FF6B00',
+                backgroundColor: 'transparent',
+              },
+            }}
+          >
+            Back to Swan Drive
+          </Button>
+        </Box>
+      )}
+
+      <Card
+        sx={{
+          width: '100%',
+          borderRadius: '16px',
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.background.paper,
+          boxShadow: isDark
+            ? '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+            : '0 10px 25px -5px rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3.5, sm: 4.5 } }}>
+          {/* Brand & Heading */}
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ p: 1.5, borderRadius: '50%', backgroundColor: '#F1F5F9', color: '#0A192F', display: 'flex', mb: 1 }}>
-              {isLogin ? <LockOutlinedIcon /> : <PersonAddOutlinedIcon />}
+            <Box sx={{ mb: 1.5 }}>
+              <SwanLogo size={38} />
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', fontFamily: 'Outfit' }}>
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+            <Typography
+              variant="h5"
+              sx={{
+                fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
+                fontWeight: 700,
+                color: isDark ? '#FFFFFF' : '#0A0A0A',
+                textAlign: 'center',
+              }}
+            >
+              {isLogin ? 'Welcome Back' : 'Create Swan Drive Account'}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#64748B', mt: 0.5, textAlign: 'center' }}>
-              {isLogin ? 'Log in to access your cloud document vault' : 'Register email to host and search private documents'}
+            <Typography
+              variant="body2"
+              sx={{
+                color: theme.palette.text.secondary,
+                mt: 0.8,
+                textAlign: 'center',
+                fontSize: '0.875rem',
+              }}
+            >
+              {isLogin
+                ? 'Sign in to access your cloud vault and knowledge base'
+                : 'Register your email to begin hosting private documents'}
             </Typography>
           </Box>
 
           {/* Feedback Banners */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: '8px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#991B1B' }}>
+            <Alert
+              severity="error"
+              sx={{
+                mb: 3,
+                borderRadius: '8px',
+                border: '1px solid #FECACA',
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+                color: isDark ? '#FCA5A5' : '#991B1B',
+              }}
+            >
               {error}
             </Alert>
           )}
 
           {registerSuccess && (
-            <Alert severity="success" sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BBF7D0', backgroundColor: '#F0FDF4', color: '#166534' }}>
-              Account created successfully! Please log in now.
+            <Alert
+              severity="success"
+              sx={{
+                mb: 3,
+                borderRadius: '8px',
+                border: '1px solid #BBF7D0',
+                backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4',
+                color: isDark ? '#86EFAC' : '#166534',
+              }}
+            >
+              Account created successfully! Please sign in now.
             </Alert>
           )}
 
@@ -140,7 +223,11 @@ export default function AuthPage({ onLoginSuccess }) {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '8px',
-                }
+                  backgroundColor: isDark ? '#161922' : '#FBFBFC',
+                  '& fieldset': { borderColor: theme.palette.divider },
+                  '&:hover fieldset': { borderColor: '#FF6B00' },
+                  '&.Mui-focused fieldset': { borderColor: '#FF6B00' },
+                },
               }}
             />
 
@@ -164,17 +251,23 @@ export default function AuthPage({ onLoginSuccess }) {
                         aria-label="toggle password visibility"
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
+                        size="small"
+                        sx={{ color: theme.palette.text.secondary }}
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                       </IconButton>
                     </InputAdornment>
                   ),
-                }
+                },
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '8px',
-                }
+                  backgroundColor: isDark ? '#161922' : '#FBFBFC',
+                  '& fieldset': { borderColor: theme.palette.divider },
+                  '&:hover fieldset': { borderColor: '#FF6B00' },
+                  '&.Mui-focused fieldset': { borderColor: '#FF6B00' },
+                },
               }}
             />
 
@@ -194,11 +287,16 @@ export default function AuthPage({ onLoginSuccess }) {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '8px',
-                  }
+                    backgroundColor: isDark ? '#161922' : '#FBFBFC',
+                    '& fieldset': { borderColor: theme.palette.divider },
+                    '&:hover fieldset': { borderColor: '#FF6B00' },
+                    '&.Mui-focused fieldset': { borderColor: '#FF6B00' },
+                  },
                 }}
               />
             )}
 
+            {/* Primary Action Button (Water Blue) */}
             <Button
               type="submit"
               fullWidth
@@ -207,38 +305,40 @@ export default function AuthPage({ onLoginSuccess }) {
               sx={{
                 mt: 3,
                 mb: 2,
-                py: 1.5,
+                py: 1.3,
                 borderRadius: '8px',
-                backgroundColor: '#0A192F',
+                backgroundColor: '#0284C7', // Water Blue
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: '0.95rem',
                 '&:hover': {
-                  backgroundColor: '#1E293B',
+                  backgroundColor: '#0369A1',
                 },
-                fontWeight: 700
               }}
             >
               {loading ? (
-                <CircularProgress size={24} sx={{ color: '#FFFFFF' }} />
+                <CircularProgress size={22} sx={{ color: '#FFFFFF' }} />
               ) : isLogin ? (
                 'Sign In'
               ) : (
-                'Sign Up'
+                'Create Account'
               )}
             </Button>
 
             {/* Toggle Mode Option */}
-            <Box sx={{ textAlignment: 'center', mt: 1, display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ textAlign: 'center', mt: 1 }}>
               <Button
                 variant="text"
                 onClick={toggleAuthMode}
                 disabled={loading}
                 sx={{
-                  color: '#64748B',
-                  fontSize: '0.875rem',
+                  color: theme.palette.text.secondary,
+                  fontSize: '0.85rem',
                   fontWeight: 600,
                   '&:hover': {
                     backgroundColor: 'transparent',
-                    color: '#0A192F',
-                  }
+                    color: '#FF6B00',
+                  },
                 }}
               >
                 {isLogin

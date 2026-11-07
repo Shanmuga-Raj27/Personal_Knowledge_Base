@@ -1,17 +1,21 @@
-import { Paper, Typography, IconButton, Button } from '@mui/material'
+import React from 'react'
+import { Paper, Typography, IconButton, Button, useTheme } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 
 function SelectionToolbar({ selectedCount, onClear, onAddToKnowledgeBase, disabled }) {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
   return (
     <Paper
       elevation={0}
       sx={{
-        p: 2,
-        mb: 4,
+        p: 1.8,
+        mb: 3,
         borderRadius: '12px',
-        backgroundColor: '#0A192F',
-        border: '1px solid #0A192F',
+        backgroundColor: isDark ? '#161922' : '#0A0A0A',
+        border: `1px solid ${isDark ? '#262D3D' : '#1A1A1A'}`,
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
@@ -25,6 +29,7 @@ function SelectionToolbar({ selectedCount, onClear, onAddToKnowledgeBase, disabl
           color: '#FFFFFF',
           border: '1px solid rgba(255,255,255,0.2)',
           borderRadius: '8px',
+          p: 0.75,
           '&:hover': { backgroundColor: 'rgba(255,255,255,0.12)' },
         }}
       >
@@ -32,7 +37,7 @@ function SelectionToolbar({ selectedCount, onClear, onAddToKnowledgeBase, disabl
       </IconButton>
 
       <Typography sx={{ color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem', flexGrow: 1 }}>
-        {selectedCount} selected
+        {selectedCount} document{selectedCount === 1 ? '' : 's'} selected
       </Typography>
 
       <Button
@@ -41,18 +46,24 @@ function SelectionToolbar({ selectedCount, onClear, onAddToKnowledgeBase, disabl
         onClick={onAddToKnowledgeBase}
         disabled={Boolean(disabled)}
         sx={{
-          backgroundColor: '#FFFFFF',
-          color: '#0A192F',
+          backgroundColor: '#0284C7', // Water Blue
+          color: '#FFFFFF',
           fontWeight: 700,
           fontSize: '0.85rem',
           textTransform: 'none',
           px: 2.5,
-          py: 0.9,
+          py: 0.85,
           borderRadius: '8px',
           boxShadow: 'none',
           whiteSpace: 'nowrap',
-          '&:hover': { backgroundColor: '#F1F5F9', boxShadow: 'none' },
-          '&.Mui-disabled': { backgroundColor: '#E2E8F0', color: '#94A3B8' },
+          '&:hover': {
+            backgroundColor: '#0369A1',
+            boxShadow: 'none',
+          },
+          '&.Mui-disabled': {
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            color: 'rgba(255,255,255,0.4)',
+          },
         }}
       >
         Add to Knowledge Base
@@ -61,4 +72,4 @@ function SelectionToolbar({ selectedCount, onClear, onAddToKnowledgeBase, disabl
   )
 }
 
-export default SelectionToolbar
+export default React.memo(SelectionToolbar)

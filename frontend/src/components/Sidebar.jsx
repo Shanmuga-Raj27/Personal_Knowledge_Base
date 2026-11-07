@@ -10,7 +10,8 @@ import {
   Typography,
   Tooltip,
   Divider,
-  Chip
+  Chip,
+  useTheme,
 } from '@mui/material'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
@@ -22,21 +23,23 @@ const DRAWER_WIDTH_OPEN = 240
 const DRAWER_WIDTH_COLLAPSED = 72
 
 function Sidebar({ open, onToggle, currentView, onViewChange }) {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
   const { selected } = useKnowledgeBaseFiles()
 
   const navItems = [
     {
       id: 'vault',
-      label: 'Vault',
+      label: 'Document Vault',
       icon: <FolderOutlinedIcon fontSize="small" />,
-      badge: null
+      badge: null,
     },
     {
       id: 'knowledge',
       label: 'Knowledge Base',
       icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
-      badge: selected.length > 0 ? selected.length : null
-    }
+      badge: selected.length > 0 ? selected.length : null,
+    },
   ]
 
   const currentWidth = open ? DRAWER_WIDTH_OPEN : DRAWER_WIDTH_COLLAPSED
@@ -48,11 +51,10 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
       sx={{
         width: currentWidth,
         flexShrink: 0,
-        transition: (theme) =>
-          theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen
-          })
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
       }}
     >
       <Box
@@ -60,16 +62,15 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
           width: currentWidth,
           height: '100%',
           minHeight: 'calc(100vh - 64px)',
-          backgroundColor: '#FFFFFF',
-          borderRight: '1px solid #E2E8F0',
+          backgroundColor: isDark ? '#0A0C10' : '#FFFFFF',
+          borderRight: `1px solid ${theme.palette.divider}`,
           display: 'flex',
           flexDirection: 'column',
-          transition: (theme) =>
-            theme.transitions.create('width', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen
-            }),
-          overflowX: 'hidden'
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
+          overflowX: 'hidden',
         }}
       >
         {/* Sidebar Header & Collapse Toggle */}
@@ -80,7 +81,7 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
             justifyContent: open ? 'space-between' : 'center',
             px: open ? 2.5 : 1,
             py: 2,
-            minHeight: 56
+            minHeight: 56,
           }}
         >
           {open && (
@@ -88,9 +89,10 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
               variant="caption"
               sx={{
                 fontWeight: 700,
-                color: '#64748B',
+                color: theme.palette.text.secondary,
                 textTransform: 'uppercase',
-                letterSpacing: '0.06em'
+                letterSpacing: '0.06em',
+                fontSize: '0.72rem',
               }}
             >
               Workspace
@@ -102,15 +104,15 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
               onClick={onToggle}
               aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
               sx={{
-                color: '#64748B',
-                border: '1px solid #E2E8F0',
+                color: theme.palette.text.secondary,
+                border: `1px solid ${theme.palette.divider}`,
                 borderRadius: '8px',
                 p: 0.75,
                 '&:hover': {
-                  backgroundColor: '#F8FAFC',
-                  color: '#0A192F',
-                  borderColor: '#CBD5E1'
-                }
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC',
+                  color: isDark ? '#FFFFFF' : '#0A0A0A',
+                  borderColor: '#FF6B00',
+                },
               }}
             >
               {open ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
@@ -118,7 +120,7 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
           </Tooltip>
         </Box>
 
-        <Divider sx={{ borderColor: '#E2E8F0' }} />
+        <Divider sx={{ borderColor: theme.palette.divider }} />
 
         {/* Navigation Items */}
         <List sx={{ px: 1.5, py: 2, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -134,20 +136,27 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
                   borderRadius: '10px',
                   px: open ? 2 : 1.75,
                   justifyContent: open ? 'initial' : 'center',
-                  backgroundColor: isSelected ? '#0A192F' : 'transparent',
-                  color: isSelected ? '#FFFFFF' : '#475569',
+                  backgroundColor: isSelected
+                    ? (isDark ? 'rgba(255, 107, 0, 0.15)' : '#FFF5EE')
+                    : 'transparent',
+                  color: isSelected ? '#FF6B00' : theme.palette.text.secondary,
+                  border: isSelected
+                    ? `1px solid ${isDark ? 'rgba(255, 107, 0, 0.35)' : '#FFD8BF'}`
+                    : '1px solid transparent',
                   transition: 'all 0.15s ease-in-out',
                   '&:hover': {
-                    backgroundColor: isSelected ? '#0F172A' : '#F1F5F9',
-                    color: isSelected ? '#FFFFFF' : '#0A192F'
+                    backgroundColor: isSelected
+                      ? (isDark ? 'rgba(255, 107, 0, 0.2)' : '#FFF0E5')
+                      : (isDark ? 'rgba(255, 255, 255, 0.04)' : '#F1F5F9'),
+                    color: isSelected ? '#FF6B00' : (isDark ? '#F1F5F9' : '#0A0A0A'),
                   },
                   '&.Mui-selected': {
-                    backgroundColor: '#0A192F',
-                    color: '#FFFFFF',
+                    backgroundColor: isDark ? 'rgba(255, 107, 0, 0.15)' : '#FFF5EE',
+                    color: '#FF6B00',
                     '&:hover': {
-                      backgroundColor: '#0F172A'
-                    }
-                  }
+                      backgroundColor: isDark ? 'rgba(255, 107, 0, 0.2)' : '#FFF0E5',
+                    },
+                  },
                 }}
               >
                 <ListItemIcon
@@ -155,7 +164,7 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
                     minWidth: 0,
                     mr: open ? 2 : 'auto',
                     justifyContent: 'center',
-                    color: isSelected ? '#FFFFFF' : '#64748B'
+                    color: isSelected ? '#FF6B00' : theme.palette.text.secondary,
                   }}
                 >
                   {item.icon}
@@ -166,9 +175,9 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
                     primary={
                       <Typography
                         sx={{
-                          fontSize: '0.9rem',
+                          fontSize: '0.88rem',
                           fontWeight: isSelected ? 700 : 500,
-                          color: isSelected ? '#FFFFFF' : '#334155'
+                          color: isSelected ? '#FF6B00' : (isDark ? '#E2E8F0' : '#334155'),
                         }}
                       >
                         {item.label}
@@ -186,9 +195,9 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
                       height: 20,
                       fontSize: '0.72rem',
                       fontWeight: 700,
-                      backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : '#EFF6FF',
-                      color: isSelected ? '#FFFFFF' : '#1D4ED8',
-                      borderRadius: '6px'
+                      backgroundColor: '#0284C7', // Water Blue
+                      color: '#FFFFFF',
+                      borderRadius: '6px',
                     }}
                   />
                 )}
@@ -208,6 +217,27 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
             )
           })}
         </List>
+
+        {/* Footer info in sidebar when open */}
+        {open && (
+          <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: '8px',
+                backgroundColor: isDark ? '#12151D' : '#F8FAFC',
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary, display: 'block' }}>
+                Swan Drive Cloud
+              </Typography>
+              <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.72rem' }}>
+                S3 Storage &bull; AI Embeddings
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   )

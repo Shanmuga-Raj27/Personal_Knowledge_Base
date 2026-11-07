@@ -139,3 +139,5 @@ prompt-base/
 *opencode.json
 
 /aws-secret
+
+.playwright-mcp

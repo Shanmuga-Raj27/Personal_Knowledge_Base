@@ -3,6 +3,9 @@ import {
   Alert,
   Button,
   Paper,
+  Box,
+  Typography,
+  useTheme,
 } from '@mui/material'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import ChecklistIcon from '@mui/icons-material/Checklist'
@@ -46,6 +49,9 @@ const ALLOWED_EXTENSIONS = {
  */
 
 function VaultPage() {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
   // System States
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -543,6 +549,25 @@ function VaultPage() {
 
   return (
     <>
+      {/* Page Title & Intro */}
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
+            fontWeight: 700,
+            color: isDark ? '#FFFFFF' : '#0A0A0A',
+            letterSpacing: '-0.02em',
+            mb: 0.5,
+          }}
+        >
+          Document Vault
+        </Typography>
+        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+          Store, manage, and verify documents in high-availability S3 cloud storage with semantic vector search.
+        </Typography>
+      </Box>
+
       <SearchHeader
         searchTerm={searchTerm}
         onSearchChange={handleSearchChange}
@@ -569,10 +594,10 @@ function VaultPage() {
           elevation={0}
           sx={{
             p: 1.5,
-            mb: 4,
+            mb: 3,
             borderRadius: '12px',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
+            backgroundColor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
             display: 'flex',
             justifyContent: 'flex-start',
           }}
@@ -582,14 +607,17 @@ function VaultPage() {
             startIcon={<ChecklistIcon />}
             onClick={handleEnterSelectionMode}
             sx={{
-              color: '#0A192F',
-              borderColor: '#E2E8F0',
+              color: isDark ? '#FFFFFF' : '#0A0A0A',
+              borderColor: theme.palette.divider,
               textTransform: 'none',
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: '0.85rem',
               borderRadius: '8px',
               px: 2,
-              '&:hover': { borderColor: '#0A192F', backgroundColor: '#F8FAFC' },
+              '&:hover': {
+                borderColor: '#FF6B00',
+                backgroundColor: isDark ? 'rgba(255, 107, 0, 0.08)' : '#FFF5EE',
+              },
             }}
           >
             Select Files

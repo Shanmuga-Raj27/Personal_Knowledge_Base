@@ -12,6 +12,7 @@ import {
   MenuItem,
   ListItemIcon,
   Divider,
+  useTheme,
 } from '@mui/material'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import DescriptionIcon from '@mui/icons-material/Description'
@@ -30,10 +31,10 @@ function getMuiFileTypeIcon(contentType, filename) {
     return <PictureAsPdfIcon sx={{ color: '#DC2626', fontSize: 24 }} />
   }
   if (name.endsWith('.docx') || contentType?.includes('wordprocessingml')) {
-    return <DescriptionIcon sx={{ color: '#2563EB', fontSize: 24 }} />
+    return <DescriptionIcon sx={{ color: '#0284C7', fontSize: 24 }} />
   }
   if (contentType === 'text/markdown' || name.endsWith('.md')) {
-    return <CodeIcon sx={{ color: '#0284C7', fontSize: 24 }} />
+    return <CodeIcon sx={{ color: '#FF6B00', fontSize: 24 }} />
   }
   if (contentType === 'text/plain' || name.endsWith('.txt')) {
     return <TextSnippetIcon sx={{ color: '#16A34A', fontSize: 24 }} />
@@ -49,7 +50,19 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
-function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAddToKnowledgeBase, selectionMode, onLongPress }) {
+function FileRow({
+  doc,
+  selected,
+  onToggleSelect,
+  onOpen,
+  onEdit,
+  onDelete,
+  onAddToKnowledgeBase,
+  selectionMode,
+  onLongPress,
+}) {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
   const parsedTags = doc.tags ? doc.tags.split(',').map((t) => t.trim()).filter(Boolean) : []
   const [anchorEl, setAnchorEl] = useState(null)
   const menuOpen = Boolean(anchorEl)
@@ -78,7 +91,6 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
 
   const handlePointerDown = (e) => {
     if (e.button !== 0) return
-    // Menu button handles its own clicks — don't start a long-press there.
     if (e.target.closest('button')) return
     longPressFiredRef.current = false
     longPressTimerRef.current = setTimeout(() => {
@@ -118,8 +130,14 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
         height: 72,
         transition: 'background-color 0.15s ease',
         cursor: selectionMode ? 'pointer' : 'default',
-        '&:hover': { backgroundColor: 'rgba(10, 25, 47, 0.03)' },
-        '& td': { borderColor: '#E2E8F0', py: 1, verticalAlign: 'middle' },
+        '&:hover': {
+          backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+        },
+        '& td': {
+          borderColor: theme.palette.divider,
+          py: 1,
+          verticalAlign: 'middle',
+        },
       }}
     >
       {selectionMode && (
@@ -131,8 +149,8 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
             onClick={(e) => e.stopPropagation()}
             inputProps={{ 'aria-label': `Select ${doc.filename}` }}
             sx={{
-              color: '#94A3B8',
-              '&.Mui-checked': { color: '#0A192F' },
+              color: theme.palette.text.secondary,
+              '&.Mui-checked': { color: '#FF6B00' }, // Orange highlight
             }}
           />
         </TableCell>
@@ -150,7 +168,7 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
                 variant="subtitle2"
                 sx={{
                   fontWeight: 700,
-                  color: '#0F172A',
+                  color: isDark ? '#F1F5F9' : '#0A0A0A',
                   lineHeight: 1.25,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -172,12 +190,12 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
                       size="small"
                       variant="outlined"
                       sx={{
-                        height: 16,
-                        fontSize: '0.6rem',
+                        height: 18,
+                        fontSize: '0.62rem',
                         fontWeight: 700,
-                        borderColor: '#86EFAC',
-                        color: '#166534',
-                        backgroundColor: '#F0FDF4',
+                        borderColor: isDark ? 'rgba(34, 197, 94, 0.4)' : '#86EFAC',
+                        color: isDark ? '#86EFAC' : '#166534',
+                        backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4',
                         borderRadius: '4px',
                         px: 0.5,
                         flexShrink: 0,
@@ -192,12 +210,12 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
                       size="small"
                       variant="outlined"
                       sx={{
-                        height: 16,
-                        fontSize: '0.6rem',
+                        height: 18,
+                        fontSize: '0.62rem',
                         fontWeight: 700,
-                        borderColor: '#FDE68A',
-                        color: '#854D0E',
-                        backgroundColor: '#FEFCE8',
+                        borderColor: isDark ? 'rgba(255, 107, 0, 0.4)' : '#FFD8BF',
+                        color: '#FF6B00',
+                        backgroundColor: isDark ? 'rgba(255, 107, 0, 0.12)' : '#FFF5EE',
                         borderRadius: '4px',
                         px: 0.5,
                         flexShrink: 0,
@@ -216,12 +234,12 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
                         size="small"
                         variant="outlined"
                         sx={{
-                          height: 16,
-                          fontSize: '0.6rem',
+                          height: 18,
+                          fontSize: '0.62rem',
                           fontWeight: 700,
-                          borderColor: '#FECACA',
-                          color: '#991B1B',
-                          backgroundColor: '#FEF2F2',
+                          borderColor: isDark ? 'rgba(239, 68, 68, 0.4)' : '#FECACA',
+                          color: isDark ? '#FCA5A5' : '#991B1B',
+                          backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
                           borderRadius: '4px',
                           px: 0.5,
                           flexShrink: 0,
@@ -237,12 +255,12 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
                     size="small"
                     variant="outlined"
                     sx={{
-                      height: 16,
-                      fontSize: '0.6rem',
+                      height: 18,
+                      fontSize: '0.62rem',
                       fontWeight: 700,
-                      borderColor: '#E2E8F0',
-                      color: '#64748B',
-                      backgroundColor: '#F8FAFC',
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.secondary,
+                      backgroundColor: isDark ? '#141720' : '#F8FAFC',
                       borderRadius: '4px',
                       px: 0.5,
                       flexShrink: 0,
@@ -252,16 +270,16 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
               })()}
               {doc.score !== undefined && doc.score !== null && (
                 <Chip
-                  label={`\u{1F3AF} ${(doc.score * 100).toFixed(0)}% Match`}
+                  label={`🎯 ${(doc.score * 100).toFixed(0)}% Match`}
                   size="small"
                   variant="outlined"
                   sx={{
-                    height: 16,
-                    fontSize: '0.6rem',
+                    height: 18,
+                    fontSize: '0.62rem',
                     fontWeight: 700,
-                    borderColor: '#93C5FD',
-                    color: '#1E40AF',
-                    backgroundColor: '#EFF6FF',
+                    borderColor: isDark ? 'rgba(2, 132, 199, 0.4)' : '#BAE6FD',
+                    color: '#0284C7', // Water Blue
+                    backgroundColor: isDark ? 'rgba(2, 132, 199, 0.12)' : '#F0F9FF',
                     borderRadius: '4px',
                     px: 0.5,
                     flexShrink: 0,
@@ -272,7 +290,7 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
             <Typography
               variant="caption"
               sx={{
-                color: '#64748B',
+                color: theme.palette.text.secondary,
                 display: 'block',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -290,7 +308,7 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
         <Typography
           variant="body2"
           sx={{
-            color: doc.description ? '#334155' : '#94A3B8',
+            color: doc.description ? (isDark ? '#CBD5E1' : '#334155') : theme.palette.text.secondary,
             fontStyle: doc.description ? 'normal' : 'italic',
             fontSize: '0.82rem',
             lineHeight: 1.3,
@@ -329,9 +347,9 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
                   fontSize: '0.68rem',
                   fontWeight: 600,
                   borderRadius: '4px',
-                  borderColor: '#CBD5E1',
-                  color: '#475569',
-                  backgroundColor: '#F1F5F9',
+                  borderColor: theme.palette.divider,
+                  color: theme.palette.text.secondary,
+                  backgroundColor: isDark ? '#141720' : '#F1F5F9',
                   flexShrink: 0,
                 }}
               />
@@ -348,8 +366,17 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
           aria-controls={menuOpen ? `row-menu-${doc.fileId}` : undefined}
           aria-haspopup="true"
           aria-expanded={menuOpen ? 'true' : undefined}
-          onClick={(e) => { e.stopPropagation(); handleMenuOpen(e) }}
-          sx={{ color: '#64748B', '&:hover': { backgroundColor: 'rgba(10, 25, 47, 0.08)' } }}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleMenuOpen(e)
+          }}
+          sx={{
+            color: theme.palette.text.secondary,
+            '&:hover': {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+              color: isDark ? '#FFFFFF' : '#0A0A0A',
+            },
+          }}
         >
           <MoreVertIcon fontSize="small" />
         </IconButton>
@@ -361,7 +388,18 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           slotProps={{
-            paper: { sx: { borderRadius: '10px', border: '1px solid #E2E8F0', mt: 0.5, minWidth: 200 } },
+            paper: {
+              sx: {
+                borderRadius: '10px',
+                border: `1px solid ${theme.palette.divider}`,
+                mt: 0.5,
+                minWidth: 210,
+                backgroundColor: theme.palette.background.paper,
+                boxShadow: isDark
+                  ? '0 10px 25px -5px rgba(0, 0, 0, 0.6)'
+                  : '0 10px 25px -5px rgba(0, 0, 0, 0.08)',
+              },
+            },
           }}
         >
           <MenuItem
@@ -369,30 +407,31 @@ function FileRow({ doc, selected, onToggleSelect, onOpen, onEdit, onDelete, onAd
               handleMenuClose()
               onOpen(doc.s3Key)
             }}
+            sx={{ py: 1 }}
           >
             <ListItemIcon>
-              <VisibilityIcon fontSize="small" sx={{ color: '#0A192F' }} />
+              <VisibilityIcon fontSize="small" sx={{ color: '#0284C7' }} />
             </ListItemIcon>
-            Open
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Open File</Typography>
           </MenuItem>
-          <MenuItem onClick={() => runMenuAction(onEdit)}>
+          <MenuItem onClick={() => runMenuAction(onEdit)} sx={{ py: 1 }}>
             <ListItemIcon>
-              <EditIcon fontSize="small" sx={{ color: '#475569' }} />
+              <EditIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
             </ListItemIcon>
-            Edit Metadata
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Edit Metadata</Typography>
           </MenuItem>
-          <MenuItem onClick={handleAddToKb}>
+          <MenuItem onClick={handleAddToKb} sx={{ py: 1 }}>
             <ListItemIcon>
-              <AutoAwesomeIcon fontSize="small" sx={{ color: '#0A192F' }} />
+              <AutoAwesomeIcon fontSize="small" sx={{ color: '#FF6B00' }} />
             </ListItemIcon>
-            Add to Knowledge Base
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Add to Knowledge Base</Typography>
           </MenuItem>
-          <Divider sx={{ my: 0.5 }} />
-          <MenuItem onClick={() => runMenuAction(onDelete)} sx={{ color: '#DC2626' }}>
+          <Divider sx={{ my: 0.5, borderColor: theme.palette.divider }} />
+          <MenuItem onClick={() => runMenuAction(onDelete)} sx={{ color: '#DC2626', py: 1 }}>
             <ListItemIcon>
               <DeleteIcon fontSize="small" sx={{ color: '#DC2626' }} />
             </ListItemIcon>
-            Delete
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Delete</Typography>
           </MenuItem>
         </Menu>
       </TableCell>

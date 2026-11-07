@@ -1,5 +1,16 @@
 import React, { useRef } from 'react'
-import { Box, TextField, Button, InputAdornment, Typography, LinearProgress, IconButton, Paper, CircularProgress } from '@mui/material'
+import {
+  Box,
+  TextField,
+  Button,
+  InputAdornment,
+  Typography,
+  LinearProgress,
+  IconButton,
+  Paper,
+  CircularProgress,
+  useTheme,
+} from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import CloseIcon from '@mui/icons-material/Close'
@@ -15,9 +26,11 @@ function SearchHeader({
   verifying,
   progress,
   onUpload,
-  onClearFile
+  onClearFile,
 }) {
   const fileInputRef = useRef(null)
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
 
   const handleButtonClick = () => {
     if (fileInputRef.current) {
@@ -26,17 +39,24 @@ function SearchHeader({
   }
 
   return (
-    <Paper 
+    <Paper
       elevation={0}
-      sx={{ 
-        p: 3, 
-        mb: 4, 
+      sx={{
+        p: 2.5,
+        mb: 3,
         borderRadius: '12px',
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #E2E8F0',
+        backgroundColor: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.divider}`,
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          alignItems: 'center',
+        }}
+      >
         {/* Semantic AI Search Field */}
         <TextField
           fullWidth
@@ -48,38 +68,38 @@ function SearchHeader({
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: '#64748B', fontSize: 20 }} />
+                  <SearchIcon sx={{ color: theme.palette.text.secondary, fontSize: 20 }} />
                 </InputAdornment>
               ),
               endAdornment: (
                 <InputAdornment position="end">
                   {isSearching ? (
-                    <CircularProgress size={18} sx={{ color: '#64748B' }} />
+                    <CircularProgress size={18} sx={{ color: '#FF6B00' }} />
                   ) : (
                     searchTerm && (
                       <IconButton size="small" onClick={() => onSearchChange('')} edge="end">
-                        <CloseIcon fontSize="small" sx={{ color: '#64748B' }} />
+                        <CloseIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
                       </IconButton>
                     )
                   )}
                 </InputAdornment>
               ),
-            }
+            },
           }}
           sx={{
             flexGrow: 1,
             '& .MuiOutlinedInput-root': {
               borderRadius: '8px',
-              backgroundColor: '#F8FAFC',
+              backgroundColor: isDark ? '#141720' : '#F8FAFC',
               fontSize: '0.9rem',
-              '& fieldset': { borderColor: '#E2E8F0' },
-              '&:hover fieldset': { borderColor: '#0A192F' },
-              '&.Mui-focused fieldset': { borderColor: '#0A192F' },
-            }
+              '& fieldset': { borderColor: theme.palette.divider },
+              '&:hover fieldset': { borderColor: '#FF6B00' },
+              '&.Mui-focused fieldset': { borderColor: '#FF6B00' },
+            },
           }}
         />
 
-        {/* Compact Upload Action */}
+        {/* Upload Action (Water Blue Button) */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
           <input
             type="file"
@@ -97,7 +117,7 @@ function SearchHeader({
             startIcon={<FileUploadIcon />}
             size="medium"
             sx={{
-              backgroundColor: '#0A192F',
+              backgroundColor: '#0284C7', // Water Blue
               color: '#FFFFFF',
               fontWeight: 700,
               fontSize: '0.85rem',
@@ -108,43 +128,52 @@ function SearchHeader({
               boxShadow: 'none',
               whiteSpace: 'nowrap',
               '&:hover': {
-                backgroundColor: '#0F172A',
+                backgroundColor: '#0369A1',
                 boxShadow: 'none',
               },
               '&.Mui-disabled': {
-                backgroundColor: '#E2E8F0',
-                color: '#94A3B8'
-              }
+                backgroundColor: isDark ? '#1E2430' : '#E2E8F0',
+                color: theme.palette.text.secondary,
+              },
             }}
           >
-            {uploading ? (verifying ? 'Verifying...' : 'Uploading...') : 'Upload File'}
+            {uploading ? (verifying ? 'Verifying...' : 'Uploading...') : 'Upload Document'}
           </Button>
         </Box>
       </Box>
 
       {/* Active File Stage Banner if file selected */}
       {file && (
-        <Box 
-          sx={{ 
-            mt: 2, 
-            p: 2, 
-            borderRadius: '8px', 
-            border: '1px solid #E2E8F0', 
-            backgroundColor: '#F8FAFC',
+        <Box
+          sx={{
+            mt: 2,
+            p: 2,
+            borderRadius: '8px',
+            border: `1px solid ${theme.palette.divider}`,
+            backgroundColor: isDark ? '#141720' : '#F8FAFC',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1.5
+            gap: 1.5,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
-              <InsertDriveFileIcon sx={{ color: '#0A192F' }} />
+              <InsertDriveFileIcon sx={{ color: '#0284C7' }} />
               <Box sx={{ overflow: 'hidden' }}>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    color: isDark ? '#F1F5F9' : '#0A0A0A',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {file.name}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#64748B' }}>
-                  {(file.size / 1024).toFixed(1)} KB
+                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                  {(file.size / 1024).toFixed(1)} KB &bull; Ready to verify in S3
                 </Typography>
               </Box>
             </Box>
@@ -159,27 +188,31 @@ function SearchHeader({
                   backgroundColor: '#16A34A',
                   color: '#FFFFFF',
                   fontWeight: 700,
-                  fontSize: '0.78rem',
+                  fontSize: '0.8rem',
                   textTransform: 'none',
                   px: 2,
-                  py: 0.6,
+                  py: 0.65,
                   borderRadius: '6px',
                   boxShadow: 'none',
                   '&:hover': {
                     backgroundColor: '#15803D',
                     boxShadow: 'none',
-                  }
+                  },
                 }}
               >
                 {uploading ? (verifying ? 'Verifying S3...' : `Uploading ${progress}%`) : 'Confirm Upload'}
               </Button>
-              <IconButton 
-                size="small" 
-                onClick={onClearFile} 
-                disabled={uploading} 
-                sx={{ border: '1px solid #E2E8F0', borderRadius: '6px' }}
+              <IconButton
+                size="small"
+                onClick={onClearFile}
+                disabled={uploading}
+                sx={{
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: '6px',
+                  p: 0.6,
+                }}
               >
-                <CloseIcon fontSize="small" sx={{ color: '#64748B' }} />
+                <CloseIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
               </IconButton>
             </Box>
           </Box>
@@ -187,17 +220,17 @@ function SearchHeader({
           {/* Upload Progress Bar */}
           {uploading && (
             <Box sx={{ width: '100%', mt: 0.5 }}>
-              <LinearProgress 
-                variant="determinate" 
-                value={progress} 
-                sx={{ 
-                  height: 6, 
-                  borderRadius: 3, 
-                  backgroundColor: '#E2E8F0',
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: isDark ? '#1E2430' : '#E2E8F0',
                   '& .MuiLinearProgress-bar': {
-                    backgroundColor: '#16A34A'
-                  }
-                }} 
+                    backgroundColor: '#0284C7', // Water Blue
+                  },
+                }}
               />
             </Box>
           )}
