@@ -17,10 +17,25 @@ from fastapi.concurrency import run_in_threadpool
 from app.core.config import settings
 
 ALLOWED_MIME_TYPES = {
+    # PDF
     "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    # Text & Markdown
     "text/plain",
     "text/markdown",
+    "text/x-markdown",
+    "application/rtf",
+    "text/rtf",
+    # Tabular (CSV, TSV, Excel)
+    "text/csv",
+    "application/csv",
+    "text/x-csv",
+    "text/tab-separated-values",
+    "text/tsv",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    # Word documents
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
 }
 
 
@@ -41,7 +56,8 @@ def generate_safe_key(filename: str) -> str:
 
 def validate_mime_type(content_type: str) -> bool:
     """Check if the content type is allowed."""
-    return content_type in ALLOWED_MIME_TYPES
+    base_type = (content_type or "").split(";")[0].strip().lower()
+    return base_type in ALLOWED_MIME_TYPES
 
 
 _s3_client_instance = None

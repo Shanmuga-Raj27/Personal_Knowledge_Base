@@ -37,7 +37,7 @@ def next_rag_index_version(file: FileMetadata) -> int:
 
 
 def map_rag_exception(exc: Exception) -> tuple[str, str, bool]:
-    """Map Phase 2 exceptions to (error_code, error_message, retryable).
+    """Map extraction and chunking exceptions to (error_code, error_message, retryable).
 
     Returns:
         tuple: (error_code, error_message, retryable)
@@ -45,14 +45,16 @@ def map_rag_exception(exc: Exception) -> tuple[str, str, bool]:
     if isinstance(exc, FileNotFoundError):
         return ERROR_OBJECT_NOT_FOUND, "S3 object not found", False
     if isinstance(exc, ValueError) and "too large" in str(exc).lower():
-        return ERROR_PDF_TOO_LARGE, "PDF exceeds maximum size", False
+        return ERROR_PDF_TOO_LARGE, "Document exceeds maximum size", False
+    if isinstance(exc, ValueError) and any(k in str(exc).lower() for k in ("unsupported", "legacy", "invalid")):
+        return "UNSUPPORTED_FORMAT", str(exc)[:500], False
     if isinstance(exc, PdfExtractionError):
         return ERROR_PDF_PARSE_FAILED, "Failed to parse PDF", False
     if isinstance(exc, NoExtractableTextError):
-        return ERROR_NO_EXTRACTABLE_TEXT, "Scanned/image-only PDF", False
+        return ERROR_NO_EXTRACTABLE_TEXT, "Document contains no readable text", False
     if isinstance(exc, (BotoCoreError, ClientError)):
         return ERROR_PDF_READ_FAILED, "Storage read failed", True
-    return ERROR_CHUNKING_FAILED, "Internal chunking error", False
+    return ERROR_CHUNKING_FAILED, f"Internal chunking error: {str(exc)[:400]}", False
 
 
 def mark_rag_failure(

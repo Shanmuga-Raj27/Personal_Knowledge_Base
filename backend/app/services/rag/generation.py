@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import AsyncIterator
 
 from google import genai
-from google.genai import types
+from google.genai import types, errors
 
 from app.core.config import settings
 from app.services.rag.retry import with_retry_async
@@ -101,37 +101,49 @@ async def generate_answer_stream(
     question: str,
     sources: list[SourceBlock],
 ) -> AsyncIterator[str]:
-    """Stream answer tokens from Gemini as they arrive.
-
-    Yields string tokens; the caller owns SSE framing and accumulation.
-
-    Transient failures (429 / 5xx / timeout) at stream open time are retried
-    with the same settings-driven exponential backoff as embedding
-    (settings.RAG_MAX_RETRIES / settings.RAG_BACKOFF_BASE). Because retries
-    happen before the first token is consumed, no partial answer can be
-    duplicated. Failures after streaming started and retry-exhausted failures
-    propagate to the caller.
-
-    Raises:
-        The underlying SDK exception if generation fails (caller handles).
-    """
+    # Build prompt instructions and source blocks
     system_instruction, user_content = build_generation_prompt(question, sources)
     client = _get_generation_client()
 
-    async def _open_stream():
-        return await client.aio.models.generate_content_stream(
-            model=settings.GEMINI_GENERATION_MODEL,
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=settings.RAG_GENERATION_TEMPERATURE,
+    # Configure generation options and HTTP-level retry behavior
+    config = types.GenerateContentConfig(
+        system_instruction=system_instruction,
+        temperature=settings.RAG_GENERATION_TEMPERATURE,
+        http_options=types.HttpOptions(
+            retry_options=types.HttpRetryOptions(
+                attempts=4,
+                initial_delay=2.0,
+                http_status_codes=[408, 429, 500, 502, 503, 504],
             ),
-        )
+        ),
+    )
 
-    stream = await with_retry_async(_open_stream)
-    async for chunk in stream:
-        if chunk.text:
-            yield chunk.text
+    # Read model IDs from GEMINI_GENERATION_MODEL in .env (supports comma-separated routing list)
+    models_to_try = [
+        m.strip()
+        for m in settings.GEMINI_GENERATION_MODEL.split(",")
+        if m.strip()
+    ]
+
+    # Try each configured model in order; automatically switch if one fails
+    for model in models_to_try:
+        try:
+            stream = await client.aio.models.generate_content_stream(
+                model=model,
+                contents=user_content,
+                config=config,
+            )
+            async for chunk in stream:
+                if chunk.text:
+                    yield chunk.text
+            return  # Success: streamed answer, exit function
+
+        except errors.APIError as error:
+            print(f"Gemini API error ({error.code}): {error.message}")
+            print("The required model did not return a response. Please try again later.")
+
+        except Exception as error:
+            print(f"Unexpected error: {error}")
 
 
 # UUID hex form used by chunk IDs (UUIDv5)

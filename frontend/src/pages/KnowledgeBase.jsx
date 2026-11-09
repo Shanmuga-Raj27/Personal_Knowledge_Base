@@ -21,6 +21,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import DescriptionIcon from '@mui/icons-material/Description'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import CodeIcon from '@mui/icons-material/Code'
+import TableChartIcon from '@mui/icons-material/TableChart'
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import ChatBubbleOutlinedIcon from '@mui/icons-material/ChatBubbleOutlined'
@@ -37,13 +38,16 @@ function getFileIcon(contentType, filename) {
   if (contentType === 'application/pdf' || name.endsWith('.pdf')) {
     return <PictureAsPdfIcon sx={{ color: '#DC2626', fontSize: 16 }} />
   }
-  if (name.endsWith('.docx') || contentType?.includes('wordprocessingml')) {
+  if (name.endsWith('.docx') || name.endsWith('.doc') || contentType?.includes('wordprocessingml') || contentType?.includes('msword')) {
     return <DescriptionIcon sx={{ color: '#0284C7', fontSize: 16 }} />
+  }
+  if (name.endsWith('.csv') || name.endsWith('.tsv') || name.endsWith('.xlsx') || name.endsWith('.xls') || contentType?.includes('spreadsheet') || contentType?.includes('excel') || contentType?.includes('csv')) {
+    return <TableChartIcon sx={{ color: '#10B981', fontSize: 16 }} />
   }
   if (contentType === 'text/markdown' || name.endsWith('.md')) {
     return <CodeIcon sx={{ color: '#FF6B00', fontSize: 16 }} />
   }
-  if (contentType === 'text/plain' || name.endsWith('.txt')) {
+  if (contentType === 'text/plain' || name.endsWith('.txt') || name.endsWith('.log') || name.endsWith('.rtf')) {
     return <TextSnippetIcon sx={{ color: '#16A34A', fontSize: 16 }} />
   }
   return <InsertDriveFileIcon sx={{ color: '#64748B', fontSize: 16 }} />

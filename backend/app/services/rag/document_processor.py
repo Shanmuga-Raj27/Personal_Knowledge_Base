@@ -10,11 +10,18 @@ Does NOT write to disk, does NOT persist to MySQL, does NOT call Qdrant or Gemin
 """
 from dataclasses import dataclass
 import logging
+from pathlib import Path
 
 from app.core.config import settings
 from app.services.AWS.s3_service import read_object_bytes_limited
 from app.services.rag.chunker import build_word_stream, chunk_words
 from app.services.rag.pdf_extractor import PdfExtractionError, extract_pdf_pages
+from app.services.rag.extractors import (
+    extract_text_pages,
+    extract_csv_pages,
+    extract_excel_pages,
+    extract_docx_pages,
+)
 from app.services.rag.schemas import TextChunk
 from app.services.rag.text_cleaner import (
     clean_extracted_pages,
@@ -39,56 +46,59 @@ class ProcessedDocument:
     chunks: list[TextChunk]
 
 
-def process_pdf_from_storage(s3_key: str) -> ProcessedDocument:
-    """Run the full Phase 2 pipeline for a PDF object stored in S3/B2.
+def process_document_from_storage(s3_key: str, filename: str = "") -> ProcessedDocument:
+    """Run the multi-format extraction and chunking pipeline for any supported document.
 
-    Flow:
-        1. Read bounded PDF bytes from S3 (max = settings.RAG_MAX_PDF_BYTES).
-        2. Extract text page by page with PyMuPDF (no local disk writes).
-        3. Normalize each page's text (NFKC, whitespace cleanup, control chars).
-        4. Strip structural repeated header/footer margins across pages.
-        5. Build a flat page-aware word stream.
-        6. Emit overlapping 800/100-word chunks with SHA-256 checksums.
-
-    :param s3_key: The S3/B2 object key for the uploaded PDF.
-    :returns: :class:`ProcessedDocument` with page_count, extracted_word_count, chunks.
-    :raises FileNotFoundError: If the object does not exist in storage.
-    :raises ValueError: If the object exceeds RAG_MAX_PDF_BYTES.
-    :raises PdfExtractionError: If PyMuPDF cannot parse the PDF bytes.
-    :raises NoExtractableTextError: If the PDF has no text layer (scanned/image-only).
+    Routes to:
+        - .pdf: PyMuPDF extractor
+        - .md, .txt, .log, .rtf: TextExtractor
+        - .csv, .tsv: TabularExtractor (CSV)
+        - .xlsx, .xls: TabularExtractor (Excel)
+        - .docx, .doc: DocxExtractor (Word)
     """
-    # ── Step 1: Read PDF bytes from S3 with hard size limit ─────────────────
-    pdf_bytes = read_object_bytes_limited(
+    raw_bytes = read_object_bytes_limited(
         key=s3_key,
         max_bytes=settings.RAG_MAX_PDF_BYTES,
     )
-    logger.debug("RAG Phase 2: read %d bytes for key=%s", len(pdf_bytes), s3_key)
+    logger.debug("RAG Ingestion: read %d bytes for key=%s", len(raw_bytes), s3_key)
 
-    # ── Step 2: Extract text page by page ────────────────────────────────────
-    # PdfExtractionError propagates as-is; caller decides on retry strategy.
-    raw_pages = extract_pdf_pages(pdf_bytes)
-    logger.debug("RAG Phase 2: extracted %d pages", len(raw_pages))
+    name = filename or s3_key
+    ext = Path(name).suffix.lower()
 
-    # ── Step 3+4: Normalize and strip repeated margins ───────────────────────
-    # clean_extracted_pages runs normalize_text → page_lines → strip_repeated_margins
-    # and returns the same ExtractedPage DTOs with cleaned text.
+    if ext == ".pdf":
+        raw_pages = extract_pdf_pages(raw_bytes)
+    elif ext in (".md", ".txt", ".log", ".rtf") or not ext:
+        raw_pages = extract_text_pages(raw_bytes, filename=name)
+    elif ext in (".csv", ".tsv"):
+        raw_pages = extract_csv_pages(raw_bytes, filename=name)
+    elif ext in (".xlsx", ".xls"):
+        raw_pages = extract_excel_pages(raw_bytes, filename=name)
+    elif ext in (".docx", ".doc"):
+        raw_pages = extract_docx_pages(raw_bytes, filename=name)
+    else:
+        # Fallback to text extractor for any plain human-readable extension
+        raw_pages = extract_text_pages(raw_bytes, filename=name)
+
+    logger.debug("RAG Ingestion: extracted %d pages for key=%s (ext=%s)", len(raw_pages), s3_key, ext)
+
+    if not raw_pages:
+        raise NoExtractableTextError(
+            f"Document '{name}' has no extractable text layer."
+        )
+
     cleaned_pages = clean_extracted_pages(raw_pages)
-
-    # ── Step 5: Build page-aware word stream ─────────────────────────────────
     page_tuples = [(p.page_number, p.text) for p in cleaned_pages]
     words = build_word_stream(page_tuples)
 
     if not words:
-        logger.info("RAG Phase 2: no extractable words for key=%s (scanned/image-only)", s3_key)
+        logger.info("RAG Ingestion: no extractable words for key=%s", s3_key)
         raise NoExtractableTextError(
-            f"PDF '{s3_key}' has no extractable text layer. "
-            "It may be a scanned or image-only document."
+            f"Document '{name}' has no extractable words."
         )
 
-    # ── Step 6: Generate overlapping chunks ──────────────────────────────────
     chunks = chunk_words(words)
     logger.debug(
-        "RAG Phase 2: produced %d chunks from %d words for key=%s",
+        "RAG Ingestion: produced %d chunks from %d words for key=%s",
         len(chunks),
         len(words),
         s3_key,
@@ -99,3 +109,8 @@ def process_pdf_from_storage(s3_key: str) -> ProcessedDocument:
         extracted_word_count=len(words),
         chunks=chunks,
     )
+
+
+def process_pdf_from_storage(s3_key: str) -> ProcessedDocument:
+    """Backward compatibility alias for process_document_from_storage."""
+    return process_document_from_storage(s3_key=s3_key, filename=s3_key)

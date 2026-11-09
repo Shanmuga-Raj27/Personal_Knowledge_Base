@@ -31,10 +31,22 @@ import DeleteConfirmDialog from '../components/DeleteConfirmDialog'
 
 // File validation mapping
 const ALLOWED_EXTENSIONS = {
-  'text/plain': '.txt',
-  'text/markdown': '.md',
   'application/pdf': '.pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx'
+  'text/markdown': '.md',
+  'text/x-markdown': '.md',
+  'text/plain': '.txt',
+  'text/x-log': '.log',
+  'application/rtf': '.rtf',
+  'text/rtf': '.rtf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/msword': '.doc',
+  'text/csv': '.csv',
+  'application/csv': '.csv',
+  'text/x-csv': '.csv',
+  'text/tab-separated-values': '.tsv',
+  'text/tsv': '.tsv',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-excel': '.xls',
 }
 
 /**
@@ -218,8 +230,12 @@ function VaultPage() {
       return
     }
 
-    if (!(selectedFile.type in ALLOWED_EXTENSIONS)) {
-      setError(`Unsupported file type (${selectedFile.type || 'unknown'}). Please upload a .txt, .md, .pdf, or .docx file.`)
+    const fileExt = '.' + selectedFile.name.split('.').pop().toLowerCase()
+    const validExts = Object.values(ALLOWED_EXTENSIONS)
+    const isValid = (selectedFile.type in ALLOWED_EXTENSIONS) || validExts.includes(fileExt)
+
+    if (!isValid) {
+      setError(`Unsupported file type (${selectedFile.type || fileExt}). Please upload a .pdf, .md, .txt, .docx, .csv, or .xlsx file.`)
       setFile(null)
       return
     }
@@ -332,14 +348,26 @@ function VaultPage() {
     setSuccess(null)
 
     try {
-      // Step 1: Request presigned PUT URL
-      const { uploadUrl, key } = await getUploadUrl(file.name, file.type)
+      // Step 1: Request presigned PUT URL with resolved content type
+      const fileExt = '.' + file.name.split('.').pop().toLowerCase()
+      let effectiveType = file.type
+      if (!effectiveType || effectiveType === 'application/octet-stream') {
+        for (const [mime, ext] of Object.entries(ALLOWED_EXTENSIONS)) {
+          if (ext === fileExt) {
+            effectiveType = mime
+            break
+          }
+        }
+        if (!effectiveType) effectiveType = 'text/plain'
+      }
+
+      const { uploadUrl, key } = await getUploadUrl(file.name, effectiveType)
 
       // Step 2: Upload file directly using XMLHttpRequest to track progress
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open('PUT', uploadUrl, true)
-        xhr.setRequestHeader('Content-Type', file.type)
+        xhr.setRequestHeader('Content-Type', effectiveType)
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {

@@ -36,7 +36,11 @@ from app.database.database import SessionLocal
 from app.database.db_models import FileMetadata, User
 from app.schemas.enums import FileStatus, IndexingStatus
 from app.services.AI.vector_service import upsert_file_vector
-from app.services.rag.document_processor import process_pdf_from_storage, NoExtractableTextError
+from app.services.rag.document_processor import (
+    process_document_from_storage,
+    process_pdf_from_storage,
+    NoExtractableTextError,
+)
 from app.services.rag.indexing_service import run_full_indexing
 from app.services.rag.persistence import (
     stage_document_chunks,
@@ -102,23 +106,23 @@ async def sync_rag_chunks_in_background(file_id: int, user_id: int) -> None:
             # S3 + PDF extraction happen outside DB transaction.
             try:
                 processed = await run_in_threadpool(
-                    process_pdf_from_storage,
-                    db_file.s3_key,
+                    process_document_from_storage,
+                    s3_key=db_file.s3_key,
+                    filename=db_file.filename,
                 )
             except NoExtractableTextError:
                 logger.info(
-                    "RAG worker: file_id=%s has no extractable text layer (scanned/image-only).",
+                    "RAG worker: file_id=%s has no extractable text layer.",
                     file_id,
                 )
                 mark_rag_failure(
                     db=db,
                     file=db_file,
                     code="NO_EXTRACTABLE_TEXT",
-                    message="PDF has no extractable text layer. It may be a scanned or image-only document.",
+                    message="Document has no extractable text layer. It may be empty, image-only, or unsupported.",
                     retryable=False,
                 )
-                # Reset status to PENDING so it can be reprocessed
-                db_file.indexing_status = IndexingStatus.PENDING.value
+                db_file.indexing_status = IndexingStatus.FAILED_TERMINAL.value
                 db_file.indexing_started_at = None
                 db.commit()
                 return

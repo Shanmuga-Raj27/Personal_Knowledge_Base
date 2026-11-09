@@ -106,7 +106,7 @@ function SearchHeader({
             ref={fileInputRef}
             hidden
             onChange={onFileChange}
-            accept=".txt,.md,.pdf,.docx"
+            accept=".txt,.md,.pdf,.docx,.doc,.csv,.tsv,.xlsx,.xls,.rtf"
             disabled={uploading}
           />
 

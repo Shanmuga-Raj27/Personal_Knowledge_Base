@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
-    AWS_REGION: str = "ap-south-1"
+    AWS_REGION: str = "eu-north-1"
     AWS_ENDPOINT_URL: str | None = None
     S3_BUCKET_NAME: str
     S3_PRESIGNED_URL_EXPIRY: int = 3600
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
     # RAG embedding settings
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
-    GEMINI_GENERATION_MODEL: str = "gemini-3.6-flash"
+    GEMINI_GENERATION_MODEL: str 
     EMBEDDING_DIMENSIONS: int = Field(default=768, ge=1)
 
     # Qdrant RAG collection
