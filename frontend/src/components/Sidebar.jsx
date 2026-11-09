@@ -30,13 +30,13 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
   const navItems = [
     {
       id: 'vault',
-      label: 'Document Vault',
+      label: 'My Drive',
       icon: <FolderOutlinedIcon fontSize="small" />,
       badge: null,
     },
     {
       id: 'knowledge',
-      label: 'Knowledge Base',
+      label: 'Swan AI',
       icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
       badge: selected.length > 0 ? selected.length : null,
     },
@@ -230,10 +230,10 @@ function Sidebar({ open, onToggle, currentView, onViewChange }) {
               }}
             >
               <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary, display: 'block' }}>
-                Swan Drive Cloud
+                Swan Drive
               </Typography>
               <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontSize: '0.72rem' }}>
-                S3 Storage &bull; AI Embeddings
+                Secure Storage &bull; Smart AI
               </Typography>
             </Box>
           </Box>

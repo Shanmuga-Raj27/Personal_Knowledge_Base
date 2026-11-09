@@ -119,15 +119,15 @@ function FileList({
                       fontSize: '1rem',
                     }}
                   >
-                    {searchTerm ? 'No matching documents found' : 'No documents in your Swan Drive vault'}
+                    {searchTerm ? 'No matching documents found' : 'No documents in My Drive'}
                   </Typography>
                   <Typography
                     variant="body2"
                     sx={{ color: theme.palette.text.secondary, maxWidth: 420, lineHeight: 1.5 }}
                   >
                     {searchTerm
-                      ? `No files match "${searchTerm}". Try a different keyword or semantic query.`
-                      : 'Upload a PDF, Word (docx), Markdown, or text file using the button above to start building your cloud vault.'}
+                      ? `No files match "${searchTerm}". Try a different search query.`
+                      : 'Upload a PDF, Word, Markdown, or tabular file using the button above to get started.'}
                   </Typography>
                 </Box>
               </TableCell>

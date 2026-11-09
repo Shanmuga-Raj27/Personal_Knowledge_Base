@@ -486,7 +486,7 @@ function VaultPage() {
         const failed = results.filter((r) => r.status === 'rejected')
         if (failed.length > 0) {
           setError(
-            `Failed to add ${failed.length} of ${toIndex.length} document(s) to the Knowledge Base.`,
+            `Failed to add ${failed.length} of ${toIndex.length} document(s) to Swan AI.`,
           )
         }
       }
@@ -495,21 +495,21 @@ function VaultPage() {
       if (toIndex.length > 0 && alreadyIndexed.length === 0) {
         let msg =
           toIndex.length === 1
-            ? `1 document added to the Knowledge Base. Indexing started.`
-            : `${toIndex.length} documents added to the Knowledge Base. Indexing started.`
+            ? `1 document added to Swan AI. Indexing started.`
+            : `${toIndex.length} documents added to Swan AI. Indexing started.`
         if (preview.skippedNotIndexed > 0) msg += ` ${preview.skippedNotIndexed} not yet indexed — will be selectable once indexing finishes.`
-        if (preview.skippedCap > 0) msg += ` ${preview.skippedCap} skipped: at most 5 documents can be selected for the Knowledge Base.`
+        if (preview.skippedCap > 0) msg += ` ${preview.skippedCap} skipped: at most 5 documents can be selected for Swan AI.`
         setSuccess({ message: msg, key: null })
       } else if (toIndex.length > 0 && alreadyIndexed.length > 0) {
-        let msg = `${toIndex.length} document(s) added to the Knowledge Base. ${alreadyIndexed.length} already indexed.`
-        if (preview.added > 0) msg += ` ${preview.added} added to your Knowledge Base selection.`
+        let msg = `${toIndex.length} document(s) added to Swan AI. ${alreadyIndexed.length} already indexed.`
+        if (preview.added > 0) msg += ` ${preview.added} added to your Swan AI selection.`
         if (preview.skippedCap > 0) msg += ` ${preview.skippedCap} skipped: selection is capped at 5.`
         if (preview.skippedNotIndexed > 0) msg += ` ${preview.skippedNotIndexed} still indexing.`
         setSuccess({ message: msg, key: null })
       } else {
-        let msg = 'Selected documents are already in the Knowledge Base.'
-        if (preview.added > 0) msg += ` ${preview.added} added to your Knowledge Base selection.`
-        else if (preview.skippedCap > 0) msg = 'Knowledge Base selection is full (at most 5 documents). Remove one to add more.'
+        let msg = 'Selected documents are already in Swan AI.'
+        if (preview.added > 0) msg += ` ${preview.added} added to your Swan AI selection.`
+        else if (preview.skippedCap > 0) msg = 'Swan AI selection is full (at most 5 documents). Remove one to add more.'
         else if (preview.skippedAlreadyPresent > 0) msg += ' Already in your selection.'
         setSuccess({ message: msg, key: null })
       }
@@ -517,7 +517,7 @@ function VaultPage() {
       setSelectionMode(false)
       loadDocuments()
     } catch (err) {
-      setError(err.message || 'Failed to add documents to the Knowledge Base.')
+      setError(err.message || 'Failed to add documents to Swan AI.')
     } finally {
       setAddingToKb(false)
     }
@@ -534,19 +534,19 @@ function VaultPage() {
           const preview = mergeSelection(kbSelected, [doc])
           if (preview.added > 0) addDocs([doc])
           if (preview.skippedCap > 0) {
-            setError('Knowledge Base selection is full (at most 5 documents). Remove one to add more.')
+            setError('Swan AI selection is full (at most 5 documents). Remove one to add more.')
           } else if (preview.skippedAlreadyPresent > 0) {
-            setSuccess({ message: `"${doc.title || doc.filename}" is already selected in the Knowledge Base.`, key: null })
+            setSuccess({ message: `"${doc.title || doc.filename}" is already selected in Swan AI.`, key: null })
           } else {
-            setSuccess({ message: `"${doc.title || doc.filename}" added to your Knowledge Base selection.`, key: null })
+            setSuccess({ message: `"${doc.title || doc.filename}" added to your Swan AI selection.`, key: null })
           }
           return
         }
         await triggerRagIndexing(doc.fileId)
-        setSuccess({ message: `"${doc.title || doc.filename}" added to the Knowledge Base. Indexing started. It will be selectable once indexing finishes.`, key: null })
+        setSuccess({ message: `"${doc.title || doc.filename}" added to Swan AI. Indexing started. It will be selectable once indexing finishes.`, key: null })
         loadDocuments()
       } catch (err) {
-        setError(err.message || 'Failed to add document to the Knowledge Base.')
+        setError(err.message || 'Failed to add document to Swan AI.')
       } finally {
         setAddingToKb(false)
       }
@@ -589,10 +589,10 @@ function VaultPage() {
             mb: 0.5,
           }}
         >
-          Document Vault
+          My Drive
         </Typography>
         <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-          Store, manage, and verify documents in high-availability S3 cloud storage with semantic vector search.
+          Store, manage, and organize documents in secure cloud storage with intelligent search.
         </Typography>
       </Box>
 
@@ -660,7 +660,7 @@ function VaultPage() {
           onClose={() => setIsFallbackSearch(false)}
           sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1' }}
         >
-          Semantic AI search returned no vector matches or is offline. Displaying keyword search results instead.
+          AI search returned no direct matches. Displaying keyword search results instead.
         </Alert>
       )}
 

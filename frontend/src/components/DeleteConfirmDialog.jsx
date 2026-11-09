@@ -70,7 +70,7 @@ export default function DeleteConfirmDialog({
           }}
         >
           <Typography variant="caption" sx={{ color: '#DC2626', display: 'block', fontWeight: 500 }}>
-            This will permanently remove the file from Swan Drive S3 cloud storage and metadata database.
+            This will permanently remove the file from Swan Drive cloud storage and your account.
             This action cannot be undone.
           </Typography>
         </Box>

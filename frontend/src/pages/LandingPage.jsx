@@ -26,32 +26,22 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
 import QuestionAnswerOutlinedIcon from '@mui/icons-material/QuestionAnswerOutlined'
+import swanLogoUrl from '../assets/swan_drive_logo.svg'
 
 export const SwanLogo = ({ size = 28 }) => (
   <Box
-    component="svg"
-    viewBox="0 0 32 32"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    sx={{ width: size, height: size, flexShrink: 0 }}
-  >
-    {/* Swan body curve */}
-    <path
-      d="M8 22C10.5 24 14.5 25 19 23.5C23.5 22 26 18.5 26 15C26 11.5 23.5 9 20 9C16.5 9 14.5 11.5 14 13.5C13.5 15.5 11.5 17 9 17C6.5 17 5 15.5 5 13.5C5 11 7 8 11 6.5C14.5 5.2 18.5 5.5 21.5 7.2"
-      stroke="#FF6B00"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
-    {/* Cloud / water accent */}
-    <path
-      d="M6 25C9 26.5 14 27 18 26C22 25 25.5 23.5 28 21.5"
-      stroke="#0284C7"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeDasharray="1 3"
-    />
-    <circle cx="21" cy="9" r="1.5" fill="#FF6B00" />
-  </Box>
+    component="img"
+    src={swanLogoUrl}
+    alt="Swan Drive"
+    sx={{
+      width: size,
+      height: size,
+      borderRadius: `${Math.max(4, Math.round(size * 0.18))}px`,
+      display: 'inline-block',
+      flexShrink: 0,
+      objectFit: 'contain',
+    }}
+  />
 )
 
 export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, onToggleTheme }) {
@@ -63,25 +53,25 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
     {
       icon: <CloudQueueIcon sx={{ fontSize: 28, color: '#0284C7' }} />,
       title: 'Cloud Document Storage',
-      desc: 'Secure cloud vault for your PDF, DOCX, Markdown, and text files with instant presigned URLs and high-availability storage.',
+      desc: 'Secure cloud storage for your PDF, Word, Markdown, and tabular files with instant access.',
       badge: 'Storage',
     },
     {
       icon: <AutoAwesomeIcon sx={{ fontSize: 28, color: '#FF6B00' }} />,
       title: 'AI-Powered Document Organization',
-      desc: 'Automatic metadata indexing, multi-tag categorization, and two-step verification for all uploaded files.',
+      desc: 'Automatic metadata indexing, multi-tag categorization, and fast verification for all uploaded files.',
       badge: 'Intelligence',
     },
     {
       icon: <SearchIcon sx={{ fontSize: 28, color: '#0284C7' }} />,
-      title: 'Semantic Vector Search',
-      desc: 'Move beyond exact keywords. Find documents by intent, contextual relevance, and semantic embedding scores.',
+      title: 'Intelligent Search',
+      desc: 'Move beyond exact keywords. Find documents by intent, contextual relevance, and smart matching.',
       badge: 'Discovery',
     },
     {
       icon: <QuestionAnswerOutlinedIcon sx={{ fontSize: 28, color: '#FF6B00' }} />,
-      title: 'Intelligent Knowledge Base',
-      desc: 'Select up to 5 documents and chat with them in real time. Accurate synthesis with strictly cited page references.',
+      title: 'Swan AI',
+      desc: 'Select up to 5 documents and chat with Swan AI in real time. Accurate synthesis with strictly cited page references.',
       badge: 'Conversational',
     },
   ]
@@ -244,8 +234,8 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
               mb: 4.5,
             }}
           >
-            Swan Drive stores your PDF, Word, and text documents with high-availability S3 cloud
-            vaulting, instant semantic search, and an interactive AI knowledge base.
+            Swan Drive stores your PDF, Word, and text documents with secure cloud
+            storage, instant intelligent search, and conversational Swan AI.
           </Typography>
 
           {/* Calls to Action */}
@@ -297,7 +287,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 },
               }}
             >
-              Sign In to Your Vault
+              Sign In to Swan Drive
             </Button>
           </Stack>
 
@@ -311,15 +301,15 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Presigned S3 Cloud Storage
+              Secure Cloud Storage
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Semantic Embedding Search
+              Intelligent Search
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Cited Document Assistant
+              Conversational Swan AI
             </Box>
           </Stack>
         </Container>
@@ -363,7 +353,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   },
                 }}
               >
-                Document Vault
+                My Drive
               </Button>
               <Button
                 size="small"
@@ -383,7 +373,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   },
                 }}
               >
-                AI Knowledge Base
+                Swan AI
               </Button>
             </Box>
           </Box>
@@ -420,7 +410,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   variant="caption"
                   sx={{ ml: 1.5, color: theme.palette.text.secondary, fontWeight: 600 }}
                 >
-                  app.swandrive.io / {activeTab === 'vault' ? 'vault' : 'knowledge-base'}
+                  app.swandrive.io / {activeTab === 'vault' ? 'my-drive' : 'swan-ai'}
                 </Typography>
               </Box>
               <Chip
@@ -458,7 +448,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary, flexGrow: 1 }}>
                       <SearchIcon fontSize="small" />
                       <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                        Search documents by keyword or semantic context...
+                        Search documents by name, topic, or content...
                       </Typography>
                     </Box>
                     <Button
@@ -500,8 +490,8 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                         name: 'Machine Learning RAG Pipeline Specs.md',
                         icon: <TextSnippetIcon sx={{ color: '#16A34A' }} />,
                         size: '128 KB',
-                        desc: 'Detailed chunking parameters, vector embeddings, and synthesis prompts.',
-                        tags: ['AI', 'Embeddings', 'Pipeline'],
+                        desc: 'Detailed document processing, smart indexing, and synthesis prompts.',
+                        tags: ['AI', 'Smart Index', 'Pipeline'],
                         status: 'Indexed',
                         score: '87% Match',
                       },
@@ -646,7 +636,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                       >
                         <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1.5 }}>
                           Based on Section 4 of <strong>Q3 Financial Strategy.pdf [1]</strong>, the total projected
-                          cloud infrastructure budget is allocated at \$142,000, with \$85,000 earmarked for S3 document vaulting and vector database indexing.
+                          cloud infrastructure budget is allocated at \$142,000, with \$85,000 earmarked for secure document storage and intelligent indexing.
                         </Typography>
                         <Divider sx={{ my: 1 }} />
                         <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary, display: 'block', mb: 0.5 }}>
@@ -886,7 +876,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
             </Box>
 
             <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-              &copy; {new Date().getFullYear()} Swan Drive SaaS. All rights reserved. Cloud storage powered by S3 & semantic AI.
+              &copy; {new Date().getFullYear()} Swan Drive. All rights reserved. Secure cloud storage & intelligent AI.
             </Typography>
 
             <Stack direction="row" spacing={3}>

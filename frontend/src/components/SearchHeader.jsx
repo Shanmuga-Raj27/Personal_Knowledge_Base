@@ -57,11 +57,11 @@ function SearchHeader({
           alignItems: 'center',
         }}
       >
-        {/* Semantic AI Search Field */}
+        {/* Smart Search Field */}
         <TextField
           fullWidth
           size="small"
-          placeholder="Search documents by keyword or semantic context..."
+          placeholder="Search documents by keyword or topic..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           slotProps={{
@@ -173,7 +173,7 @@ function SearchHeader({
                   {file.name}
                 </Typography>
                 <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                  {(file.size / 1024).toFixed(1)} KB &bull; Ready to verify in S3
+                  {(file.size / 1024).toFixed(1)} KB &bull; Ready to upload
                 </Typography>
               </Box>
             </Box>
@@ -200,7 +200,7 @@ function SearchHeader({
                   },
                 }}
               >
-                {uploading ? (verifying ? 'Verifying S3...' : `Uploading ${progress}%`) : 'Confirm Upload'}
+                {uploading ? (verifying ? 'Verifying upload...' : `Uploading ${progress}%`) : 'Confirm Upload'}
               </Button>
               <IconButton
                 size="small"

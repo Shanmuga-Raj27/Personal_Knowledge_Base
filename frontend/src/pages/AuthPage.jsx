@@ -170,7 +170,7 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding, initialMode 
               }}
             >
               {isLogin
-                ? 'Sign in to access your cloud vault and knowledge base'
+                ? 'Sign in to access Swan Drive and Swan AI'
                 : 'Register your email to begin hosting private documents'}
             </Typography>
           </Box>

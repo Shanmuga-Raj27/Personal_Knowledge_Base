@@ -30,6 +30,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import or_
 
 from app.core.config import settings
 from app.database.database import SessionLocal
@@ -74,10 +75,14 @@ async def sync_rag_chunks_in_background(file_id: int, user_id: int) -> None:
                 .filter(
                     FileMetadata.fileid == file_id,
                     FileMetadata.userid == user_id,
-                    FileMetadata.indexing_status.in_([
-                        IndexingStatus.PENDING.value,
-                        IndexingStatus.FAILED_RETRYABLE.value,
-                    ]),
+                    or_(
+                        FileMetadata.indexing_status.in_([
+                            IndexingStatus.PENDING.value,
+                            IndexingStatus.FAILED_RETRYABLE.value,
+                            IndexingStatus.INDEXING.value,
+                        ]),
+                        FileMetadata.active_index_version == 0,
+                    ),
                 )
                 .update(
                     {

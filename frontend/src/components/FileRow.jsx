@@ -151,7 +151,7 @@ function FileRow({
             checked={Boolean(selected)}
             onChange={() => onToggleSelect && onToggleSelect(doc.fileId)}
             onClick={(e) => e.stopPropagation()}
-            inputProps={{ 'aria-label': `Select ${doc.filename}` }}
+            slotProps={{ input: { 'aria-label': `Select ${doc.filename}` } }}
             sx={{
               color: theme.palette.text.secondary,
               '&.Mui-checked': { color: '#FF6B00' }, // Orange highlight
@@ -230,7 +230,7 @@ function FileRow({
                 if (status === 'failed') {
                   return (
                     <Tooltip
-                      title={doc.lastError || doc.last_error || 'Vector indexing failed during background process.'}
+                      title={doc.lastError || doc.last_error || 'Document indexing failed during background process.'}
                       arrow
                     >
                       <Chip
@@ -428,7 +428,7 @@ function FileRow({
             <ListItemIcon>
               <AutoAwesomeIcon fontSize="small" sx={{ color: '#FF6B00' }} />
             </ListItemIcon>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>Add to Knowledge Base</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Add to Swan AI</Typography>
           </MenuItem>
           <Divider sx={{ my: 0.5, borderColor: theme.palette.divider }} />
           <MenuItem onClick={() => runMenuAction(onDelete)} sx={{ color: '#DC2626', py: 1 }}>

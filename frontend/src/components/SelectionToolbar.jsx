@@ -66,7 +66,7 @@ function SelectionToolbar({ selectedCount, onClear, onAddToKnowledgeBase, disabl
           },
         }}
       >
-        Add to Knowledge Base
+        Add to Swan AI
       </Button>
     </Paper>
   )

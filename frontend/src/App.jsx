@@ -170,7 +170,7 @@ function App() {
               >
                 <Container maxWidth="lg">
                   <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-                    &copy; {new Date().getFullYear()} Swan Drive SaaS. Intelligent Cloud Storage & Semantic AI.
+                    &copy; {new Date().getFullYear()} Swan Drive. Secure Cloud Storage & Intelligent AI.
                   </Typography>
                 </Container>
               </Box>
@@ -248,7 +248,7 @@ function App() {
                   >
                     <Container maxWidth="lg">
                       <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-                        &copy; {new Date().getFullYear()} Swan Drive. Minimalist Cloud Document Vault & Knowledge Base.
+                        &copy; {new Date().getFullYear()} Swan Drive. Secure Cloud Storage & Intelligent AI.
                       </Typography>
                     </Container>
                   </Box>

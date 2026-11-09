@@ -109,8 +109,10 @@ export default function EditMetadataDialog({
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value.slice(0, 100))}
           placeholder="e.g. Q3 Financial Statement"
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ maxLength: 100 }}
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: { maxLength: 100 },
+          }}
           helperText={
             <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', m: 0 }}>
               <span />
@@ -143,8 +145,10 @@ export default function EditMetadataDialog({
           value={editDescription}
           onChange={(e) => setEditDescription(e.target.value.slice(0, 255))}
           placeholder="Brief summary of document content..."
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ maxLength: 255 }}
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: { maxLength: 255 },
+          }}
           helperText={
             <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', m: 0 }}>
               <span />
@@ -196,7 +200,9 @@ export default function EditMetadataDialog({
                   }
                 }
               }}
-              inputProps={{ maxLength: 50 }}
+              slotProps={{
+                htmlInput: { maxLength: 50 },
+              }}
               error={tagInputExceeds || (combinedExceeds && !!tagInput.trim())}
               helperText={
                 tagInputExceeds ? (
