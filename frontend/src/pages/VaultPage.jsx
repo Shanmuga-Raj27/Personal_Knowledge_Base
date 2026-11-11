@@ -28,6 +28,7 @@ import FileList from '../components/FileList'
 import SelectionToolbar from '../components/SelectionToolbar'
 import EditMetadataDialog from '../components/EditMetadataDialog'
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog'
+import ToastNotification from '../components/ToastNotification'
 
 // File validation mapping
 const ALLOWED_EXTENSIONS = {
@@ -80,6 +81,22 @@ function VaultPage() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(50)
   const [totalDocsCount, setTotalDocsCount] = useState(0)
+
+  // Compact Glass Toast Notification State
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'info',
+    action: null,
+  })
+
+  const showToast = useCallback((message, severity = 'info', action = null) => {
+    setToast({ open: true, message, severity, action })
+  }, [])
+
+  const handleCloseToast = useCallback(() => {
+    setToast((prev) => ({ ...prev, open: false }))
+  }, [])
 
   // Search filter & AI state
   const [searchTerm, setSearchTerm] = useState('')
@@ -153,6 +170,72 @@ function VaultPage() {
       }
     }
   }, [loadDocuments])
+
+  // Dynamic file processing status polling (Section 3 requirement)
+  // Automatically refreshes file processing status without full page reload.
+  // Polls every 3s when any file is in an in-progress status, and stops immediately when all files reach terminal status.
+  useEffect(() => {
+    const inProgressStatuses = ['pending', 'indexing', 'processing', 'extracting', 'chunked', 'embedding']
+    const hasInProgress = documents.some((d) => {
+      const status = (
+        d.indexingStatus ||
+        d.indexing_status ||
+        (d.isIndexed ? 'indexed' : 'pending')
+      ).toLowerCase()
+      return inProgressStatuses.includes(status)
+    })
+
+    if (!hasInProgress) return undefined
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchFiles(rowsPerPage, page * rowsPerPage)
+        const items = Array.isArray(res) ? res : (res?.items || [])
+        if (items.length > 0) {
+          const itemsMap = new Map(items.map((item) => [item.fileId, item]))
+          setDocuments((prevDocs) => {
+            let newlyReadyDoc = null
+
+            const updatedDocs = prevDocs.map((prevDoc) => {
+              const updated = itemsMap.get(prevDoc.fileId)
+              if (!updated) return prevDoc
+
+              const oldStatus = (
+                prevDoc.indexingStatus ||
+                prevDoc.indexing_status ||
+                (prevDoc.isIndexed ? 'indexed' : 'pending')
+              ).toLowerCase()
+              const newStatus = (
+                updated.indexingStatus ||
+                updated.indexing_status ||
+                (updated.isIndexed ? 'indexed' : 'pending')
+              ).toLowerCase()
+
+              if (
+                oldStatus !== newStatus &&
+                inProgressStatuses.includes(oldStatus) &&
+                (newStatus === 'indexed' || updated.isIndexed)
+              ) {
+                newlyReadyDoc = updated.title || updated.filename
+              }
+
+              return { ...prevDoc, ...updated }
+            })
+
+            if (newlyReadyDoc) {
+              showToast(`"${newlyReadyDoc}" is ready for Swan AI.`, 'success')
+            }
+
+            return updatedDocs
+          })
+        }
+      } catch (pollErr) {
+        console.debug('Dynamic status poll skipped:', pollErr)
+      }
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [documents, page, rowsPerPage, showToast])
 
   // Refactored Search Execution Helper
   const executeSearch = useCallback(async (query, targetPage, targetRowsPerPage) => {
@@ -296,15 +379,12 @@ function VaultPage() {
       })
       setEditOpen(false)
       loadDocuments()
-      setSuccess({
-        message: 'Document metadata updated successfully.',
-        key: editingDoc.s3Key
-      })
+      showToast('Document metadata updated successfully.', 'success')
     } catch (err) {
       console.error('Failed to save metadata:', err)
-      setError(err.message || 'Failed to update metadata.')
+      showToast(err.message || 'Failed to update metadata.', 'error')
     }
-  }, [editingDoc, editTitle, editDescription, editTags, loadDocuments])
+  }, [editingDoc, editTitle, editDescription, editTags, loadDocuments, showToast])
 
   // Handle prompting deletion modal
   const handlePromptDelete = useCallback((doc) => {
@@ -317,25 +397,20 @@ function VaultPage() {
     if (!docToDelete) return
 
     setDeleting(true)
-    setError(null)
-    setSuccess(null)
     try {
       await deleteFile(docToDelete.fileId)
       setDeleteConfirmOpen(false)
       const docName = docToDelete.title || docToDelete.filename
       setDocToDelete(null)
       loadDocuments()
-      setSuccess({
-        message: `Document "${docName}" permanently deleted.`,
-        key: null
-      })
+      showToast(`Document "${docName}" permanently deleted.`, 'success')
     } catch (err) {
       console.error('Failed to delete document:', err)
-      setError(err.response?.data?.detail || err.message || 'Failed to delete file.')
+      showToast(err.response?.data?.detail || err.message || 'Failed to delete file.', 'error')
     } finally {
       setDeleting(false)
     }
-  }, [docToDelete, loadDocuments])
+  }, [docToDelete, loadDocuments, showToast])
 
   // Handle document upload directly to S3 storage via presigned URL
   const handleUpload = useCallback(async () => {
@@ -344,8 +419,6 @@ function VaultPage() {
     setUploading(true)
     setVerifying(false)
     setProgress(0)
-    setError(null)
-    setSuccess(null)
 
     try {
       // Step 1: Request presigned PUT URL with resolved content type
@@ -396,10 +469,7 @@ function VaultPage() {
       const verifyRes = await completeUpload(key, file.name)
 
       if (verifyRes.verified) {
-        setSuccess({
-          message: 'Document uploaded and verified in cloud storage.',
-          key: key
-        })
+        showToast('File uploaded successfully. Document processing started.', 'success')
         setLastUploadedKey(key)
         setFile(null)
         loadDocuments()
@@ -412,12 +482,12 @@ function VaultPage() {
       }
     } catch (err) {
       console.error(err)
-      setError(err.message || 'An error occurred during upload.')
+      showToast(err.message || 'File upload failed. Please try again.', 'error')
     } finally {
       setUploading(false)
       setVerifying(false)
     }
-  }, [file, loadDocuments, handleStartEdit])
+  }, [file, loadDocuments, handleStartEdit, showToast])
 
   // Handle requesting presigned GET URL to view or read the file
   const handleViewFile = useCallback(async (keyToView) => {
@@ -478,15 +548,14 @@ function VaultPage() {
     const { toIndex, alreadyIndexed } = partitionForKnowledgeBase(selectedDocs)
     const preview = previewAddDocs(selectedDocs)
     setAddingToKb(true)
-    setError(null)
-    setSuccess(null)
     try {
       if (toIndex.length > 0) {
         const results = await Promise.allSettled(toIndex.map((d) => triggerRagIndexing(d.fileId)))
         const failed = results.filter((r) => r.status === 'rejected')
         if (failed.length > 0) {
-          setError(
+          showToast(
             `Failed to add ${failed.length} of ${toIndex.length} document(s) to Swan AI.`,
+            'error'
           )
         }
       }
@@ -499,59 +568,57 @@ function VaultPage() {
             : `${toIndex.length} documents added to Swan AI. Indexing started.`
         if (preview.skippedNotIndexed > 0) msg += ` ${preview.skippedNotIndexed} not yet indexed — will be selectable once indexing finishes.`
         if (preview.skippedCap > 0) msg += ` ${preview.skippedCap} skipped: at most 5 documents can be selected for Swan AI.`
-        setSuccess({ message: msg, key: null })
+        showToast(msg, 'info')
       } else if (toIndex.length > 0 && alreadyIndexed.length > 0) {
         let msg = `${toIndex.length} document(s) added to Swan AI. ${alreadyIndexed.length} already indexed.`
         if (preview.added > 0) msg += ` ${preview.added} added to your Swan AI selection.`
         if (preview.skippedCap > 0) msg += ` ${preview.skippedCap} skipped: selection is capped at 5.`
         if (preview.skippedNotIndexed > 0) msg += ` ${preview.skippedNotIndexed} still indexing.`
-        setSuccess({ message: msg, key: null })
+        showToast(msg, 'info')
       } else {
         let msg = 'Selected documents are already in Swan AI.'
         if (preview.added > 0) msg += ` ${preview.added} added to your Swan AI selection.`
         else if (preview.skippedCap > 0) msg = 'Swan AI selection is full (at most 5 documents). Remove one to add more.'
         else if (preview.skippedAlreadyPresent > 0) msg += ' Already in your selection.'
-        setSuccess({ message: msg, key: null })
+        showToast(msg, 'info')
       }
       setSelectedIds(new Set())
       setSelectionMode(false)
       loadDocuments()
     } catch (err) {
-      setError(err.message || 'Failed to add documents to Swan AI.')
+      showToast(err.message || 'Failed to add documents to Swan AI.', 'error')
     } finally {
       setAddingToKb(false)
     }
-  }, [documents, selectedIds, loadDocuments, addDocs, previewAddDocs])
+  }, [documents, selectedIds, loadDocuments, addDocs, previewAddDocs, showToast])
 
   const handleSingleAddToKnowledgeBase = useCallback(
     async (doc) => {
       const { toIndex } = partitionForKnowledgeBase([doc])
       setAddingToKb(true)
-      setError(null)
-      setSuccess(null)
       try {
         if (toIndex.length === 0) {
           const preview = mergeSelection(kbSelected, [doc])
           if (preview.added > 0) addDocs([doc])
           if (preview.skippedCap > 0) {
-            setError('Swan AI selection is full (at most 5 documents). Remove one to add more.')
+            showToast('Swan AI selection is full (at most 5 documents). Remove one to add more.', 'warning')
           } else if (preview.skippedAlreadyPresent > 0) {
-            setSuccess({ message: `"${doc.title || doc.filename}" is already selected in Swan AI.`, key: null })
+            showToast(`"${doc.title || doc.filename}" is already selected in Swan AI.`, 'info')
           } else {
-            setSuccess({ message: `"${doc.title || doc.filename}" added to your Swan AI selection.`, key: null })
+            showToast(`"${doc.title || doc.filename}" added to your Swan AI selection.`, 'success')
           }
           return
         }
         await triggerRagIndexing(doc.fileId)
-        setSuccess({ message: `"${doc.title || doc.filename}" added to Swan AI. Indexing started. It will be selectable once indexing finishes.`, key: null })
+        showToast(`"${doc.title || doc.filename}" added to Swan AI. Indexing started. It will be selectable once indexing finishes.`, 'info')
         loadDocuments()
       } catch (err) {
-        setError(err.message || 'Failed to add document to Swan AI.')
+        showToast(err.message || 'Failed to add document to Swan AI.', 'error')
       } finally {
         setAddingToKb(false)
       }
     },
-    [loadDocuments, addDocs, kbSelected],
+    [loadDocuments, addDocs, kbSelected, showToast],
   )
 
   // Pagination Change Handlers (re-run the active search, else reload the list)
@@ -664,40 +731,15 @@ function VaultPage() {
         </Alert>
       )}
 
-      {/* Alert Banners */}
-      {error && (
-        <Alert
-          severity="error"
-          onClose={() => setError(null)}
-          sx={{ mb: 3, borderRadius: '8px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#991B1B' }}
-        >
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert
-          severity="success"
-          onClose={() => setSuccess(null)}
-          action={
-            success.key && (
-              <Button
-                color="inherit"
-                size="small"
-                disabled={viewLoading}
-                startIcon={<VisibilityIcon fontSize="small" />}
-                onClick={() => handleViewFile(success.key)}
-                sx={{ textTransform: 'none', fontWeight: 700 }}
-              >
-                {viewLoading ? 'Opening...' : 'View File'}
-              </Button>
-            )
-          }
-          sx={{ mb: 3, borderRadius: '8px', border: '1px solid #BBF7D0', backgroundColor: '#F0FDF4', color: '#166534' }}
-        >
-          {success.message}
-        </Alert>
-      )}
+      {/* Compact Translucent Glass Toast Notification */}
+      <ToastNotification
+        open={toast.open}
+        onClose={handleCloseToast}
+        message={toast.message}
+        severity={toast.severity}
+        action={toast.action}
+        autoHideDuration={5000}
+      />
 
       {/* Main Traditional File List / Table */}
       <FileList

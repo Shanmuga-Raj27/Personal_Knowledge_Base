@@ -187,7 +187,7 @@ function FileRow({
                   doc.indexing_status ||
                   (doc.isIndexed ? 'indexed' : 'pending')
                 ).toLowerCase()
-                if (status === 'indexed') {
+                if (status === 'indexed' || status === 'completed') {
                   return (
                     <Chip
                       label="Indexed"
@@ -207,7 +207,8 @@ function FileRow({
                     />
                   )
                 }
-                if (status === 'processing') {
+                const isProcessing = ['indexing', 'processing', 'extracting', 'chunked', 'embedding'].includes(status)
+                if (isProcessing) {
                   return (
                     <Chip
                       label="Indexing..."
@@ -227,7 +228,7 @@ function FileRow({
                     />
                   )
                 }
-                if (status === 'failed') {
+                if (status.startsWith('failed')) {
                   return (
                     <Tooltip
                       title={doc.lastError || doc.last_error || 'Document indexing failed during background process.'}

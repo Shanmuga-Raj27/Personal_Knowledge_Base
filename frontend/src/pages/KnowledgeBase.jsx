@@ -6,8 +6,6 @@ import {
   Stack,
   TextField,
   IconButton,
-  Snackbar,
-  Alert,
   Button,
   Chip,
   Tooltip,
@@ -32,6 +30,7 @@ import { loadSession, saveSession, clearSession } from '../services/ragHistorySe
 import { useKnowledgeBaseFiles } from '../context/KnowledgeBaseFilesContext'
 
 import RagMessageBubble from '../components/RagMessageBubble'
+import ToastNotification from '../components/ToastNotification'
 
 function getFileIcon(contentType, filename) {
   const name = (filename || '').toLowerCase()
@@ -72,6 +71,8 @@ function KnowledgeBase({ userId }) {
 
   const messagesRef = useRef([])
   const chatEndRef = useRef(null)
+  const scrollContainerRef = useRef(null)
+  const shouldAutoScrollRef = useRef(true)
   const queryAbortRef = useRef(null)
 
   useEffect(() => {
@@ -86,8 +87,16 @@ function KnowledgeBase({ userId }) {
     return () => clearTimeout(timer)
   }, [userId, messages, selected])
 
+  const handleContainerScroll = useCallback(() => {
+    if (!scrollContainerRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
+    shouldAutoScrollRef.current = scrollHeight - scrollTop - clientHeight < 140
+  }, [])
+
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (shouldAutoScrollRef.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages])
 
   const handleNewConversation = useCallback(() => {
@@ -103,6 +112,7 @@ function KnowledgeBase({ userId }) {
     const q = question.trim()
     if (!q || selected.length < 1 || sending) return
 
+    shouldAutoScrollRef.current = true
     const userMessage = { role: 'user', text: q }
     const placeholder = { role: 'assistant', text: '', streaming: true, sources: [], diagnostics: {} }
     const asstIndex = messagesRef.current.length + 1
@@ -277,6 +287,8 @@ function KnowledgeBase({ userId }) {
 
       {/* Main Conversation Stream */}
       <Box
+        ref={scrollContainerRef}
+        onScroll={handleContainerScroll}
         sx={{
           flexGrow: 1,
           overflowY: 'auto',
@@ -565,22 +577,14 @@ function KnowledgeBase({ userId }) {
         </Box>
       </Box>
 
-      {/* Snackbar alerts */}
-      <Snackbar
+      {/* Compact Glass Toast Notification */}
+      <ToastNotification
         open={Boolean(snackbar)}
-        autoHideDuration={6000}
         onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={snackbar?.severity || 'info'}
-          variant="filled"
-          onClose={() => setSnackbar(null)}
-          sx={{ width: '100%', borderRadius: '8px' }}
-        >
-          {snackbar?.message}
-        </Alert>
-      </Snackbar>
+        message={snackbar?.message}
+        severity={snackbar?.severity || 'info'}
+        autoHideDuration={5000}
+      />
     </Box>
   )
 }

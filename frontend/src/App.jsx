@@ -122,6 +122,29 @@ function App() {
 
   const isUserAuthenticated = token && isAuthenticated()
 
+  // SEO: Dynamic page titles & indexing protection for private authenticated views
+  useEffect(() => {
+    let robotsMeta = document.querySelector('meta[name="robots"]')
+    if (!robotsMeta) {
+      robotsMeta = document.createElement('meta')
+      robotsMeta.setAttribute('name', 'robots')
+      document.head.appendChild(robotsMeta)
+    }
+
+    if (isUserAuthenticated) {
+      document.title = view === 'knowledge' ? 'Swan AI – Swan Drive' : 'My Drive – Swan Drive'
+      robotsMeta.setAttribute('content', 'noindex, nofollow')
+    } else {
+      document.title =
+        authView === 'login'
+          ? 'Sign In – Swan Drive'
+          : authView === 'register'
+          ? 'Create Account – Swan Drive'
+          : 'Swan Drive – Your Personal Document Workspace'
+      robotsMeta.setAttribute('content', 'index, follow')
+    }
+  }, [isUserAuthenticated, view, authView])
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

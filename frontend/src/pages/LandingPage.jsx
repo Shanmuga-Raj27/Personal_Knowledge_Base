@@ -4,7 +4,6 @@ import {
   Container,
   Typography,
   Button,
-  Grid,
   Card,
   CardContent,
   Chip,
@@ -12,6 +11,8 @@ import {
   IconButton,
   useTheme,
   Divider,
+  Collapse,
+  Tooltip,
 } from '@mui/material'
 import CloudQueueIcon from '@mui/icons-material/CloudQueue'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
@@ -26,13 +27,19 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
 import QuestionAnswerOutlinedIcon from '@mui/icons-material/QuestionAnswerOutlined'
+import MenuIcon from '@mui/icons-material/Menu'
+import CloseIcon from '@mui/icons-material/Close'
+import StorageIcon from '@mui/icons-material/Storage'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import swanLogoUrl from '../assets/swan_drive_logo.svg'
 
 export const SwanLogo = ({ size = 28 }) => (
   <Box
     component="img"
     src={swanLogoUrl}
-    alt="Swan Drive"
+    alt="Swan Drive Logo"
     sx={{
       width: size,
       height: size,
@@ -48,44 +55,59 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
   const theme = useTheme()
   const isDark = theme.palette.mode === 'dark'
   const [activeTab, setActiveTab] = useState('vault')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const scrollToSection = (id) => {
+    setMobileMenuOpen(false)
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   const features = [
     {
-      icon: <CloudQueueIcon sx={{ fontSize: 28, color: '#0284C7' }} />,
-      title: 'Cloud Document Storage',
-      desc: 'Secure cloud storage for your PDF, Word, Markdown, and tabular files with instant access.',
-      badge: 'Storage',
+      icon: <StorageIcon sx={{ fontSize: 26, color: '#0284C7' }} />,
+      title: 'Document Management',
+      desc: 'Organize, view, and manage documents (.pdf, .docx, .md, .txt, .csv, .xlsx) in a centralized workspace.',
+      status: 'Implemented',
     },
     {
-      icon: <AutoAwesomeIcon sx={{ fontSize: 28, color: '#FF6B00' }} />,
-      title: 'AI-Powered Document Organization',
-      desc: 'Automatic metadata indexing, multi-tag categorization, and fast verification for all uploaded files.',
-      badge: 'Intelligence',
+      icon: <CloudQueueIcon sx={{ fontSize: 26, color: '#0284C7' }} />,
+      title: 'Cloud Storage Integration',
+      desc: 'Direct cloud storage uploads via secure presigned endpoints with automated file verification.',
+      status: 'Implemented',
     },
     {
-      icon: <SearchIcon sx={{ fontSize: 28, color: '#0284C7' }} />,
-      title: 'Intelligent Search',
-      desc: 'Move beyond exact keywords. Find documents by intent, contextual relevance, and smart matching.',
-      badge: 'Discovery',
+      icon: <AutoAwesomeIcon sx={{ fontSize: 26, color: '#FF6B00' }} />,
+      title: 'AI-Assisted Document Interaction',
+      desc: 'Ask questions about selected documents. Swan AI provides answers synthesized strictly from verified text.',
+      status: 'Implemented',
     },
     {
-      icon: <QuestionAnswerOutlinedIcon sx={{ fontSize: 28, color: '#FF6B00' }} />,
-      title: 'Swan AI',
-      desc: 'Select up to 5 documents and chat with Swan AI in real time. Accurate synthesis with strictly cited page references.',
-      badge: 'Conversational',
+      icon: <LockOutlinedIcon sx={{ fontSize: 26, color: '#16A34A' }} />,
+      title: 'Secure Authentication',
+      desc: 'JWT-based token authentication with tenant-isolated data access for each user.',
+      status: 'Implemented',
+    },
+    {
+      icon: <LayersOutlinedIcon sx={{ fontSize: 26, color: '#FF6B00' }} />,
+      title: 'Modern Document Workspace',
+      desc: 'Fast metadata indexing, keyword and intent search, responsive layout, and dark/light mode.',
+      status: 'Implemented',
     },
   ]
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* ── 1. NAVBAR ─────────────────────────────────────────── */}
+      {/* ── 1. HEADER / NAVIGATION ─────────────────────────── */}
       <Box
         component="header"
         sx={{
           position: 'sticky',
           top: 0,
           zIndex: 1100,
-          backgroundColor: isDark ? 'rgba(10, 12, 16, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: isDark ? 'rgba(10, 12, 16, 0.88)' : 'rgba(255, 255, 255, 0.92)',
           backdropFilter: 'blur(10px)',
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
@@ -99,25 +121,103 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
               justifyContent: 'space-between',
             }}
           >
-            {/* Brand Logo */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
-              <SwanLogo size={32} />
-              <Typography
-                variant="h6"
-                sx={{
-                  fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
-                  fontWeight: 700,
-                  fontSize: '1.35rem',
-                  letterSpacing: '-0.02em',
-                  color: isDark ? '#FFFFFF' : '#0A0A0A',
-                }}
+            {/* Brand Logo & Beta Badge */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1.2, cursor: 'pointer' }}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
-                Swan <Box component="span" sx={{ color: '#FF6B00' }}>Drive</Box>
-              </Typography>
+                <SwanLogo size={32} />
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
+                    fontWeight: 700,
+                    fontSize: '1.35rem',
+                    letterSpacing: '-0.02em',
+                    color: isDark ? '#FFFFFF' : '#0A0A0A',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                  }}
+                >
+                  Swan <Box component="span" sx={{ color: '#FF6B00' }}>Drive</Box>
+                </Typography>
+              </Box>
+
+              {/* Beta Badge with Tooltip */}
+              <Tooltip
+                title="Swan Drive is currently in beta. This experimental release allows users to explore features while we continue improving reliability, performance, and user experience."
+                arrow
+              >
+                <Chip
+                  label="BETA"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    backgroundColor: isDark ? 'rgba(255, 107, 0, 0.15)' : '#FFF5EE',
+                    color: '#FF6B00',
+                    border: `1px solid ${isDark ? 'rgba(255, 107, 0, 0.35)' : '#FFD8BF'}`,
+                    borderRadius: '4px',
+                    cursor: 'help',
+                  }}
+                />
+              </Tooltip>
             </Box>
 
-            {/* Nav actions */}
-            <Stack direction="row" spacing={1.5} alignItems="center">
+            {/* Desktop Navigation Links */}
+            <Box
+              component="nav"
+              aria-label="Product navigation"
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                gap: 3,
+              }}
+            >
+              <Button
+                variant="text"
+                onClick={() => scrollToSection('my-drive')}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  '&:hover': { color: isDark ? '#FFFFFF' : '#0A0A0A' },
+                }}
+              >
+                My Drive
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => scrollToSection('swan-ai')}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  '&:hover': { color: isDark ? '#FFFFFF' : '#0A0A0A' },
+                }}
+              >
+                Swan AI
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => scrollToSection('features')}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  '&:hover': { color: isDark ? '#FFFFFF' : '#0A0A0A' },
+                }}
+              >
+                Features
+              </Button>
+            </Box>
+
+            {/* Nav actions (Auth buttons & Theme toggle) */}
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
               {/* Theme toggle */}
               {onToggleTheme && (
                 <IconButton
@@ -139,6 +239,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 </IconButton>
               )}
 
+              {/* Login Button */}
               <Button
                 variant="text"
                 onClick={onLoginClick}
@@ -147,14 +248,16 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   fontWeight: 600,
                   fontSize: '0.9rem',
                   px: 2,
+                  display: { xs: 'none', sm: 'inline-flex' },
                   '&:hover': {
                     backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
                   },
                 }}
               >
-                Sign In
+                Login
               </Button>
 
+              {/* Create Account Button */}
               <Button
                 variant="contained"
                 onClick={onRegisterClick}
@@ -162,89 +265,159 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   backgroundColor: '#0284C7', // Water Blue
                   color: '#FFFFFF',
                   fontWeight: 600,
-                  fontSize: '0.9rem',
-                  px: 2.5,
+                  fontSize: '0.88rem',
+                  px: 2.2,
                   py: 0.85,
                   borderRadius: '8px',
+                  display: { xs: 'none', sm: 'inline-flex' },
                   '&:hover': {
                     backgroundColor: '#0369A1',
                   },
                 }}
               >
-                Get Started
+                Create Account
               </Button>
+
+              {/* Mobile menu toggle */}
+              <IconButton
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                aria-label="Toggle navigation menu"
+                sx={{
+                  display: { xs: 'inline-flex', md: 'none' },
+                  color: theme.palette.text.secondary,
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: '8px',
+                  p: 0.8,
+                }}
+              >
+                {mobileMenuOpen ? <CloseIcon fontSize="small" /> : <MenuIcon fontSize="small" />}
+              </IconButton>
             </Stack>
           </Box>
+
+          {/* Mobile Navigation Drawer Collapse */}
+          <Collapse in={mobileMenuOpen} timeout="auto" unmountOnExit>
+            <Box
+              sx={{
+                py: 2,
+                borderTop: `1px solid ${theme.palette.divider}`,
+                display: { xs: 'flex', md: 'none' },
+                flexDirection: 'column',
+                gap: 1.5,
+              }}
+            >
+              <Button
+                fullWidth
+                variant="text"
+                onClick={() => scrollToSection('my-drive')}
+                sx={{ justifyContent: 'flex-start', color: theme.palette.text.primary, fontWeight: 600 }}
+              >
+                My Drive
+              </Button>
+              <Button
+                fullWidth
+                variant="text"
+                onClick={() => scrollToSection('swan-ai')}
+                sx={{ justifyContent: 'flex-start', color: theme.palette.text.primary, fontWeight: 600 }}
+              >
+                Swan AI
+              </Button>
+              <Button
+                fullWidth
+                variant="text"
+                onClick={() => scrollToSection('features')}
+                sx={{ justifyContent: 'flex-start', color: theme.palette.text.primary, fontWeight: 600 }}
+              >
+                Product Features
+              </Button>
+              <Divider sx={{ my: 0.5 }} />
+              <Stack direction="row" spacing={1.5} sx={{ pt: 0.5 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={onLoginClick}
+                  sx={{ borderColor: theme.palette.divider, color: theme.palette.text.primary, fontWeight: 600 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={onRegisterClick}
+                  sx={{ backgroundColor: '#0284C7', color: '#FFFFFF', fontWeight: 600, '&:hover': { backgroundColor: '#0369A1' } }}
+                >
+                  Create Account
+                </Button>
+              </Stack>
+            </Box>
+          </Collapse>
         </Container>
       </Box>
 
-      {/* ── 2. HERO SECTION ─────────────────────────────────────────── */}
+      {/* ── 2. HERO SECTION ─────────────────────────── */}
       <Box
         component="section"
         sx={{
-          pt: { xs: 8, md: 12 },
-          pb: { xs: 8, md: 10 },
+          pt: { xs: 7, md: 10 },
+          pb: { xs: 7, md: 9 },
           textAlign: 'center',
           position: 'relative',
-          overflow: 'hidden',
         }}
       >
         <Container maxWidth="md">
-          {/* Tag pill */}
+          {/* Positioning Pill */}
           <Chip
             icon={<AutoAwesomeIcon sx={{ fontSize: '15px !important', color: '#FF6B00' }} />}
-            label="AI-Powered Cloud Storage Platform"
+            label="Swan Drive – Your Personal Document Workspace"
             size="small"
             sx={{
               mb: 3,
-              px: 1,
+              px: 1.2,
               py: 2,
               borderRadius: '20px',
               backgroundColor: isDark ? 'rgba(255, 107, 0, 0.12)' : '#FFF5EE',
               border: `1px solid ${isDark ? 'rgba(255, 107, 0, 0.3)' : '#FFD8BF'}`,
               color: '#FF6B00',
               fontWeight: 700,
-              fontSize: '0.8rem',
+              fontSize: '0.82rem',
               letterSpacing: '0.02em',
             }}
           />
 
-          {/* Serif Headline */}
+          {/* Main H1 Headline */}
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: '2.4rem', sm: '3.4rem', md: '4rem' },
-              lineHeight: 1.15,
+              fontSize: { xs: '2.3rem', sm: '3.2rem', md: '3.8rem' },
+              lineHeight: 1.18,
               color: isDark ? '#FFFFFF' : '#0A0A0A',
               mb: 2.5,
             }}
           >
-            Intelligent Cloud Storage for Modern Knowledge
+            Intelligent Document Workspace with Cloud Storage & AI
           </Typography>
 
           {/* Subtitle */}
           <Typography
             variant="body1"
             sx={{
-              fontSize: { xs: '1rem', sm: '1.2rem' },
+              fontSize: { xs: '1rem', sm: '1.18rem' },
               color: theme.palette.text.secondary,
-              maxWidth: 680,
+              maxWidth: 700,
               mx: 'auto',
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               mb: 4.5,
             }}
           >
-            Swan Drive stores your PDF, Word, and text documents with secure cloud
-            storage, instant intelligent search, and conversational Swan AI.
+            A document management application that combines file organization, cloud storage integration,
+            and AI-assisted document understanding. Manage files in My Drive and chat with Swan AI.
           </Typography>
 
           {/* Calls to Action */}
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={2}
-            justifyContent="center"
-            alignItems="center"
-            sx={{ mb: 6 }}
+            sx={{ justifyContent: 'center', alignItems: 'center', mb: 4 }}
           >
             <Button
               variant="contained"
@@ -252,7 +425,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
               onClick={onRegisterClick}
               endIcon={<ArrowForwardIcon />}
               sx={{
-                backgroundColor: '#0284C7', // Water blue
+                backgroundColor: '#0284C7', // Water Blue
                 color: '#FFFFFF',
                 px: 3.5,
                 py: 1.4,
@@ -265,7 +438,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 },
               }}
             >
-              Start Free Today
+              Create Account
             </Button>
 
             <Button
@@ -287,29 +460,58 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 },
               }}
             >
-              Sign In to Swan Drive
+              Login to Workspace
             </Button>
           </Stack>
+
+          {/* Beta Disclaimer Note (subtle, non-intrusive) */}
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 0.8,
+              borderRadius: '8px',
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC',
+              border: `1px solid ${theme.palette.divider}`,
+              color: theme.palette.text.secondary,
+              fontSize: '0.78rem',
+              maxWidth: 640,
+              mx: 'auto',
+              textAlign: 'left',
+              mb: 3,
+            }}
+          >
+            <InfoOutlinedIcon sx={{ fontSize: 16, color: '#FF6B00', flexShrink: 0 }} />
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, lineHeight: 1.4 }}>
+              Swan Drive is currently in beta. This experimental release allows users to explore features while
+              we continue improving reliability, performance, and user experience.
+            </Typography>
+          </Box>
 
           {/* Trust points */}
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={{ xs: 1.5, sm: 3 }}
-            justifyContent="center"
-            alignItems="center"
-            sx={{ color: theme.palette.text.secondary, fontSize: '0.85rem' }}
+            sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              color: theme.palette.text.secondary,
+              fontSize: '0.85rem',
+            }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Secure Cloud Storage
+              Direct Cloud Storage
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Intelligent Search
+              Dynamic Status Updates
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
               <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Conversational Swan AI
+              Grounded Swan AI Citations
             </Box>
           </Stack>
         </Container>
@@ -319,7 +521,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
       <Box
         component="section"
         sx={{
-          pb: { xs: 8, md: 12 },
+          pb: { xs: 8, md: 11 },
           px: { xs: 2, sm: 3 },
         }}
       >
@@ -353,7 +555,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   },
                 }}
               >
-                My Drive
+                My Drive Interface
               </Button>
               <Button
                 size="small"
@@ -373,7 +575,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   },
                 }}
               >
-                Swan AI
+                Swan AI Chat
               </Button>
             </Box>
           </Box>
@@ -448,7 +650,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary, flexGrow: 1 }}>
                       <SearchIcon fontSize="small" />
                       <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                        Search documents by name, topic, or content...
+                        Search documents by keyword, topic, or content...
                       </Typography>
                     </Box>
                     <Button
@@ -469,31 +671,34 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   <Stack spacing={1.5}>
                     {[
                       {
-                        name: 'Q3 Financial Strategy & Cloud Architecture.pdf',
+                        name: 'Quarterly Financial Summary.pdf',
                         icon: <PictureAsPdfIcon sx={{ color: '#DC2626' }} />,
-                        size: '2.4 MB',
-                        desc: 'Quarterly financial forecasts and cloud migration milestone roadmap.',
-                        tags: ['Finance', 'Cloud', 'Strategy'],
+                        size: '1.8 MB',
+                        desc: 'Quarterly balance sheets and budget allocation.',
+                        tags: ['Finance', 'Budget'],
                         status: 'Indexed',
-                        score: '98% Match',
+                        statusColor: '#166534',
+                        statusBg: '#F0FDF4',
                       },
                       {
-                        name: 'Engineering Onboarding Manual.docx',
+                        name: 'System Architecture & Security Spec.docx',
                         icon: <DescriptionIcon sx={{ color: '#0284C7' }} />,
-                        size: '840 KB',
-                        desc: 'Full developer setup instructions, credential rotation, and API specs.',
-                        tags: ['Docs', 'Engineering'],
+                        size: '640 KB',
+                        desc: 'Cloud security architecture, API specs, and tenant isolation.',
+                        tags: ['Engineering', 'Security'],
                         status: 'Indexed',
-                        score: '91% Match',
+                        statusColor: '#166534',
+                        statusBg: '#F0FDF4',
                       },
                       {
-                        name: 'Machine Learning RAG Pipeline Specs.md',
+                        name: 'Project Release Notes.md',
                         icon: <TextSnippetIcon sx={{ color: '#16A34A' }} />,
-                        size: '128 KB',
-                        desc: 'Detailed document processing, smart indexing, and synthesis prompts.',
-                        tags: ['AI', 'Smart Index', 'Pipeline'],
-                        status: 'Indexed',
-                        score: '87% Match',
+                        size: '42 KB',
+                        desc: 'Changelog, bug fixes, and feature verification notes.',
+                        tags: ['Release', 'Docs'],
+                        status: 'Indexing...',
+                        statusColor: '#FF6B00',
+                        statusBg: '#FFF5EE',
                       },
                     ].map((row, i) => (
                       <Box
@@ -532,21 +737,9 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                                   height: 18,
                                   fontSize: '0.65rem',
                                   fontWeight: 700,
-                                  backgroundColor: '#F0FDF4',
-                                  color: '#166534',
-                                  border: '1px solid #BBF7D0',
-                                }}
-                              />
-                              <Chip
-                                label={row.score}
-                                size="small"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  fontWeight: 700,
-                                  backgroundColor: isDark ? 'rgba(2, 132, 199, 0.15)' : '#F0F9FF',
-                                  color: '#0284C7',
-                                  border: '1px solid #BAE6FD',
+                                  backgroundColor: row.statusBg,
+                                  color: row.statusColor,
+                                  border: `1px solid ${row.statusColor}33`,
                                 }}
                               />
                             </Box>
@@ -594,49 +787,60 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                     </Typography>
                     <Chip
                       icon={<PictureAsPdfIcon sx={{ fontSize: '14px !important', color: '#DC2626' }} />}
-                      label="Q3 Financial Strategy.pdf"
-                      size="small"
-                      sx={{ height: 22, fontSize: '0.72rem', fontWeight: 600 }}
-                    />
-                    <Chip
-                      icon={<DescriptionIcon sx={{ fontSize: '14px !important', color: '#0284C7' }} />}
-                      label="Cloud Architecture.docx"
+                      label="Quarterly Financial Summary.pdf"
                       size="small"
                       sx={{ height: 22, fontSize: '0.72rem', fontWeight: 600 }}
                     />
                   </Box>
 
-                  {/* Sample Query & Answer */}
+                  {/* Sample Query & Conversational Chat */}
                   <Stack spacing={2}>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Box
                         sx={{
                           maxWidth: '75%',
-                          p: 1.8,
-                          borderRadius: '12px 12px 4px 12px',
-                          backgroundColor: '#FF6B00', // Swan orange highlight
+                          px: 2,
+                          py: 1.2,
+                          borderRadius: '14px 14px 4px 14px',
+                          backgroundColor: '#0284C7',
                           color: '#FFFFFF',
                         }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          What are the primary cloud migration cost estimates for Q3 according to our docs?
+                          What was the cloud infrastructure expenditure reported in the summary?
                         </Typography>
                       </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '8px',
+                          backgroundColor: '#FFF5EE',
+                          border: '1px solid #FFD8BF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#FF6B00',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <AutoAwesomeIcon sx={{ fontSize: 16 }} />
+                      </Box>
                       <Box
                         sx={{
                           maxWidth: '85%',
                           p: 2,
-                          borderRadius: '12px 12px 12px 4px',
+                          borderRadius: '14px 14px 14px 4px',
                           border: `1px solid ${theme.palette.divider}`,
                           backgroundColor: isDark ? '#141720' : '#FFFFFF',
                         }}
                       >
                         <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1.5 }}>
-                          Based on Section 4 of <strong>Q3 Financial Strategy.pdf [1]</strong>, the total projected
-                          cloud infrastructure budget is allocated at \$142,000, with \$85,000 earmarked for secure document storage and intelligent indexing.
+                          According to <strong>Quarterly Financial Summary.pdf [1]</strong>, the total cloud
+                          infrastructure expenditure was reported at \$142,000, allocated across storage services and indexing pipelines.
                         </Typography>
                         <Divider sx={{ my: 1 }} />
                         <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary, display: 'block', mb: 0.5 }}>
@@ -644,7 +848,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                         </Typography>
                         <Chip
                           size="small"
-                          label="Q3 Financial Strategy.pdf · Page 14"
+                          label="[1] Quarterly Financial Summary.pdf · Page 4"
                           variant="outlined"
                           sx={{ height: 22, fontSize: '0.72rem', fontWeight: 600 }}
                         />
@@ -658,103 +862,364 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
         </Container>
       </Box>
 
-      {/* ── 4. FEATURES SECTION ─────────────────────────────────────────── */}
+      {/* ── 4. PRODUCT SECTION: MY DRIVE ─────────────────────────── */}
       <Box
+        id="my-drive"
         component="section"
         sx={{
-          py: { xs: 8, md: 12 },
+          py: { xs: 8, md: 10 },
+          backgroundColor: isDark ? '#0C0E14' : '#F8FAFC',
+          borderTop: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography
+              variant="overline"
+              sx={{ color: '#0284C7', fontWeight: 700, letterSpacing: '0.08em', fontSize: '0.82rem' }}
+            >
+              Document Workspace
+            </Typography>
+            <Typography variant="h2" sx={{ fontSize: { xs: '1.9rem', sm: '2.4rem' }, mt: 0.5, mb: 1.5 }}>
+              My Drive – File and Document Management
+            </Typography>
+            <Typography variant="body1" sx={{ color: theme.palette.text.secondary, maxWidth: 650, mx: 'auto' }}>
+              Organize and access supported documents with verified cloud storage, custom metadata tags, and dynamic status tracking.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+              gap: 3,
+            }}
+          >
+            <Card
+              sx={{
+                borderRadius: '14px',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: theme.palette.background.paper,
+                p: 1,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(2, 132, 199, 0.15)' : '#F0F9FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                    color: '#0284C7',
+                  }}
+                >
+                  <FolderOutlinedIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 1 }}>
+                  Organize & Manage Documents
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  Keep your knowledge structured with custom titles, descriptions, and searchable multi-tag labels.
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                borderRadius: '14px',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: theme.palette.background.paper,
+                p: 1,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(22, 163, 74, 0.15)' : '#F0FDF4',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                    color: '#16A34A',
+                  }}
+                >
+                  <CloudQueueIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 1 }}>
+                  Upload Supported Formats
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  Upload PDF, Word (.docx), Markdown (.md), plain text (.txt), and tabular files (.csv, .xlsx) via presigned cloud storage.
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                borderRadius: '14px',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: theme.palette.background.paper,
+                p: 1,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(255, 107, 0, 0.15)' : '#FFF5EE',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                    color: '#FF6B00',
+                  }}
+                >
+                  <AutoAwesomeIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 1 }}>
+                  Dynamic Processing Status
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  View real-time document indexing status without manual page refreshes. Status updates dynamically as processing completes.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ── 5. PRODUCT SECTION: SWAN AI ─────────────────────────── */}
+      <Box
+        id="swan-ai"
+        component="section"
+        sx={{
+          py: { xs: 8, md: 10 },
+          borderTop: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography
+              variant="overline"
+              sx={{ color: '#FF6B00', fontWeight: 700, letterSpacing: '0.08em', fontSize: '0.82rem' }}
+            >
+              Document Intelligence
+            </Typography>
+            <Typography variant="h2" sx={{ fontSize: { xs: '1.9rem', sm: '2.4rem' }, mt: 0.5, mb: 1.5 }}>
+              Swan AI – Grounded Conversational Assistant
+            </Typography>
+            <Typography variant="body1" sx={{ color: theme.palette.text.secondary, maxWidth: 650, mx: 'auto' }}>
+              Select documents in My Drive and ask specific questions. Swan AI synthesizes answers grounded strictly in your document text.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+              gap: 3,
+            }}
+          >
+            <Card
+              sx={{
+                borderRadius: '14px',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: theme.palette.background.paper,
+                p: 1,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(255, 107, 0, 0.15)' : '#FFF5EE',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                    color: '#FF6B00',
+                  }}
+                >
+                  <QuestionAnswerOutlinedIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 1 }}>
+                  Multi-Document Selection
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  Choose up to 5 indexed documents as grounding context for your conversation in Swan AI.
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                borderRadius: '14px',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: theme.palette.background.paper,
+                p: 1,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(2, 132, 199, 0.15)' : '#F0F9FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                    color: '#0284C7',
+                  }}
+                >
+                  <SearchIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 1 }}>
+                  Semantic Retrieval & Grounding
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  Relevant document passages are extracted and verified before answer generation, preventing ungrounded hallucination.
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                borderRadius: '14px',
+                border: `1px solid ${theme.palette.divider}`,
+                backgroundColor: theme.palette.background.paper,
+                p: 1,
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '10px',
+                    backgroundColor: isDark ? 'rgba(22, 163, 74, 0.15)' : '#F0FDF4',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                    color: '#16A34A',
+                  }}
+                >
+                  <CheckCircleOutlinedIcon />
+                </Box>
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 700, mb: 1 }}>
+                  Cited Page References
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                  Every answer provides citations linking back to original file names and specific page ranges.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ── 6. PRODUCT SECTION: FEATURES ─────────────────────────── */}
+      <Box
+        id="features"
+        component="section"
+        sx={{
+          py: { xs: 8, md: 10 },
           backgroundColor: isDark ? '#0C0E14' : '#F8FAFC',
           borderTop: `1px solid ${theme.palette.divider}`,
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 7 }}>
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
             <Typography
               variant="overline"
-              sx={{
-                color: '#FF6B00',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                fontSize: '0.82rem',
-              }}
+              sx={{ color: '#0284C7', fontWeight: 700, letterSpacing: '0.08em', fontSize: '0.82rem' }}
             >
-              Enterprise Capabilities
+              Core Capabilities
             </Typography>
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: '2rem', sm: '2.5rem' },
-                color: isDark ? '#FFFFFF' : '#0A0A0A',
-                mt: 1,
-              }}
-            >
-              Designed for Speed, Accuracy & Scale
+            <Typography variant="h2" sx={{ fontSize: { xs: '1.9rem', sm: '2.4rem' }, mt: 0.5, mb: 1.5 }}>
+              Implemented Product Features
+            </Typography>
+            <Typography variant="body1" sx={{ color: theme.palette.text.secondary, maxWidth: 650, mx: 'auto' }}>
+              Reliable document workflows built on clean architecture and verified features.
             </Typography>
           </Box>
 
-          <Grid container spacing={3.5}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+              gap: 3,
+            }}
+          >
             {features.map((item, idx) => (
-              <Grid item xs={12} sm={6} md={3} key={idx}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    borderRadius: '14px',
-                    border: `1px solid ${theme.palette.divider}`,
-                    backgroundColor: theme.palette.background.paper,
-                    p: 1.5,
-                    transition: 'transform 0.2s, border-color 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      borderColor: '#FF6B00',
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: 2 }}>
+              <Card
+                key={idx}
+                sx={{
+                  borderRadius: '14px',
+                  border: `1px solid ${theme.palette.divider}`,
+                  backgroundColor: theme.palette.background.paper,
+                  p: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Box
                       sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '12px',
+                        width: 44,
+                        height: 44,
+                        borderRadius: '10px',
                         backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F1F5F9',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        mb: 2.5,
                       }}
                     >
                       {item.icon}
                     </Box>
-                    <Typography
-                      variant="h6"
+                    <Chip
+                      label={item.status}
+                      size="small"
                       sx={{
-                        fontSize: '1.1rem',
+                        height: 20,
+                        fontSize: '0.65rem',
                         fontWeight: 700,
-                        color: isDark ? '#FFFFFF' : '#0A0A0A',
-                        mb: 1,
+                        backgroundColor: isDark ? 'rgba(22, 163, 74, 0.15)' : '#F0FDF4',
+                        color: '#16A34A',
+                        border: '1px solid rgba(22, 163, 74, 0.25)',
                       }}
-                    >
-                      {item.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        lineHeight: 1.6,
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      {item.desc}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+                    />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontSize: '1.05rem', fontWeight: 700, mb: 1 }}>
+                    {item.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+                    {item.desc}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
+          </Box>
         </Container>
       </Box>
 
-      {/* ── 5. FINAL CALL TO ACTION ─────────────────────────────────────────── */}
+      {/* ── 7. CALL TO ACTION ─────────────────────────── */}
       <Box
         component="section"
         sx={{
@@ -787,16 +1252,15 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
               variant="body1"
               sx={{
                 color: '#94A3B8',
-                maxWidth: 540,
+                maxWidth: 560,
                 mx: 'auto',
                 mb: 4,
-                lineHeight: 1.6,
+                lineHeight: 1.65,
               }}
             >
-              Transform your static PDF, Word, and Markdown documents into an intelligent,
-              queryable cloud repository in seconds.
+              Manage your documents in My Drive with cloud storage, search, and conversational Swan AI.
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
               <Button
                 variant="contained"
                 size="large"
@@ -834,14 +1298,14 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   },
                 }}
               >
-                Sign In
+                Login
               </Button>
             </Stack>
           </Card>
         </Container>
       </Box>
 
-      {/* ── 6. FOOTER ─────────────────────────────────────────── */}
+      {/* ── 8. FOOTER ─────────────────────────── */}
       <Box
         component="footer"
         sx={{
@@ -876,7 +1340,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
             </Box>
 
             <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-              &copy; {new Date().getFullYear()} Swan Drive. All rights reserved. Secure cloud storage & intelligent AI.
+              &copy; {new Date().getFullYear()} Swan Drive. All rights reserved. Document management & AI workspace.
             </Typography>
 
             <Stack direction="row" spacing={3}>
@@ -886,7 +1350,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 onClick={onLoginClick}
                 sx={{ color: theme.palette.text.secondary, fontSize: '0.8rem', p: 0 }}
               >
-                Sign In
+                Login
               </Button>
               <Button
                 variant="text"
@@ -894,7 +1358,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 onClick={onRegisterClick}
                 sx={{ color: theme.palette.text.secondary, fontSize: '0.8rem', p: 0 }}
               >
-                Register
+                Create Account
               </Button>
             </Stack>
           </Box>

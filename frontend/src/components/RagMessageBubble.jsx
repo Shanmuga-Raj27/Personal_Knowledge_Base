@@ -11,9 +11,12 @@ import {
   Tooltip,
   Link,
   useTheme,
+  Avatar,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -25,7 +28,7 @@ function formatPages(source) {
 }
 
 const CITATION_BRACKET_RE =
-  /\[(?:id|chunk_id)=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]/gi
+  /[\[\(](?:id|chunk_id)=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})[\]\)]/gi
 const CITATION_BARE_RE =
   /(?:id|chunk_id)=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
 
@@ -37,14 +40,14 @@ function sanitizeCitations(text, sources) {
   })
   let out = text.replace(CITATION_BRACKET_RE, (match, id) => idToRef.get(id.toLowerCase()) ?? '')
   out = out.replace(CITATION_BARE_RE, '')
-  out = out.replace(/\[\s*\]/g, '').replace(/ {2,}/g, ' ')
+  out = out.replace(/[\[\(]\s*[\]\)]/g, '').replace(/ {2,}/g, ' ')
   return out
 }
 
 function MarkdownContent({ children, isDark, textSecondary }) {
   const codeBlockSx = {
-    mt: 1,
-    mb: 1,
+    mt: 1.25,
+    mb: 1.25,
     p: 1.5,
     borderRadius: '8px',
     backgroundColor: isDark ? '#161922' : '#0F172A',
@@ -109,8 +112,8 @@ function MarkdownContent({ children, isDark, textSecondary }) {
           my: 0.75,
         },
         '& hr': { border: 'none', borderTop: `1px solid ${isDark ? '#262D3D' : '#EAECEF'}`, my: 1.25 },
-        '& table': { borderCollapse: 'collapse', mb: 0.75, fontSize: '0.85rem' },
-        '& th, & td': { border: `1px solid ${isDark ? '#262D3D' : '#EAECEF'}`, px: 1, py: 0.5 },
+        '& table': { borderCollapse: 'collapse', mb: 0.75, fontSize: '0.85rem', width: '100%', overflowX: 'auto', display: 'block' },
+        '& th, & td': { border: `1px solid ${isDark ? '#262D3D' : '#EAECEF'}`, px: 1.2, py: 0.6 },
         '& th': { backgroundColor: isDark ? '#161922' : '#F8FAFC', fontWeight: 700 },
       }}
     >
@@ -165,67 +168,193 @@ function RagMessageBubble({ message }) {
   const hasDiagnostics = Boolean(diagnostics) && Object.keys(diagnostics).length > 0
   const abstained = Boolean(diagnostics?.insufficient_evidence)
 
-  // ── User question bubble ────────────────────────────────────────────────
+  // ── 1. USER MESSAGE (ALIGNED RIGHT) ────────────────────────────────────────────────
   if (isUser) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'flex-end',
+          gap: 1.25,
+          width: '100%',
+        }}
+      >
         <Box
           sx={{
-            maxWidth: '75%',
+            maxWidth: { xs: '85%', sm: '75%' },
             px: 2.2,
-            py: 1.4,
-            borderRadius: '14px 14px 4px 14px',
-            backgroundColor: isDark ? '#1A1E29' : '#0A0A0A',
+            py: 1.35,
+            borderRadius: '16px 16px 4px 16px',
+            backgroundColor: isDark ? '#1E2433' : '#0284C7', // Water Blue in light mode, deep blue-slate in dark
             color: '#FFFFFF',
-            border: isDark ? '1px solid #2B3245' : '1px solid #1A1A1A',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
           }}
         >
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5, fontSize: '0.92rem' }}>
+          <Typography
+            variant="body2"
+            sx={{
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              lineHeight: 1.55,
+              fontSize: '0.925rem',
+              fontWeight: 500,
+            }}
+          >
             {text}
           </Typography>
         </Box>
+        <Avatar
+          sx={{
+            width: 32,
+            height: 32,
+            backgroundColor: isDark ? '#262D3D' : '#E2E8F0',
+            color: isDark ? '#94A3B8' : '#475569',
+            fontSize: '0.85rem',
+            flexShrink: 0,
+            display: { xs: 'none', sm: 'flex' },
+          }}
+        >
+          <PersonOutlinedIcon sx={{ fontSize: 18 }} />
+        </Avatar>
       </Box>
     )
   }
 
-  // ── Assistant answer bubble ─────────────────────────────────────────────
+  // ── 2. SWAN AI MESSAGE (ALIGNED LEFT) ─────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        gap: 1.5,
+        width: '100%',
+      }}
+    >
+      {/* Swan AI Avatar Badge */}
+      <Avatar
+        sx={{
+          width: 34,
+          height: 34,
+          backgroundColor: isDark ? 'rgba(255, 107, 0, 0.18)' : '#FFF5EE',
+          border: `1px solid ${isDark ? 'rgba(255, 107, 0, 0.35)' : '#FFD8BF'}`,
+          color: '#FF6B00',
+          flexShrink: 0,
+          mt: 0.5,
+        }}
+      >
+        <AutoAwesomeIcon sx={{ fontSize: 18 }} />
+      </Avatar>
+
+      {/* Message Content Container */}
       <Box
         sx={{
-          maxWidth: '85%',
+          maxWidth: { xs: '90%', sm: '82%' },
           width: '100%',
           px: 2.5,
           py: 2,
-          borderRadius: '14px 14px 14px 4px',
+          borderRadius: '4px 16px 16px 16px',
           border: `1px solid ${theme.palette.divider}`,
-          backgroundColor: theme.palette.background.paper,
+          backgroundColor: isDark ? '#12151D' : '#FFFFFF',
+          boxShadow: isDark
+            ? '0 2px 8px rgba(0, 0, 0, 0.3)'
+            : '0 2px 8px rgba(0, 0, 0, 0.04)',
         }}
       >
         {error ? (
-          <Alert severity="error" sx={{ borderRadius: '8px' }}>
+          <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>
             {error}
           </Alert>
         ) : abstained ? (
-          <Alert severity="info" sx={{ borderRadius: '8px' }}>
+          <Alert severity="info" sx={{ borderRadius: '8px', py: 0.5 }}>
             I couldn't find enough evidence in the selected documents to answer that question confidently.
           </Alert>
         ) : (
           <>
-            <MarkdownContent isDark={isDark} textSecondary={theme.palette.text.secondary}>
-              {sanitizeCitations(text, sources)}
-            </MarkdownContent>
-            {streaming && text && (
-              <Typography component="span" sx={{ color: '#FF6B00', ml: 0.5, fontWeight: 700 }}>
-                ▌
-              </Typography>
-            )}
-
-            {/* Streaming state with no tokens yet */}
-            {streaming && !text && (
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                Synthesizing answer from selected documents…
-              </Typography>
+            {/* If streaming and no text yet: Animated pulsing thinking dots */}
+            {streaming && !text ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  py: 0.5,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.6,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: '#FF6B00',
+                      animation: 'swanPulse 1.2s infinite ease-in-out both',
+                      '@keyframes swanPulse': {
+                        '0%, 80%, 100%': { transform: 'scale(0.6)', opacity: 0.4 },
+                        '40%': { transform: 'scale(1.1)', opacity: 1 },
+                      },
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: '#FF6B00',
+                      animation: 'swanPulse 1.2s infinite ease-in-out both 0.2s',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: '#FF6B00',
+                      animation: 'swanPulse 1.2s infinite ease-in-out both 0.4s',
+                    }}
+                  />
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    fontStyle: 'italic',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Swan AI is synthesizing answer from selected documents…
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                <MarkdownContent isDark={isDark} textSecondary={theme.palette.text.secondary}>
+                  {sanitizeCitations(text, sources)}
+                </MarkdownContent>
+                {streaming && (
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: '#FF6B00',
+                      ml: 0.5,
+                      fontWeight: 700,
+                      animation: 'cursorBlink 1s infinite',
+                      '@keyframes cursorBlink': {
+                        '0%, 100%': { opacity: 1 },
+                        '50%': { opacity: 0 },
+                      },
+                    }}
+                  >
+                    ▌
+                  </Typography>
+                )}
+              </>
             )}
           </>
         )}
@@ -257,7 +386,7 @@ function RagMessageBubble({ message }) {
                 onClick={() => setSourcesOpen((prev) => !prev)}
                 aria-expanded={sourcesOpen}
                 aria-label="Toggle sources"
-                sx={{ color: theme.palette.text.secondary }}
+                sx={{ color: theme.palette.text.secondary, p: 0.5 }}
               >
                 <ExpandMoreIcon
                   fontSize="small"
@@ -274,13 +403,13 @@ function RagMessageBubble({ message }) {
                   <Tooltip key={source.chunk_id || idx} title={source.chunk_id || ''} arrow>
                     <Chip
                       size="small"
-                      icon={<ChatBubbleOutlineOutlinedIcon sx={{ fontSize: '14px !important' }} />}
+                      icon={<DescriptionOutlinedIcon sx={{ fontSize: '14px !important' }} />}
                       label={`[${idx + 1}] ${source.filename}${formatPages(source) ? ` · ${formatPages(source)}` : ''}`}
                       variant="outlined"
                       sx={{
                         justifyContent: 'flex-start',
                         borderColor: theme.palette.divider,
-                        backgroundColor: isDark ? '#141720' : '#F8FAFC',
+                        backgroundColor: isDark ? '#161922' : '#F8FAFC',
                         '& .MuiChip-label': {
                           fontSize: '0.75rem',
                           fontWeight: 600,
@@ -311,14 +440,14 @@ function RagMessageBubble({ message }) {
                 variant="overline"
                 sx={{ color: theme.palette.text.secondary, letterSpacing: '0.04em', fontSize: '0.68rem' }}
               >
-                Developer Diagnostics
+                Diagnostics
               </Typography>
               <IconButton
                 size="small"
                 onClick={() => setDiagnosticsOpen((prev) => !prev)}
                 aria-expanded={diagnosticsOpen}
                 aria-label="Toggle developer diagnostics"
-                sx={{ color: theme.palette.text.secondary }}
+                sx={{ color: theme.palette.text.secondary, p: 0.5 }}
               >
                 <ExpandMoreIcon
                   fontSize="small"
@@ -338,7 +467,7 @@ function RagMessageBubble({ message }) {
                   borderRadius: '8px',
                   backgroundColor: isDark ? '#0C0E14' : '#F8FAFC',
                   border: `1px solid ${theme.palette.divider}`,
-                  fontSize: '0.75rem',
+                  fontSize: '0.72rem',
                   color: theme.palette.text.secondary,
                   fontFamily: "'Roboto Mono', Consolas, monospace",
                   whiteSpace: 'pre-wrap',
