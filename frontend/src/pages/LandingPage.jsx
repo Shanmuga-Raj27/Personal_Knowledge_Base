@@ -373,20 +373,66 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
           >
             {/* Left Side: Product Name & Action Buttons */}
             <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+              {/* Eyebrow */}
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 2,
+                  py: 0.6,
+                  borderRadius: '24px',
+                  background: 'rgba(255, 107, 0, 0.12)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 107, 0, 0.32)',
+                  boxShadow: '0 4px 20px -2px rgba(255, 107, 0, 0.22), inset 0 0 12px rgba(255, 107, 0, 0.1)',
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: '#FF6B00',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    fontSize: { xs: '0.8rem', sm: '0.88rem' },
+                    lineHeight: 1.4,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Your Intelligent Document Workspace
+                </Typography>
+              </Box>
+
+              {/* Headline */}
               <Typography
                 variant="h1"
                 component="h1"
                 sx={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
                   fontWeight: 600,
-                  fontSize: { xs: '3.6rem', sm: '4.8rem', md: '6.2rem' },
-                  lineHeight: 1.05,
+                  fontSize: { xs: '2.5rem', sm: '3.6rem', md: '4.5rem' },
+                  lineHeight: 1.1,
                   letterSpacing: '-0.02em',
                   color: isDark ? '#FFFFFF' : '#0A0A0A',
+                  mb: 2.5,
+                }}
+              >
+                Swan Drive for Everyone
+              </Typography>
+
+              {/* Description */}
+              <Typography
+                variant="body1"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  fontSize: { xs: '1.05rem', sm: '1.15rem' },
+                  lineHeight: 1.6,
+                  maxWidth: 580,
+                  mx: { xs: 'auto', md: 0 },
                   mb: 4.5,
                 }}
               >
-                Swan Drive
+                Secure cloud storage with AI-powered document search. Ask questions and understand your documents with Swan AI.
               </Typography>
 
               {/* Calls to Action */}
