@@ -1,6 +1,6 @@
 import { createTheme } from '@mui/material/styles'
 
-const SERIF_FONT = "Georgia, 'Times New Roman', Cambria, serif"
+const SERIF_FONT = "'Cormorant Garamond', Georgia, 'Times New Roman', Cambria, serif"
 const SANS_FONT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
 
 export const createAppTheme = (mode = 'light') => {

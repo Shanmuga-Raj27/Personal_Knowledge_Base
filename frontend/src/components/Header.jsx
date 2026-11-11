@@ -13,6 +13,7 @@ import {
   IconButton,
   Tooltip,
   useTheme,
+  Chip,
 } from '@mui/material'
 import Logout from '@mui/icons-material/Logout'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -105,19 +106,35 @@ function Header({
               <Typography
                 variant="h6"
                 sx={{
-                  fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
-                  fontWeight: 700,
-                  fontSize: '1.25rem',
-                  letterSpacing: '-0.02em',
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: '1.45rem',
+                  letterSpacing: '0.01em',
                   color: isDark ? '#FFFFFF' : '#0A0A0A',
                   cursor: 'default',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 0.5,
+                  lineHeight: 1,
                 }}
               >
-                Swan <Box component="span" sx={{ color: '#FF6B00' }}>Drive</Box>
+                Swan Drive
               </Typography>
+              <Tooltip title="Swan Drive is currently in Beta Version." arrow>
+                <Chip
+                  label="Beta"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.68rem',
+                    fontWeight: 400,
+                    letterSpacing: '0.02em',
+                    backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
+                    borderRadius: '6px',
+                    cursor: 'help',
+                  }}
+                />
+              </Tooltip>
             </Box>
 
             {/* Connection Status Pill */}

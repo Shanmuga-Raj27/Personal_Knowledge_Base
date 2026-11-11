@@ -54,7 +54,6 @@ export const SwanLogo = ({ size = 28 }) => (
 export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, onToggleTheme }) {
   const theme = useTheme()
   const isDark = theme.palette.mode === 'dark'
-  const [activeTab, setActiveTab] = useState('vault')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const scrollToSection = (id) => {
@@ -131,37 +130,36 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 <Typography
                   variant="h6"
                   sx={{
-                    fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
-                    fontWeight: 700,
-                    fontSize: '1.35rem',
-                    letterSpacing: '-0.02em',
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 600,
+                    fontSize: '1.55rem',
+                    letterSpacing: '0.01em',
                     color: isDark ? '#FFFFFF' : '#0A0A0A',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 0.5,
+                    lineHeight: 1,
                   }}
                 >
-                  Swan <Box component="span" sx={{ color: '#FF6B00' }}>Drive</Box>
+                  Swan Drive
                 </Typography>
               </Box>
 
               {/* Beta Badge with Tooltip */}
               <Tooltip
-                title="Swan Drive is currently in beta. This experimental release allows users to explore features while we continue improving reliability, performance, and user experience."
+                title="Swan Drive is currently in beta Version."
                 arrow
               >
                 <Chip
-                  label="BETA"
+                  label="Beta"
                   size="small"
                   sx={{
                     height: 20,
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.04em',
-                    backgroundColor: isDark ? 'rgba(255, 107, 0, 0.15)' : '#FFF5EE',
-                    color: '#FF6B00',
-                    border: `1px solid ${isDark ? 'rgba(255, 107, 0, 0.35)' : '#FFD8BF'}`,
-                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 400,
+                    letterSpacing: '0.02em',
+                    backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
+                    borderRadius: '6px',
                     cursor: 'help',
                   }}
                 />
@@ -358,509 +356,121 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
       <Box
         component="section"
         sx={{
-          pt: { xs: 7, md: 10 },
-          pb: { xs: 7, md: 9 },
-          textAlign: 'center',
+          pt: { xs: 8, md: 14 },
+          pb: { xs: 8, md: 14 },
           position: 'relative',
         }}
       >
-        <Container maxWidth="md">
-          {/* Positioning Pill */}
-          <Chip
-            icon={<AutoAwesomeIcon sx={{ fontSize: '15px !important', color: '#FF6B00' }} />}
-            label="Swan Drive – Your Personal Document Workspace"
-            size="small"
-            sx={{
-              mb: 3,
-              px: 1.2,
-              py: 2,
-              borderRadius: '20px',
-              backgroundColor: isDark ? 'rgba(255, 107, 0, 0.12)' : '#FFF5EE',
-              border: `1px solid ${isDark ? 'rgba(255, 107, 0, 0.3)' : '#FFD8BF'}`,
-              color: '#FF6B00',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              letterSpacing: '0.02em',
-            }}
-          />
-
-          {/* Main H1 Headline */}
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: '2.3rem', sm: '3.2rem', md: '3.8rem' },
-              lineHeight: 1.18,
-              color: isDark ? '#FFFFFF' : '#0A0A0A',
-              mb: 2.5,
-            }}
-          >
-            Intelligent Document Workspace with Cloud Storage & AI
-          </Typography>
-
-          {/* Subtitle */}
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: { xs: '1rem', sm: '1.18rem' },
-              color: theme.palette.text.secondary,
-              maxWidth: 700,
-              mx: 'auto',
-              lineHeight: 1.65,
-              mb: 4.5,
-            }}
-          >
-            A document management application that combines file organization, cloud storage integration,
-            and AI-assisted document understanding. Manage files in My Drive and chat with Swan AI.
-          </Typography>
-
-          {/* Calls to Action */}
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
-            sx={{ justifyContent: 'center', alignItems: 'center', mb: 4 }}
-          >
-            <Button
-              variant="contained"
-              size="large"
-              onClick={onRegisterClick}
-              endIcon={<ArrowForwardIcon />}
-              sx={{
-                backgroundColor: '#0284C7', // Water Blue
-                color: '#FFFFFF',
-                px: 3.5,
-                py: 1.4,
-                fontSize: '1rem',
-                fontWeight: 700,
-                borderRadius: '8px',
-                width: { xs: '100%', sm: 'auto' },
-                '&:hover': {
-                  backgroundColor: '#0369A1',
-                },
-              }}
-            >
-              Create Account
-            </Button>
-
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={onLoginClick}
-              sx={{
-                borderColor: isDark ? '#2D3748' : '#CBD5E1',
-                color: isDark ? '#FFFFFF' : '#0A0A0A',
-                px: 3.5,
-                py: 1.4,
-                fontSize: '1rem',
-                fontWeight: 600,
-                borderRadius: '8px',
-                width: { xs: '100%', sm: 'auto' },
-                '&:hover': {
-                  borderColor: '#FF6B00',
-                  backgroundColor: isDark ? 'rgba(255, 107, 0, 0.08)' : '#FFF5EE',
-                },
-              }}
-            >
-              Login to Workspace
-            </Button>
-          </Stack>
-
-          {/* Beta Disclaimer Note (subtle, non-intrusive) */}
+        <Container maxWidth="lg">
           <Box
             sx={{
-              display: 'inline-flex',
+              display: 'flex',
+              flexDirection: { xs: 'column-reverse', md: 'row' },
               alignItems: 'center',
-              gap: 1,
-              px: 2,
-              py: 0.8,
-              borderRadius: '8px',
-              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC',
-              border: `1px solid ${theme.palette.divider}`,
-              color: theme.palette.text.secondary,
-              fontSize: '0.78rem',
-              maxWidth: 640,
-              mx: 'auto',
-              textAlign: 'left',
-              mb: 3,
+              justifyContent: 'space-between',
+              gap: { xs: 6, md: 8 },
             }}
           >
-            <InfoOutlinedIcon sx={{ fontSize: 16, color: '#FF6B00', flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, lineHeight: 1.4 }}>
-              Swan Drive is currently in beta. This experimental release allows users to explore features while
-              we continue improving reliability, performance, and user experience.
-            </Typography>
-          </Box>
-
-          {/* Trust points */}
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 1.5, sm: 3 }}
-            sx={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              color: theme.palette.text.secondary,
-              fontSize: '0.85rem',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Direct Cloud Storage
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Dynamic Status Updates
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <CheckCircleOutlinedIcon sx={{ fontSize: 16, color: '#16A34A' }} />
-              Grounded Swan AI Citations
-            </Box>
-          </Stack>
-        </Container>
-      </Box>
-
-      {/* ── 3. PRODUCT PRESENTATION MOCKUP ─────────────────────────── */}
-      <Box
-        component="section"
-        sx={{
-          pb: { xs: 8, md: 11 },
-          px: { xs: 2, sm: 3 },
-        }}
-      >
-        <Container maxWidth="lg">
-          {/* Tab selector */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                p: 0.5,
-                borderRadius: '12px',
-                backgroundColor: isDark ? '#141720' : '#F1F5F9',
-                border: `1px solid ${theme.palette.divider}`,
-              }}
-            >
-              <Button
-                size="small"
-                onClick={() => setActiveTab('vault')}
-                startIcon={<FolderOutlinedIcon />}
+            {/* Left Side: Product Name & Action Buttons */}
+            <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+              <Typography
+                variant="h1"
+                component="h1"
                 sx={{
-                  px: 2.5,
-                  py: 1,
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  backgroundColor: activeTab === 'vault' ? (isDark ? '#1E2433' : '#FFFFFF') : 'transparent',
-                  color: activeTab === 'vault' ? '#FF6B00' : theme.palette.text.secondary,
-                  boxShadow: activeTab === 'vault' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
-                  '&:hover': {
-                    backgroundColor: activeTab === 'vault' ? (isDark ? '#1E2433' : '#FFFFFF') : 'transparent',
-                  },
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: { xs: '3.6rem', sm: '4.8rem', md: '6.2rem' },
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.02em',
+                  color: isDark ? '#FFFFFF' : '#0A0A0A',
+                  mb: 4.5,
                 }}
               >
-                My Drive Interface
-              </Button>
-              <Button
-                size="small"
-                onClick={() => setActiveTab('kb')}
-                startIcon={<AutoAwesomeIcon />}
+                Swan Drive
+              </Typography>
+
+              {/* Calls to Action */}
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
                 sx={{
-                  px: 2.5,
-                  py: 1,
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  backgroundColor: activeTab === 'kb' ? (isDark ? '#1E2433' : '#FFFFFF') : 'transparent',
-                  color: activeTab === 'kb' ? '#0284C7' : theme.palette.text.secondary,
-                  boxShadow: activeTab === 'kb' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
-                  '&:hover': {
-                    backgroundColor: activeTab === 'kb' ? (isDark ? '#1E2433' : '#FFFFFF') : 'transparent',
-                  },
+                  justifyContent: { xs: 'center', md: 'flex-start' },
+                  alignItems: 'center',
                 }}
               >
-                Swan AI Chat
-              </Button>
-            </Box>
-          </Box>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={onRegisterClick}
+                  endIcon={<ArrowForwardIcon />}
+                  sx={{
+                    backgroundColor: '#0284C7', // Water Blue
+                    color: '#FFFFFF',
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    width: { xs: '100%', sm: 'auto' },
+                    '&:hover': {
+                      backgroundColor: '#0369A1',
+                    },
+                  }}
+                >
+                  Create Account
+                </Button>
 
-          {/* Mockup Frame */}
-          <Card
-            sx={{
-              borderRadius: '16px',
-              border: `1px solid ${theme.palette.divider}`,
-              backgroundColor: theme.palette.background.paper,
-              overflow: 'hidden',
-              boxShadow: isDark
-                ? '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
-                : '0 20px 40px -15px rgba(0, 0, 0, 0.08)',
-            }}
-          >
-            {/* Mockup Window Header */}
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={onLoginClick}
+                  sx={{
+                    borderColor: isDark ? '#2D3748' : '#CBD5E1',
+                    color: isDark ? '#FFFFFF' : '#0A0A0A',
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    width: { xs: '100%', sm: 'auto' },
+                    '&:hover': {
+                      borderColor: '#FF6B00',
+                      backgroundColor: isDark ? 'rgba(255, 107, 0, 0.08)' : '#FFF5EE',
+                    },
+                  }}
+                >
+                  Login
+                </Button>
+              </Stack>
+            </Box>
+
+            {/* Right Side: Big Swan Logo */}
             <Box
               sx={{
-                px: 3,
-                py: 1.8,
-                borderBottom: `1px solid ${theme.palette.divider}`,
-                backgroundColor: isDark ? '#12151D' : '#FBFBFC',
+                flexShrink: 0,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#EF4444' }} />
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#F59E0B' }} />
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#10B981' }} />
-                <Typography
-                  variant="caption"
-                  sx={{ ml: 1.5, color: theme.palette.text.secondary, fontWeight: 600 }}
-                >
-                  app.swandrive.io / {activeTab === 'vault' ? 'my-drive' : 'swan-ai'}
-                </Typography>
-              </Box>
-              <Chip
-                label="Verified Cloud"
-                size="small"
+              <Box
+                component="img"
+                src={swanLogoUrl}
+                alt="Swan Drive Logo"
                 sx={{
-                  height: 20,
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
-                  color: '#059669',
-                  borderRadius: '4px',
+                  width: { xs: 220, sm: 300, md: 380 },
+                  height: { xs: 220, sm: 300, md: 380 },
+                  objectFit: 'contain',
+                  filter: isDark
+                    ? 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6))'
+                    : 'drop-shadow(0 15px 30px rgba(0, 0, 0, 0.08))',
                 }}
               />
             </Box>
-
-            {/* Mockup Content */}
-            <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
-              {activeTab === 'vault' ? (
-                <Box>
-                  {/* Search Bar Preview */}
-                  <Box
-                    sx={{
-                      p: 2,
-                      mb: 3,
-                      borderRadius: '10px',
-                      border: `1px solid ${theme.palette.divider}`,
-                      backgroundColor: isDark ? '#161922' : '#F8FAFC',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: theme.palette.text.secondary, flexGrow: 1 }}>
-                      <SearchIcon fontSize="small" />
-                      <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                        Search documents by keyword, topic, or content...
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      sx={{
-                        backgroundColor: '#0284C7',
-                        color: '#FFFFFF',
-                        fontWeight: 700,
-                        px: 2,
-                      }}
-                    >
-                      Upload File
-                    </Button>
-                  </Box>
-
-                  {/* Sample rows */}
-                  <Stack spacing={1.5}>
-                    {[
-                      {
-                        name: 'Quarterly Financial Summary.pdf',
-                        icon: <PictureAsPdfIcon sx={{ color: '#DC2626' }} />,
-                        size: '1.8 MB',
-                        desc: 'Quarterly balance sheets and budget allocation.',
-                        tags: ['Finance', 'Budget'],
-                        status: 'Indexed',
-                        statusColor: '#166534',
-                        statusBg: '#F0FDF4',
-                      },
-                      {
-                        name: 'System Architecture & Security Spec.docx',
-                        icon: <DescriptionIcon sx={{ color: '#0284C7' }} />,
-                        size: '640 KB',
-                        desc: 'Cloud security architecture, API specs, and tenant isolation.',
-                        tags: ['Engineering', 'Security'],
-                        status: 'Indexed',
-                        statusColor: '#166534',
-                        statusBg: '#F0FDF4',
-                      },
-                      {
-                        name: 'Project Release Notes.md',
-                        icon: <TextSnippetIcon sx={{ color: '#16A34A' }} />,
-                        size: '42 KB',
-                        desc: 'Changelog, bug fixes, and feature verification notes.',
-                        tags: ['Release', 'Docs'],
-                        status: 'Indexing...',
-                        statusColor: '#FF6B00',
-                        statusBg: '#FFF5EE',
-                      },
-                    ].map((row, i) => (
-                      <Box
-                        key={i}
-                        sx={{
-                          p: 2,
-                          borderRadius: '8px',
-                          border: `1px solid ${theme.palette.divider}`,
-                          backgroundColor: isDark ? '#141720' : '#FFFFFF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 2,
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8, minWidth: 0, flexGrow: 1 }}>
-                          {row.icon}
-                          <Box sx={{ minWidth: 0 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.3 }}>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{
-                                  fontWeight: 700,
-                                  color: isDark ? '#F1F5F9' : '#0A0A0A',
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {row.name}
-                              </Typography>
-                              <Chip
-                                label={row.status}
-                                size="small"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  fontWeight: 700,
-                                  backgroundColor: row.statusBg,
-                                  color: row.statusColor,
-                                  border: `1px solid ${row.statusColor}33`,
-                                }}
-                              />
-                            </Box>
-                            <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                              {row.desc} &bull; {row.size}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Stack direction="row" spacing={0.8} sx={{ display: { xs: 'none', md: 'flex' } }}>
-                          {row.tags.map((tag) => (
-                            <Chip
-                              key={tag}
-                              label={tag}
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                height: 20,
-                                fontSize: '0.68rem',
-                                borderColor: theme.palette.divider,
-                              }}
-                            />
-                          ))}
-                        </Stack>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Box>
-              ) : (
-                <Box sx={{ maxWidth: 720, mx: 'auto' }}>
-                  {/* Context banner */}
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      mb: 2.5,
-                      borderRadius: '8px',
-                      backgroundColor: isDark ? '#161922' : '#F8FAFC',
-                      border: `1px solid ${theme.palette.divider}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary }}>
-                      Grounding Context:
-                    </Typography>
-                    <Chip
-                      icon={<PictureAsPdfIcon sx={{ fontSize: '14px !important', color: '#DC2626' }} />}
-                      label="Quarterly Financial Summary.pdf"
-                      size="small"
-                      sx={{ height: 22, fontSize: '0.72rem', fontWeight: 600 }}
-                    />
-                  </Box>
-
-                  {/* Sample Query & Conversational Chat */}
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <Box
-                        sx={{
-                          maxWidth: '75%',
-                          px: 2,
-                          py: 1.2,
-                          borderRadius: '14px 14px 4px 14px',
-                          backgroundColor: '#0284C7',
-                          color: '#FFFFFF',
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          What was the cloud infrastructure expenditure reported in the summary?
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1.5 }}>
-                      <Box
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '8px',
-                          backgroundColor: '#FFF5EE',
-                          border: '1px solid #FFD8BF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#FF6B00',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <AutoAwesomeIcon sx={{ fontSize: 16 }} />
-                      </Box>
-                      <Box
-                        sx={{
-                          maxWidth: '85%',
-                          p: 2,
-                          borderRadius: '14px 14px 14px 4px',
-                          border: `1px solid ${theme.palette.divider}`,
-                          backgroundColor: isDark ? '#141720' : '#FFFFFF',
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1.5 }}>
-                          According to <strong>Quarterly Financial Summary.pdf [1]</strong>, the total cloud
-                          infrastructure expenditure was reported at \$142,000, allocated across storage services and indexing pipelines.
-                        </Typography>
-                        <Divider sx={{ my: 1 }} />
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.text.secondary, display: 'block', mb: 0.5 }}>
-                          Sources:
-                        </Typography>
-                        <Chip
-                          size="small"
-                          label="[1] Quarterly Financial Summary.pdf · Page 4"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.72rem', fontWeight: 600 }}
-                        />
-                      </Box>
-                    </Box>
-                  </Stack>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+          </Box>
         </Container>
       </Box>
+
 
       {/* ── 4. PRODUCT SECTION: MY DRIVE ─────────────────────────── */}
       <Box
@@ -1232,9 +842,12 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
             sx={{
               p: { xs: 4, sm: 6 },
               borderRadius: '20px',
-              backgroundColor: isDark ? '#12151D' : '#0A0A0A',
-              color: '#FFFFFF',
-              border: `1px solid ${isDark ? '#262D3D' : '#1A1A1A'}`,
+              backgroundColor: isDark ? '#12151D' : '#FFFFFF',
+              color: isDark ? '#FFFFFF' : '#0A0A0A',
+              border: `1px solid ${isDark ? '#262D3D' : theme.palette.divider}`,
+              boxShadow: isDark
+                ? '0 10px 30px -10px rgba(0, 0, 0, 0.5)'
+                : '0 10px 30px -10px rgba(0, 0, 0, 0.06)',
               textAlign: 'center',
             }}
           >
@@ -1242,7 +855,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
               variant="h3"
               sx={{
                 fontSize: { xs: '1.8rem', sm: '2.4rem' },
-                color: '#FFFFFF',
+                color: isDark ? '#FFFFFF' : '#0A0A0A',
                 mb: 2,
               }}
             >
@@ -1251,14 +864,14 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
             <Typography
               variant="body1"
               sx={{
-                color: '#94A3B8',
+                color: theme.palette.text.secondary,
                 maxWidth: 560,
                 mx: 'auto',
                 mb: 4,
                 lineHeight: 1.65,
               }}
             >
-              Manage your documents in My Drive with cloud storage, search, and conversational Swan AI.
+              Manage your documents in Swan Drive with cloud storage, search, and conversational Swan AI.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
               <Button
@@ -1285,8 +898,8 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                 size="large"
                 onClick={onLoginClick}
                 sx={{
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  color: '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : '#CBD5E1',
+                  color: isDark ? '#FFFFFF' : '#0A0A0A',
                   fontWeight: 600,
                   fontSize: '1rem',
                   px: 4,
@@ -1294,7 +907,7 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
                   borderRadius: '8px',
                   '&:hover': {
                     borderColor: '#FF6B00',
-                    backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                    backgroundColor: isDark ? 'rgba(255, 107, 0, 0.1)' : '#FFF5EE',
                   },
                 }}
               >
@@ -1330,12 +943,15 @@ export default function LandingPage({ onLoginClick, onRegisterClick, themeMode, 
               <Typography
                 variant="subtitle2"
                 sx={{
-                  fontFamily: "Georgia, 'Times New Roman', Cambria, serif",
-                  fontWeight: 700,
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: '1.25rem',
+                  letterSpacing: '0.01em',
                   color: isDark ? '#FFFFFF' : '#0A0A0A',
+                  lineHeight: 1,
                 }}
               >
-                Swan <Box component="span" sx={{ color: '#FF6B00' }}>Drive</Box>
+                Swan Drive
               </Typography>
             </Box>
 
