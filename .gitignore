@@ -134,6 +134,7 @@ logs/
 # ============================================
 .kilo/
 .agents/
+GEMINI.md
 prompt-base/
 
 *opencode.json

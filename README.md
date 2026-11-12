@@ -1,315 +1,184 @@
-# 📚 Personal Knowledge Base
+<div align="center">
 
-A cloud-based document workspace that helps users store, organize, and search their personal files using AI.
+<img src="project-images/swan_logo_final_clean.svg" alt="Swan Drive Logo" width="130" />
 
-The project combines a modern web interface with a secure backend, structured databases, cloud file storage, and AI-powered semantic search. It is designed as a practical production-style application and demonstrates how these technologies can work together in a real project.
+# Swan Drive
 
-> **Cloud storage environments**
->
-> - **Development & Testing:** Backblaze B2
-> - **Production:** AWS S3
->
-> These are separate environments. Backblaze B2 is used while developing and testing the application, while AWS S3 is used for the production deployment.
+> **Swan Drive is an intelligent document workspace for everyone.**  
+> **Secure cloud storage with AI-powered document search.**  
+> **Ask questions and understand your documents with Swan AI.**
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-swandrive.vercel.app-FF6B00?style=for-the-badge&logo=vercel&logoColor=white)](https://swandrive.vercel.app)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React 19](https://img.shields.io/badge/React%2019-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![Material UI](https://img.shields.io/badge/MUI%209-007FFF?style=for-the-badge&logo=mui&logoColor=white)](https://mui.com)
+[![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20Search-DC2626?style=for-the-badge)](https://qdrant.tech)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 ---
 
-**🚀 Live Demo:** [https://personal-knowledge-base-blue.vercel.app/](https://personal-knowledge-base-blue.vercel.app/)
+**🌐 Live Application:** [https://swandrive.vercel.app](https://swandrive.vercel.app)  
+**📬 Developer Contact:** [Email](mailto:rshanmugaraj11@gmail.com) · [LinkedIn](https://www.linkedin.com/in/shanmugaraj27)
 
-> **Deployment note:** The frontend is hosted on Vercel. The backend and supporting services run separately on AWS EC2 and may not be available continuously because of AWS free-tier credit limitations. If the demo is unavailable, contact me by email or LinkedIn.
+</div>
 
-**Contact:** [Email](mailto:rshanmugaraj11@gmail.com) · [LinkedIn](https://www.linkedin.com/in/shanmugaraj27)
+> `NOTE:`
+> **Live Demo Backend Schedule:**  
+> The frontend client is hosted 24/7 on **Vercel Edge CDN**. Due to AWS free-tier credit limits, the backend compute instance on **AWS EC2** is active daily from **9:00 AM to 6:00 PM IST (`Asia/Kolkata`)**.  
+> If you visit outside these operational hours and find the backend paused, feel free to reach out directly via [Email](mailto:rshanmugaraj11@gmail.com) or [LinkedIn](https://www.linkedin.com/in/shanmugaraj27) to spin it up or schedule a live walkthrough!
 
 ---
 
 ## ✨ Key Features
 
-- **User Authentication** — Users can register and log in securely. Passwords are protected and authenticated sessions use JWT-based access tokens.
-
-- **Document Storage** — Users can upload and manage files in their personal document vault.
-
-- **AI-Powered Search** — The application can understand the meaning of document content, allowing users to find relevant information without relying only on exact keywords.
-
-- **Document Information Management** — File titles, descriptions, tags, ownership, and other information are stored separately from the actual files.
-
-- **Fast Search and Responses** — Redis is used to cache frequently requested information and reduce unnecessary processing.
-
-- **AI Knowledge Retrieval (RAG)** — Documents can be processed into smaller sections so the AI can retrieve relevant information and use it when answering user questions.
-
-- **REST API** — The frontend communicates with the backend through a structured API covering authentication, document management, search, health checks, and AI/RAG operations.
-
-- **Background Processing** — Document indexing and other longer-running tasks are handled in the background so normal application usage remains responsive.
+- 📁 **Secure Cloud Document Vault** — Upload and manage multi-format documents (PDF, DOCX, XLSX, CSV, Markdown, TXT) up to 50MB. File binaries stream straight to **AWS S3** via presigned URLs without bottlenecking the backend server.
+- 🔍 **Semantic & Vector Document Search** — Beyond exact keywords: documents are indexed as high-dimensional vector embeddings, enabling natural language search across titles, tags, and document contents.
+- 🧠 **Conversational Q&A with Swan AI (RAG)** — Select up to 5 documents and chat with **Swan AI**. Powered by Retrieval-Augmented Generation (RAG) and Google Gemini, delivering token-by-token streaming responses (SSE) grounded in your documents with verifiable citation pills.
+- ⚡ **Fail-Open Answer Caching with Redis** — Repeated queries resolve instantly through an Upstash Redis REST cache. Cache keys dynamically bind to corpus revisions, guaranteeing instant invalidation whenever documents are updated.
+- 🎨 **Modern, Responsive MUI Interface** — Clean single-page application crafted in React 19 and Material UI (MUI 9), featuring light/dark mode, real-time backend health indicators, and zero external CSS overhead.
+- 🛡️ **Enterprise-Grade Multi-Tenant Security** — Cryptographically secured with Argon2id password hashing, short-lived JWT bearer tokens, and row-level tenant isolation across relational tables, S3 prefixes, and Qdrant vector payloads.
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Tech Stack
 
-### Frontend
-- **React 19** — User interface
-- **Vite** — Frontend build tool
-- **Material UI (MUI)** — UI components and styling
-- **Axios** — Backend API communication
-
-### Backend
-- **Python 3.12+** — Backend language
-- **FastAPI** — REST API framework
-- **SQLAlchemy** — Database access
-- **Pydantic** — Request validation and application settings
-- **JWT and Argon2id** — Token-based authentication and password hashing
-- **Uvicorn / Gunicorn** — API serving
-
-### AI
-- **Google Gemini API** — Embeddings and AI-generated responses
-- **Retrieval-Augmented Generation (RAG)** — Document chunking, retrieval, and question answering
-
-### Database
-- **MySQL 8** — User accounts and document metadata
-- **Qdrant** — Vector search
-- **Redis** — Caching
-
-### Cloud
-- **AWS EC2** — Backend application hosting
-- **AWS S3** — Production file storage
-- **Backblaze B2** — Development and testing file storage using an S3-compatible API
-- **Docker and Docker Compose** — Containerization and multi-service setup
+| Layer | Technologies & Libraries | Key Responsibilities |
+| :--- | :--- | :--- |
+| **Frontend** | **React 19**, **Vite**, **Material UI (MUI 9)**, **Axios** | Single-page app (SPA), custom MUI design tokens, JWT interceptors, and Server-Sent Events (SSE) streaming consumer. |
+| **Backend** | **Python 3.12**, **FastAPI**, **Uvicorn / Gunicorn**, **Pydantic** | High-performance asynchronous REST API, request schema validation, streaming endpoints, and background task workers. |
+| **AI / RAG & Vectors** | **Google GenAI SDK**, **Gemini API**, **Qdrant Cloud**, **PyMuPDF** | Vector embeddings via `gemini-embedding-2` (768d Cosine), streaming generation via Gemini multi-model fallback (`gemini-3.1-flash-lite`), and PDF parsing. |
+| **Database & Cache** | **AWS RDS MySQL 8.0**, **SQLAlchemy 2**, **Alembic**, **Upstash Redis** | Relational user/file metadata and chunk staging with connection pooling; serverless REST-based fail-open query caching (24h TTL). |
+| **Cloud & DevOps** | **AWS EC2 (`t3.micro`)**, **AWS S3**, **Vercel Edge**, **Docker & Compose**, **Nginx** | Containerized backend deployment behind Nginx reverse proxy, client-direct S3 presigned transfers, and Vercel edge reverse-proxy rewrites. |
 
 ---
 
-## High-Level Architecture
+## 🏛️ High-Level Architecture
 
-The application follows a three-layer structure:
-
-1. **Frontend** — Provides the user interface for login, file management, knowledge-base selection, and search.
-
-2. **Backend** — Handles authentication, document management, search, AI processing, and communication with other services.
-
-3. **Data and Cloud Services** — Store file information, files, search data, and cached results.
-
-### Architecture Diagram
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         CLIENT (React + Vite)                           │
-│                                                                         │
-│  ┌──────────┐  ┌──────────────┐  ┌───────────┐  ┌──────────────────┐    │
-│  │ AuthPage │  │  VaultPage   │  │ Knowledge │  │  SearchHeader    │    │
-│  │ (Login/  │  │ (Document    │  │ Base Page │  │ (Semantic Search │    │
-│  │ Register)│  │  List/Upload)│  │ (File Q/A)│  │   + Upload UI)   │    │
-│  └────┬─────┘  └──────┬───────┘  └─────┬─────┘  └────────┬─────────┘    │
-│       │               │                │                 │              │
-│       └───────────────┴────────────────┴─────────────────┘              │
-│                              │                                          │
-│                       Axios (JWT Interceptors)                          │
-└──────────────────────────────┬──────────────────────────────────────────┘
-                               │
-                          HTTPS / CORS
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       BACKEND (FastAPI + Gunicorn)                      │
-│                                                                         │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                      FastAPI App (main.py)                        │  │
-│  │                                                                   │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐     │  │
-│  │  │   Auth   │  │ Document │  │  Search  │  │      RAG       │     │  │
-│  │  │  Routes  │  │  Routes  │  │  Routes  │  │     Routes     │     │  │
-│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───────┬────────┘     │  │
-│  └───────┼─────────────┼─────────────┼────────────────┼────────────┘    │
-│          │             │             │                │                 │
-│  ┌───────▼─────────────▼─────────────▼────────────────▼────────────┐    │
-│  │                        Services Layer                           │    │
-│  │                                                                 │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐   │    │
-│  │  │ Storage  │  │    AI    │  │  Cache   │  │   RAG Engine   │   │    │
-│  │  │ Presigned│  │  Gemini  │  │  Redis   │  │   (Chunker,    │   │    │
-│  │  │   URLs   │  │ Embedding│  │          │  │    Embedder,   │   │    │
-│  │  │          │  │ /Generate│  │          │  │  Orchestrator) │   │    │
-│  │  └──────────┘  └──────────┘  └──────────┘  └────────────────┘   │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                       Core & Workers                              │  │
-│  │                                                                   │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐     │  │
-│  │  │  Config  │  │ Security │  │ Indexing │  │   RAG Workers  │     │  │
-│  │  │(Settings)│  │   (JWT/  │  │  Worker  │  │   (Backfill,   │     │  │
-│  │  │          │  │  Argon2) │  │          │  │    Re-index)   │     │  │
-│  │  └──────────┘  └──────────┘  └──────────┘  └────────────────┘     │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────────────┘
-                               │
-                  ┌────────────┼────────────┐
-                  │            │            │
-                  ▼            ▼            ▼
-           ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-           │   MYSQL 8.0  │ │    QDRANT    │ │   REDIS 7    │
-           │              │ │              │ │              │
-           │   File/User  │ │ Vector Search│ │    Cache     │
-           │   Metadata   │ │ & Embeddings │ │              │
-           └──────────────┘ └──────────────┘ └──────────────┘
-                  │
-                  │
-                  │ File Storage
-                  ▼
-           ┌───────────────────────────────────────────────┐
-           │                OBJECT STORAGE                 │
-           │                                               │
-           │  Development & Testing → Backblaze B2         │
-           │  Production            → AWS S3               │
-           └───────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                   React 19 + MUI Client (SPA)                          │
+│                     Hosted on Vercel Edge CDN                          │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTPS (Bearer JWT / SSE Stream)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                      AWS EC2 Host (Ubuntu Linux)                       │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                    Nginx Reverse Proxy (:80)                     │  │
+│  │        (proxy_buffering off; client_max_body_size 50M)           │  │
+│  └────────────────────────────────┬─────────────────────────────────┘  │
+│                                   │ HTTP (127.0.0.1:8000)              │
+│  ┌────────────────────────────────▼─────────────────────────────────┐  │
+│  │               FastAPI Backend Container (Docker)                 │  │
+│  │   • Auth & Security (Argon2id + JWT)                             │  │
+│  │   • S3 Presigned URL Provisioning                                │  │
+│  │   • Document Ingestion, PyMuPDF Parsing & Chunking               │  │
+│  │   • RAG Orchestrator & SSE Token Streaming                       │  │
+│  └────────────────────────────────┬─────────────────────────────────┘  │
+└───────────────────────────────────┼────────────────────────────────────┘
+                                    │
+        ┌───────────────────────────┼───────────────────────────┐
+        ▼                           ▼                           ▼
+ ┌──────────────┐            ┌──────────────┐            ┌──────────────┐
+ │   AWS RDS    │            │ Qdrant Cloud │            │ Redis Cloud  │
+ │ (MySQL 8.0)  │            │(Vector Store)│            │(Upstash REST)│
+ │ • Users/Auth │            │• Vault Meta  │            │• Fail-open   │
+ │ • File Meta  │            │• Chunks (768d│            │  Answer Cache│
+ │ • Chunks/Rev │            │  Cosine)     │            │• 24h TTL     │
+ └──────────────┘            └──────────────┘            └──────────────┘
+        │                           │
+        ▼                           ▼
+ ┌──────────────┐            ┌──────────────────────────────────────────┐
+ │    AWS S3    │            │            Google Gemini API             │
+ │(Object Store)│            │ • Embeddings: gemini-embedding-2 (768d)  │
+ │ • Raw Files  │            │ • Generation: gemini-3.1-flash-lite      │
+ │ • Presigned  │            │   (Dynamic multi-model fallback chain)   │
+ │   PUT / GET  │            └──────────────────────────────────────────┘
+ └──────────────┘
 ```
 
-### How the Application Works
+---
 
-1. A user interacts with the application through the React frontend.
+## 🔄 How the Application Works
 
-2. The frontend communicates with the FastAPI backend through secure API requests.
+```text
+ [User / Browser]
+        │
+        ├─► 1. Upload & Store ────────► [AWS S3] (Presigned PUT) + [MySQL] (Metadata)
+        │
+        ├─► 2. Process & Index ───────► [FastAPI Worker] ──► [PyMuPDF Chunker] ──► [Qdrant Cloud] (768d)
+        │
+        └─► 3. Ask Swan AI (Query) ───► [Redis Cache] ──(Hit)──► Instant Stream
+                                             │ (Miss)
+                                             ├──► [Qdrant Cloud] (Retrieve Top-K Chunks)
+                                             ├──► [MySQL] (Hydrate Verified Text)
+                                             └──► [Gemini LLM] (SSE Grounded Stream + Citations)
+```
 
-3. The backend verifies the user's access and handles the requested operation.
+1. **Upload & Store:** When a user uploads a document, the frontend requests a secure presigned upload URL from FastAPI and streams the binary directly to **AWS S3**. The backend never buffers heavy files, maintaining high throughput. Document metadata is registered in **AWS RDS MySQL**.
 
-4. MySQL stores information about files, users, ownership, titles, descriptions, and tags.
+2. **Index & Embed:** An asynchronous background worker extracts the document text (preserving page coordinates), normalizes formatting, and splits text into 800-word sliding windows (100-word overlap). Vectors are generated via `gemini-embedding-2` and upserted into **Qdrant Cloud** with a zero-downtime versioned cutover.
 
-5. The actual uploaded files are stored in the configured cloud storage:
-
-   - **Backblaze B2 during development and testing**
-
-   - **AWS S3 in production**
-
-6. Qdrant stores information that helps the application perform meaning-based document searches.
-
-7. Google Gemini is used to create document embeddings and generate AI responses.
-
-8. Redis stores frequently used results to improve response speed.
-
-9. Background workers process document indexing and RAG-related tasks without blocking normal application requests.
+3. **Search & Ask Swan AI:** Users can search files semantically or pick up to 5 documents to query with **Swan AI**. The orchestrator checks **Upstash Redis** for a cached response; on a cache miss, it retrieves the most relevant chunks from Qdrant, hydrates clean text from MySQL, and prompts **Google Gemini** to stream back citation-backed answers via Server-Sent Events (SSE).
 
 ---
 
 ## 📁 Project Folder Structure
+
 ```text
 Personal_Knowledge_Base/
-│
-├── backend/                              # FastAPI backend
-│   ├── main.py                           # Application entry point
-│   ├── alembic.ini                       # Database migration configuration
-│   ├── pyproject.toml                    # Python project configuration
-│   ├── requirements.txt                  # Python dependencies
-│   ├── pytest.ini                        # Test configuration
-│   ├── Dockerfile                        # Backend container configuration
-│   │
-│   ├── alembic/                          # Database migration files
-│   │   ├── versions/                     # Migration scripts
-│   │   ├── env.py                        # Migration environment
-│   │   ├── script.py.mako                # Migration template
-│   │   └── README                        # Alembic documentation
-│   │
+├── backend/                              # FastAPI backend application
+│   ├── alembic/                          # Database migration scripts & configurations
+│   │   └── versions/                     # Versioned schema migration files
 │   ├── app/                              # Main application package
-│   │   ├── apis/routes/                  # API routes
-│   │   ├── auth/                         # Authentication functions
-│   │   ├── core/                         # Configuration and security
-│   │   ├── database/                     # Database connections and models
-│   │   ├── schemas/                      # Request and response validation
-│   │   ├── services/                     # Main application services
-│   │   │   ├── AWS/s3_service.py         # Cloud file-storage operations
-│   │   │   ├── AI/vector_service.py      # Vector search operations
-│   │   │   ├── AI/rag_vector_service.py  # RAG vector operations
-│   │   │   ├── cache/redis_cache.py      # Redis caching
-│   │   │   └── rag/                      # RAG processing modules
-│   │   │       ├── rag_orchestrator.py   # RAG workflow
-│   │   │       ├── chunker.py             # Document text splitting
-│   │   │       ├── embedding.py            # Gemini embeddings
-│   │   │       ├── generation.py           # Gemini AI responses
-│   │   │       ├── pdf_extractor.py        # PDF text extraction
-│   │   │       ├── qdrant_service.py       # Qdrant operations
-│   │   │       ├── indexing_service.py     # Document indexing
-│   │   │       └── ...                     # Supporting RAG utilities
-│   │   │
-│   │   ├── workers/                      # Background processing
-│   │   │   ├── indexing_worker.py        # File indexing
-│   │   │   └── rag_worker.py             # RAG processing
-│   │   │
-│   │   └── utils/                        # Utility functions
-│   │
-│   └── tests/                            # Backend tests
-│       ├── integration/routes/            # API integration tests
-│       ├── unit/services/                 # Service-level tests
-│       └── test_auth_and_files.py         # Authentication and file tests
-│
-├── frontend/                             # React frontend
-│   ├── package.json                       # Frontend dependencies
-│   ├── vite.config.js                     # Vite configuration
-│   ├── eslint.config.js                   # ESLint configuration
-│   ├── index.html                         # Main HTML template
-│   │
-│   └── src/
-│       ├── apis/                           # Backend API integration
-│       │   ├── axiosClient.js              # Axios configuration
-│       │   ├── authApi.js                  # Authentication API
-│       │   ├── documentApi.js              # Document API
-│       │   ├── ragApi.js                   # RAG API
-│       │   └── systemApi.js                # System health API
-│       │
-│       ├── components/                     # Reusable UI components
-│       │   ├── SearchHeader.jsx             # Search and upload interface
-│       │   ├── FileList.jsx                 # File list
-│       │   ├── FileRow.jsx                  # Individual file row
-│       │   ├── Header.jsx                   # Application header
-│       │   ├── RagMessageBubble.jsx         # AI response display
-│       │   ├── DeleteConfirmDialog.jsx      # Delete confirmation
-│       │   ├── EditMetadataDialog.jsx       # Metadata editing
-│       │   └── SelectionToolbar.jsx         # Bulk selection
-│       │
-│       ├── pages/                          # Main application pages
-│       │   ├── AuthPage.jsx                 # Login and registration
-│       │   ├── VaultPage.jsx                # Document vault
-│       │   └── KnowledgeBase.jsx            # Knowledge base
-│       │
-│       ├── context/                        # Shared application state
-│       │   └── KnowledgeBaseFilesContext.jsx
-│       │
-│       ├── services/                       # Frontend services
-│       │   └── authService.js               # Authentication state
-│       │
-│       ├── assets/                         # Images and icons
-│       ├── App.jsx                          # Root application
-│       ├── App.css                          # Application styles
-│       ├── index.css                        # Global styles
-│       └── main.jsx                         # React entry point
-│
-├── docker-compose.yml                      # Local multi-service setup
-├── documentation/                          # Project documentation
-├── others/                                 # Environment and configuration files
-└── README.md                               # Project overview
+│   │   ├── apis/routes/                  # API endpoints (auth, document, search, rag, system)
+│   │   ├── auth/                         # Authentication dependencies & user lookup
+│   │   ├── core/                         # Configuration settings & cryptographic security
+│   │   ├── database/                     # SQLAlchemy engine, session maker & ORM models
+│   │   ├── schemas/                      # Pydantic validation schemas & domain enums
+│   │   ├── services/                     # Business logic modules
+│   │   │   ├── AI/                       # Qdrant client & vector operations
+│   │   │   ├── AWS/                      # S3 presigned URL generation & storage ops
+│   │   │   ├── cache/                    # Upstash Redis REST cache client
+│   │   │   └── rag/                      # Chunking, embeddings, retrieval & generation
+│   │   ├── workers/                      # Background indexing & recovery workers
+│   │   └── utils/                        # Rate limiting and helper utilities
+│   ├── main.py                           # FastAPI entrypoint, middleware & lifespan
+│   ├── Dockerfile                        # Backend production container specification
+│   └── requirements.txt                  # Pinned Python package dependencies
+├── frontend/                             # React 19 + Vite frontend application
+│   ├── src/
+│   │   ├── apis/                         # Axios client, auth, files & RAG SSE APIs
+│   │   ├── components/                   # Reusable MUI presentation components
+│   │   ├── context/                      # React context (vault & RAG document selection)
+│   │   ├── pages/                        # VaultPage, KnowledgeBase (Swan AI), Auth & Landing
+│   │   ├── services/                     # Pure domain logic, token persistence & validators
+│   │   ├── theme.js                      # Custom Material UI theme & design tokens
+│   │   ├── App.jsx                       # Root routing & authentication state manager
+│   │   └── main.jsx                      # Vite React 19 DOM mount point
+│   ├── vercel.json                       # Edge rewrite proxy configuration
+│   └── package.json                      # Frontend scripts and npm dependencies
+├── project-images/                       # Project branding & media assets
+│   └── swan_logo_final_clean.svg         # Official Swan Drive vector logo
+└── docker-compose.yml                    # Multi-container local & production orchestration
 ```
 
 ---
 
-## Project Purpose
+## 🤝 Open Source & Contributing
 
-The Personal Knowledge Base is designed to demonstrate a complete modern software application rather than a simple file-upload system.
+Contributions, feedback, and suggestions are warmly welcomed! Whether you're fixing a bug, proposing a new feature, improving documentation, or optimizing RAG retrieval:
 
-The project brings together:
+1. **Fork** the repository
+2. **Create** your feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add some amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
-- A responsive web interface
-
-- Secure user authentication
-
-- Cloud-based document storage
-
-- Structured document and user information
-
-- AI-powered search
-
-- AI-assisted question answering
-
-- Background document processing
-
-- Containerized application services
-
-- Separate development and production cloud environments
-
-This makes the project a practical example of how a full-stack application can be designed, developed, tested, and prepared for production deployment.
+Feel free to open an Issue to report bugs or discuss roadmap ideas.
 
 ---
 
-## License
+## 📄 License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is open-source software licensed under the [MIT License](LICENSE).
