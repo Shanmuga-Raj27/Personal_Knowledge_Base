@@ -13,7 +13,7 @@
 [![React 19](https://img.shields.io/badge/React%2019-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
 [![Material UI](https://img.shields.io/badge/MUI%209-007FFF?style=for-the-badge&logo=mui&logoColor=white)](https://mui.com)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20Search-DC2626?style=for-the-badge)](https://qdrant.tech)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
 ---
 
@@ -181,4 +181,4 @@ Feel free to open an Issue to report bugs or discuss roadmap ideas.
 
 ## 📄 License
 
-This project is open-source software licensed under the [MIT License](LICENSE).
+This project is open-source software licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
