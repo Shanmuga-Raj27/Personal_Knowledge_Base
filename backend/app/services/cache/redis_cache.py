@@ -89,6 +89,25 @@ class UpstashRedisRestClient:
         result = await self.execute_command("SETEX", key, int(time_seconds), value)
         return result == "OK" or result is True
 
+    async def delete(self, key: str) -> bool:
+        """Delete a key from Redis. Returns True if key existed and was deleted, False otherwise."""
+        result = await self.execute_command("DEL", key)
+        return bool(result)
+
+    async def incr(self, key: str) -> int:
+        """Increment the integer value of a key by one."""
+        result = await self.execute_command("INCR", key)
+        return int(result) if result is not None else 0
+
+    async def ttl(self, key: str) -> int:
+        """Get the time to live for a key in seconds."""
+        result = await self.execute_command("TTL", key)
+        return int(result) if result is not None else -2
+
+    async def eval(self, script: str, numkeys: int, *keys_and_args: Any) -> Any:
+        """Execute a Lua script on Redis via EVAL."""
+        return await self.execute_command("EVAL", script, int(numkeys), *keys_and_args)
+
     async def ping(self) -> bool:
         """Ping the Upstash Redis instance to verify connectivity."""
         result = await self.execute_command("PING")

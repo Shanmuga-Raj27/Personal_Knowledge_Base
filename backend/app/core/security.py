@@ -4,7 +4,10 @@ backend/app/core/security.py
 Security utilities for authentication.
 Handles JWT token creation/decoding and Argon2id password hashing/verification.
 """
+import hashlib
+import hmac
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -71,3 +74,17 @@ def create_access_token(*, user_id: int, email: Optional[str] = None, expires_de
     to_encode["exp"] = expire
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def generate_otp() -> str:
+    """Generate a cryptographically secure 6-digit numeric OTP string."""
+    return f"{secrets.randbelow(900000) + 100000}"
+
+
+def compute_otp_hmac(otp: str) -> str:
+    """Compute HMAC-SHA256 hex digest of the OTP string using SECRET_KEY."""
+    return hmac.new(
+        SECRET_KEY.encode("utf-8"),
+        otp.strip().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()

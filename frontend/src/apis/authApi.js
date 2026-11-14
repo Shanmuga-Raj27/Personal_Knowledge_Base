@@ -29,3 +29,30 @@ export const loginUser = (email, password) => {
     password,
   })
 }
+
+/**
+ * Verify OTP code to complete registration and receive JWT credentials.
+ * 
+ * @param {string} email - Account email.
+ * @param {string} otp - 6-digit verification code.
+ * @returns {Promise<object>} Returns JWT credentials payload containing access_token.
+ */
+export const verifyOtp = (email, otp) => {
+  return axiosClient.post('/auth/verify-otp', {
+    email,
+    otp,
+  })
+}
+
+/**
+ * Resend a fresh OTP verification code to the given email.
+ * 
+ * @param {string} email - Account email.
+ * @returns {Promise<object>} Returns confirmation message payload.
+ */
+export const resendOtp = (email) => {
+  return axiosClient.post('/auth/resend-otp', {
+    email,
+  })
+}
+

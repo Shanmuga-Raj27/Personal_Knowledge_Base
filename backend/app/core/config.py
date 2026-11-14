@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     VITE_API_URL: str = "http://localhost:8000"
     SECRET_KEY: str
 
+    # Resend Email Configuration for OTP Verification
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "Swan Drive <onboarding@resend.dev>"
+
     # Performance & Reliability Pool & Concurrency Controls
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 40
